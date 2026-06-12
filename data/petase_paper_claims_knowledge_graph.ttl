@@ -1,0 +1,1205 @@
+@prefix ahoj: <https://w3id.org/ahoj/ontology/> .
+@prefix biolink: <https://w3id.org/biolink/vocab/> .
+@prefix chebi: <https://identifiers.org/chebi/> .
+@prefix claim: <https://w3id.org/ahoj/claim/> .
+@prefix ent: <https://w3id.org/ahoj/entity/> .
+@prefix kgreg: <https://kghub.org/> .
+@prefix ncbi_protein: <https://www.ncbi.nlm.nih.gov/protein/> .
+@prefix pred: <https://w3id.org/ahoj/predicate/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix uniprot: <https://identifiers.org/uniprot/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ahoj:Assay a rdfs:Class .
+
+ahoj:ChemicalEntity a rdfs:Class .
+
+ahoj:ClaimTriplet a rdfs:Class .
+
+ahoj:Concept a rdfs:Class .
+
+ahoj:Database a rdfs:Class .
+
+ahoj:ExperimentalProtocol a rdfs:Class .
+
+ahoj:ExpressionHost a rdfs:Class .
+
+ahoj:ExternalResource a rdfs:Class .
+
+ahoj:MethodStep a rdfs:Class .
+
+ahoj:Metric a rdfs:Class .
+
+ahoj:Paper a rdfs:Class .
+
+ahoj:ProteinVariant a rdfs:Class .
+
+ahoj:PurificationMethod a rdfs:Class .
+
+ahoj:ResearchProblem a rdfs:Class .
+
+ahoj:Software a rdfs:Class .
+
+ahoj:Statistic a rdfs:Class .
+
+ahoj:UseCase a rdfs:Class .
+
+ent:Assay_duration a ahoj:Statistic ;
+    rdfs:label "Assay duration" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:reportedValue 48 ;
+    ahoj:unit "hours" .
+
+ent:Assay_volume a ahoj:Statistic ;
+    rdfs:label "Assay volume" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:reportedValue 0.5 ;
+    ahoj:unit "mL" .
+
+ent:E_coli_strains_tested a ahoj:Statistic ;
+    rdfs:label "E coli strains tested" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:reportedValue 6 ;
+    ahoj:unit "strains" .
+
+ent:Enzyme_concentration_in_assay a ahoj:Statistic ;
+    rdfs:label "Enzyme concentration in assay" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:reportedValue 500 ;
+    ahoj:unit "nM" .
+
+ent:Maximum_assay_temperature a ahoj:Statistic ;
+    rdfs:label "Maximum assay temperature" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:reportedValue 50 ;
+    ahoj:unit "degree Celsius" .
+
+ent:Minimum_assay_temperature a ahoj:Statistic ;
+    rdfs:label "Minimum assay temperature" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:reportedValue 30 ;
+    ahoj:unit "degree Celsius" .
+
+ent:N_terminal_signal_peptide_length a ahoj:Statistic ;
+    rdfs:label "N terminal signal peptide length" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:reportedValue 27 ;
+    ahoj:unit "amino acids" .
+
+ent:PET_powder_mass_in_assay a ahoj:Statistic ;
+    rdfs:label "PET powder mass in assay" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:reportedValue 5 ;
+    ahoj:unit "mg" .
+
+ent:PETase_variants_benchmarked a ahoj:Statistic ;
+    rdfs:label "PETase variants benchmarked" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:reportedValue 5 ;
+    ahoj:unit "variants" .
+
+ent:Protein a ahoj:Concept ;
+    rdfs:label "Protein",
+        "protein" ;
+    ahoj:externalAlignment uniprot:,
+        biolink:Protein .
+
+ahoj:claimObject a rdf:Property .
+
+ahoj:claimPredicate a rdf:Property .
+
+ahoj:claimSubject a rdf:Property .
+
+ahoj:claimText a rdf:Property .
+
+ahoj:externalAlignment a rdf:Property .
+
+ahoj:hasClaim a rdf:Property .
+
+ahoj:reportedValue a rdf:Property .
+
+ahoj:sourcePaper a rdf:Property .
+
+ahoj:supportsUseCase a rdf:Property .
+
+ahoj:unit a rdf:Property .
+
+ahoj:usesResource a rdf:Property .
+
+pred:account_for a rdf:Property .
+
+pred:applies a rdf:Property .
+
+pred:are_also_sorted_by a rdf:Property .
+
+pred:are_essential_for a rdf:Property .
+
+pred:are_excluded_from a rdf:Property .
+
+pred:are_mapped_through a rdf:Property .
+
+pred:are_needed_for a rdf:Property .
+
+pred:are_not a rdf:Property .
+
+pred:are_often a rdf:Property .
+
+pred:are_often_neglected_or_misrepresented_in a rdf:Property .
+
+pred:are_restricted_to a rdf:Property .
+
+pred:are_sorted_by a rdf:Property .
+
+pred:can_adopt a rdf:Property .
+
+pred:can_be_ambiguous_for a rdf:Property .
+
+pred:can_justify a rdf:Property .
+
+pred:can_occur_at a rdf:Property .
+
+pred:can_reveal a rdf:Property .
+
+pred:can_support a rdf:Property .
+
+pred:clarifies a rdf:Property .
+
+pred:contains_multiple_structures_for a rdf:Property .
+
+pred:corresponds_to a rdf:Property .
+
+pred:covers a rdf:Property .
+
+pred:defines a rdf:Property .
+
+pred:excludes a rdf:Property .
+
+pred:has_apo_form_for a rdf:Property .
+
+pred:has_apo_result_for a rdf:Property .
+
+pred:have_high a rdf:Property .
+
+pred:have_higher a rdf:Property .
+
+pred:have_low a rdf:Property .
+
+pred:have_more a rdf:Property .
+
+pred:have_smaller a rdf:Property .
+
+pred:have_very_low a rdf:Property .
+
+pred:influences a rdf:Property .
+
+pred:is_biased_toward a rdf:Property .
+
+pred:is_claimed_to_be a rdf:Property .
+
+pred:is_classified_by a rdf:Property .
+
+pred:is_compatible_with a rdf:Property .
+
+pred:is_not_readily_available_without a rdf:Property .
+
+pred:lacks a rdf:Property .
+
+pred:may_differ_geometrically_from a rdf:Property .
+
+pred:may_stabilize a rdf:Property .
+
+pred:occur_within a rdf:Property .
+
+pred:often_lack a rdf:Property .
+
+pred:often_rely_on a rdf:Property .
+
+pred:often_use a rdf:Property .
+
+pred:processed a rdf:Property .
+
+pred:provides a rdf:Property .
+
+pred:provides_reference_point_for a rdf:Property .
+
+pred:rarely_captures a rdf:Property .
+
+pred:reports a rdf:Property .
+
+pred:requires a rdf:Property .
+
+pred:requires_maximum_resolution a rdf:Property .
+
+pred:requires_minimum_mapped_binding_residues_on_SEQRES a rdf:Property .
+
+pred:use_maximum_resolution a rdf:Property .
+
+pred:uses_distance_cutoff a rdf:Property .
+
+pred:uses_input_interactions_from a rdf:Property .
+
+pred:uses_residue_mappings_from a rdf:Property .
+
+pred:uses_structures_from a rdf:Property .
+
+pred:yielded a rdf:Property .
+
+claim:PETASE_P001 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P001: PETase research -- suffers from -- Protocol heterogeneity" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Protocol_heterogeneity ;
+    ahoj:claimPredicate pred:suffers_from ;
+    ahoj:claimSubject ent:PETase_research ;
+    ahoj:claimText "PETase studies use diverse expression, purification, and assay protocols, making direct comparison of reported enzyme activities difficult." .
+
+claim:PETASE_P002 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P002: Absence of standardized PETase protocol -- limits -- Comparability between studies" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Comparability_between_studies ;
+    ahoj:claimPredicate pred:limits ;
+    ahoj:claimSubject ent:Absence_of_standardized_PETase_protocol ;
+    ahoj:claimText "The lack of a standardized PETase production protocol is a barrier to reliable enzyme characterization and comparison." .
+
+claim:PETASE_P003 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P003: PETase standardized workflow -- addresses -- Expression and purification variability" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Expression_and_purification_variability ;
+    ahoj:claimPredicate pred:addresses ;
+    ahoj:claimSubject ent:PETase_standardized_workflow ;
+    ahoj:claimText "The study presents a standardized workflow for expression, purification, and quality control of wild-type and engineered IsPETase variants." .
+
+claim:PETASE_P004 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P004: PETase standardized workflow -- facilitates -- Activity comparison" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Activity_comparison ;
+    ahoj:claimPredicate pred:facilitates ;
+    ahoj:claimSubject ent:PETase_standardized_workflow ;
+    ahoj:claimText "A unified production workflow enables more accurate comparison of PETase variants and improves reproducibility." .
+
+claim:PETASE_P005 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P005: Enzymatic PET recycling -- supports -- Plastic waste management" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Plastic_waste_management ;
+    ahoj:claimPredicate pred:supports ;
+    ahoj:claimSubject ent:Enzymatic_PET_recycling ;
+    ahoj:claimText "Enzymatic PET degradation is presented as an environmentally friendly route for mitigating plastic waste and enabling recycling." .
+
+claim:PETASE_P006 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P006: PET -- is depolymerized into -- TPA" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:TPA ;
+    ahoj:claimPredicate pred:is_depolymerized_into ;
+    ahoj:claimSubject ent:PET ;
+    ahoj:claimText "Enzymatic degradation of PET can release terephthalic acid as a monomeric product." .
+
+claim:PETASE_P007 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P007: PET -- is depolymerized into -- EG" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:EG ;
+    ahoj:claimPredicate pred:is_depolymerized_into ;
+    ahoj:claimSubject ent:PET ;
+    ahoj:claimText "Enzymatic degradation of PET can release ethylene glycol as a monomeric product." .
+
+claim:PETASE_P008 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P008: Naturally occurring PETases -- exhibit -- Limited catalytic efficiency" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Limited_catalytic_efficiency ;
+    ahoj:claimPredicate pred:exhibit ;
+    ahoj:claimSubject ent:Naturally_occurring_PETases ;
+    ahoj:claimText "Naturally occurring PETases, including IsPETase, have limited catalytic efficiency and therefore motivate engineering efforts." .
+
+claim:PETASE_P009 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P009: Engineered PETase variants -- aim to improve -- Thermostability" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Thermostability ;
+    ahoj:claimPredicate pred:aim_to_improve ;
+    ahoj:claimSubject ent:Engineered_PETase_variants ;
+    ahoj:claimText "Engineered PETase variants are designed to improve thermostability, substrate specificity, and degradation rate." .
+
+claim:PETASE_P010 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P010: Five IsPETase variants -- were benchmarked by -- PETase standardized workflow" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:PETase_standardized_workflow ;
+    ahoj:claimPredicate pred:were_benchmarked_by ;
+    ahoj:claimSubject ent:Five_IsPETase_variants ;
+    ahoj:claimText "The study benchmarks five IsPETase variants: WT, W185A, W159H/S238F, FAST-PETase, and HOT-PETase." .
+
+claim:PETASE_P011 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P011: IsPETase WT -- is variant of -- IsPETase" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:IsPETase ;
+    ahoj:claimPredicate pred:is_variant_of ;
+    ahoj:claimSubject ent:IsPETase_WT ;
+    ahoj:claimText "Wild-type IsPETase is used as the reference variant in the workflow." .
+
+claim:PETASE_P012 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P012: PETase W185A -- is variant of -- IsPETase" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:IsPETase ;
+    ahoj:claimPredicate pred:is_variant_of ;
+    ahoj:claimSubject ent:PETase_W185A ;
+    ahoj:claimText "W185A is a single-mutant IsPETase variant included in the comparison." .
+
+claim:PETASE_P013 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P013: PETase W159H S238F -- is variant of -- IsPETase" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:IsPETase ;
+    ahoj:claimPredicate pred:is_variant_of ;
+    ahoj:claimSubject ent:PETase_W159H_S238F ;
+    ahoj:claimText "W159H/S238F is a double-mutant IsPETase variant included in the comparison." .
+
+claim:PETASE_P014 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P014: FAST PETase -- is variant of -- IsPETase" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:IsPETase ;
+    ahoj:claimPredicate pred:is_variant_of ;
+    ahoj:claimSubject ent:FAST_PETase ;
+    ahoj:claimText "FAST-PETase is an engineered IsPETase variant tested in the standardized workflow." .
+
+claim:PETASE_P015 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P015: HOT PETase -- is variant of -- IsPETase" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:IsPETase ;
+    ahoj:claimPredicate pred:is_variant_of ;
+    ahoj:claimSubject ent:HOT_PETase ;
+    ahoj:claimText "HOT-PETase is an engineered IsPETase variant tested in the standardized workflow." .
+
+claim:PETASE_P016 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P016: E coli expression strains -- do not show significant difference in -- FAST PETase solubility" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:FAST_PETase_solubility ;
+    ahoj:claimPredicate pred:do_not_show_significant_difference_in ;
+    ahoj:claimSubject ent:E_coli_expression_strains ;
+    ahoj:claimText "Six E. coli strains did not show significant differences in FAST-PETase yield or solubility under the initial tested conditions." .
+
+claim:PETASE_P017 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P017: BL21 CodonPlus DE3 RIL -- was selected for -- Large scale PETase production" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Large_scale_PETase_production ;
+    ahoj:claimPredicate pred:was_selected_for ;
+    ahoj:claimSubject ent:BL21_CodonPlus_DE3_RIL ;
+    ahoj:claimText "BL21-CodonPlus(DE3)-RIL was selected for the final large-scale expression protocol." .
+
+claim:PETASE_P018 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P018: Expression temperature -- has greater impact on -- Soluble protein yield" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Soluble_protein_yield ;
+    ahoj:claimPredicate pred:has_greater_impact_on ;
+    ahoj:claimSubject ent:Expression_temperature ;
+    ahoj:claimText "Expression temperature strongly affects soluble PETase production and has greater impact than strain selection." .
+
+claim:PETASE_P019 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P019: Expression at 37 C -- leads to -- Protein accumulation in pellet fraction" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Protein_accumulation_in_pellet_fraction ;
+    ahoj:claimPredicate pred:leads_to ;
+    ahoj:claimSubject ent:Expression_at_37_C ;
+    ahoj:claimText "At 37 degrees Celsius, the target protein is predominantly found in the pellet fraction." .
+
+claim:PETASE_P020 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P020: Expression at 20 to 25 C -- improves -- Soluble PETase yield" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Soluble_PETase_yield ;
+    ahoj:claimPredicate pred:improves ;
+    ahoj:claimSubject ent:Expression_at_20_to_25_C ;
+    ahoj:claimText "Lower expression temperatures around 20-25 degrees Celsius improve soluble PETase yield." .
+
+claim:PETASE_P021 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P021: PETase -- contains -- Disulfide bond" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Disulfide_bond ;
+    ahoj:claimPredicate pred:contains ;
+    ahoj:claimSubject ent:PETase ;
+    ahoj:claimText "PETase variants contain cysteine residues forming disulfide bonds, which were confirmed by intact mass analysis." .
+
+claim:PETASE_P022 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P022: Signal peptide -- is cleaved during -- PETase expression" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:PETase_expression ;
+    ahoj:claimPredicate pred:is_cleaved_during ;
+    ahoj:claimSubject ent:Signal_peptide ;
+    ahoj:claimText "The 27-residue N-terminal signal peptide is cleaved during expression, yielding protein starting at Gln28." .
+
+claim:PETASE_P023 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P023: Signal peptide presence -- appears inconsequential for -- Downstream PETase activity" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Downstream_PETase_activity ;
+    ahoj:claimPredicate pred:appears_inconsequential_for ;
+    ahoj:claimSubject ent:Signal_peptide_presence ;
+    ahoj:claimText "Because the signal peptide is cleaved, its presence appears inconsequential for downstream enzymatic activity." .
+
+claim:PETASE_P024 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P024: Ni NTA -- produces higher purity than -- HisTrap" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:HisTrap ;
+    ahoj:claimPredicate pred:produces_higher_purity_than ;
+    ahoj:claimSubject ent:Ni_NTA ;
+    ahoj:claimText "Ni-NTA purification produced cleaner PETase eluate than HisTrap under the tested conditions." .
+
+claim:PETASE_P025 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P025: SEC -- is crucial for -- Consistent PETase purity" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Consistent_PETase_purity ;
+    ahoj:claimPredicate pred:is_crucial_for ;
+    ahoj:claimSubject ent:SEC ;
+    ahoj:claimText "Size exclusion chromatography removes residual contaminants and is crucial for consistent protein quality." .
+
+claim:PETASE_P026 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P026: Two step IMAC SEC -- produces higher activity than -- Single step IMAC" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Single_step_IMAC ;
+    ahoj:claimPredicate pred:produces_higher_activity_than ;
+    ahoj:claimSubject ent:Two_step_IMAC_SEC ;
+    ahoj:claimText "Two-step IMAC plus SEC purification yields higher PET hydrolysis activity than single-step IMAC purification." .
+
+claim:PETASE_P027 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P027: Ni NTA SEC protocol -- is standardized protocol for -- PETase activity assessment" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:PETase_activity_assessment ;
+    ahoj:claimPredicate pred:is_standardized_protocol_for ;
+    ahoj:claimSubject ent:Ni_NTA_SEC_protocol ;
+    ahoj:claimText "Ni-NTA followed by SEC is validated as a standardized protocol for assessing PETase variants." .
+
+claim:PETASE_P028 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P028: Residual imidazole -- does not impair -- PETase catalytic function" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:PETase_catalytic_function ;
+    ahoj:claimPredicate pred:does_not_impair ;
+    ahoj:claimSubject ent:Residual_imidazole ;
+    ahoj:claimText "Dialyzed and non-dialyzed samples showed no measurable difference in activity, suggesting imidazole does not impair catalysis." .
+
+claim:PETASE_P029 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P029: Spectrophotometric A240 assay -- measures -- Soluble aromatic product release" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Soluble_aromatic_product_release ;
+    ahoj:claimPredicate pred:measures ;
+    ahoj:claimSubject ent:Spectrophotometric_A240_assay ;
+    ahoj:claimText "The assay monitors absorbance at 240 nm as a proxy for soluble aromatic hydrolysis products including BHET, MHET, and TPA." .
+
+claim:PETASE_P030 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P030: Standardized assay setup -- uses -- Semi crystalline PET powder" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Semi_crystalline_PET_powder ;
+    ahoj:claimPredicate pred:uses ;
+    ahoj:claimSubject ent:Standardized_assay_setup ;
+    ahoj:claimText "The standardized activity assay uses semi-crystalline PET powder as the real PET substrate." .
+
+claim:PETASE_P031 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P031: IsPETase WT -- has moderate activity at -- 30 C" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:30_C ;
+    ahoj:claimPredicate pred:has_moderate_activity_at ;
+    ahoj:claimSubject ent:IsPETase_WT ;
+    ahoj:claimText "Wild-type IsPETase displays moderate activity at 30 degrees Celsius and declines at higher temperature." .
+
+claim:PETASE_P032 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P032: PETase W185A -- has low -- PET hydrolysis activity" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:PET_hydrolysis_activity ;
+    ahoj:claimPredicate pred:has_low ;
+    ahoj:claimSubject ent:PETase_W185A ;
+    ahoj:claimText "PETase W185A shows low activity across tested temperatures." .
+
+claim:PETASE_P033 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P033: PETase W159H S238F -- has increased activity at -- 40 C" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:40_C ;
+    ahoj:claimPredicate pred:has_increased_activity_at ;
+    ahoj:claimSubject ent:PETase_W159H_S238F ;
+    ahoj:claimText "PETase W159H/S238F has increased activity at 40 degrees Celsius but undetectable activity at 50 degrees Celsius." .
+
+claim:PETASE_P034 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P034: FAST PETase -- has optimal hydrolysis at -- 40 C" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:40_C ;
+    ahoj:claimPredicate pred:has_optimal_hydrolysis_at ;
+    ahoj:claimSubject ent:FAST_PETase ;
+    ahoj:claimText "FAST-PETase remains active across tested temperatures and shows optimal hydrolysis around 40 degrees Celsius." .
+
+claim:PETASE_P035 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P035: HOT PETase -- has highest activity at -- 50 C" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:50_C ;
+    ahoj:claimPredicate pred:has_highest_activity_at ;
+    ahoj:claimSubject ent:HOT_PETase ;
+    ahoj:claimText "HOT-PETase exhibits the highest activity at 50 degrees Celsius and maintains a steady hydrolysis rate over 48 hours." .
+
+claim:PETASE_P036 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P036: PETase variant activity -- correlates with -- Melting temperature" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Melting_temperature ;
+    ahoj:claimPredicate pred:correlates_with ;
+    ahoj:claimSubject ent:PETase_variant_activity ;
+    ahoj:claimText "The activity profiles of variants correlate with their melting temperatures." .
+
+claim:PETASE_P037 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P037: FAST PETase and HOT PETase -- outperform -- Wild type IsPETase at elevated temperatures" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Wild_type_IsPETase_at_elevated_temperatures ;
+    ahoj:claimPredicate pred:outperform ;
+    ahoj:claimSubject ent:FAST_PETase_and_HOT_PETase ;
+    ahoj:claimText "FAST-PETase and HOT-PETase show enhanced hydrolysis at higher temperatures compared with wild-type IsPETase." .
+
+claim:PETASE_P038 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P038: Assay setup variability -- affects -- Observed PETase activity" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Observed_PETase_activity ;
+    ahoj:claimPredicate pred:affects ;
+    ahoj:claimSubject ent:Assay_setup_variability ;
+    ahoj:claimText "Substrate type, enzyme-to-substrate ratio, buffer, pH, temperature, and measurement interval can affect observed PETase activity." .
+
+claim:PETASE_P039 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P039: Different product quantification methods -- introduce -- PETase activity comparison variability" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:PETase_activity_comparison_variability ;
+    ahoj:claimPredicate pred:introduce ;
+    ahoj:claimSubject ent:Different_product_quantification_methods ;
+    ahoj:claimText "Different methods for quantifying TPA, MHET, and BHET introduce additional variability into cross-study PETase comparisons." .
+
+claim:PETASE_P040 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P040: Expression and purification variability -- is overlooked contributor to -- PETase performance inconsistency" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:PETase_performance_inconsistency ;
+    ahoj:claimPredicate pred:is_overlooked_contributor_to ;
+    ahoj:claimSubject ent:Expression_and_purification_variability ;
+    ahoj:claimText "Expression and purification variability may be an overlooked contributor to inconsistent PETase performance data." .
+
+claim:PETASE_P041 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P041: PETase standardized workflow -- reduces -- Inter study variability" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Inter_study_variability ;
+    ahoj:claimPredicate pred:reduces ;
+    ahoj:claimSubject ent:PETase_standardized_workflow ;
+    ahoj:claimText "The workflow is intended to reduce inter-study variability in PETase production and assessment." .
+
+claim:PETASE_P042 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P042: PETase standardized workflow -- supports -- Biocatalyst development" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Biocatalyst_development ;
+    ahoj:claimPredicate pred:supports ;
+    ahoj:claimSubject ent:PETase_standardized_workflow ;
+    ahoj:claimText "The standardized workflow supports development of efficient biocatalysts for plastic waste biodegradation and upcycling." .
+
+claim:PETASE_P043 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P043: PETase standardized workflow -- is complementary to -- AHoJ DB" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:AHoJ_DB ;
+    ahoj:claimPredicate pred:is_complementary_to ;
+    ahoj:claimSubject ent:PETase_standardized_workflow ;
+    ahoj:claimText "The PETase workflow standardizes experimental enzyme production and activity comparison, while AHoJ-DB standardizes structural apo/holo pocket comparison." .
+
+claim:PETASE_P044 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P044: PETase variant -- has -- Protein structure" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Protein_structure ;
+    ahoj:claimPredicate pred:has ;
+    ahoj:claimSubject ent:PETase_variant ;
+    ahoj:claimText "PETase variants can be connected to protein structures in a knowledge graph." .
+
+claim:PETASE_P045 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P045: PETase active site -- is a -- Binding pocket" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Binding_pocket ;
+    ahoj:claimPredicate pred:is_a ;
+    ahoj:claimSubject ent:PETase_active_site ;
+    ahoj:claimText "A PETase active site can be modeled as a protein binding pocket, enabling reuse of AHoJ-DB-style pocket concepts." .
+
+claim:PETASE_P046 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P046: PETase activity comparison -- can be enriched by -- Binding pocket geometry" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Binding_pocket_geometry ;
+    ahoj:claimPredicate pred:can_be_enriched_by ;
+    ahoj:claimSubject ent:PETase_activity_comparison ;
+    ahoj:claimText "PETase activity comparisons could be enriched by structural descriptors of active-site or substrate-binding pocket geometry." .
+
+claim:PETASE_P047 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P047: PETase research -- benefits from -- Reproducibility" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Reproducibility ;
+    ahoj:claimPredicate pred:benefits_from ;
+    ahoj:claimSubject ent:PETase_research ;
+    ahoj:claimText "Reproducible protocols are needed for reliable PETase research and identification of promising variants." .
+
+claim:PETASE_P048 a ahoj:ClaimTriplet ;
+    rdfs:label "PETASE_P048: PETase standardized workflow -- lays groundwork for -- Enzymatic PET degradation applications" ;
+    prov:wasDerivedFrom ent:Article_PETase_Workflow_2025 ;
+    ahoj:claimObject ent:Enzymatic_PET_degradation_applications ;
+    ahoj:claimPredicate pred:lays_groundwork_for ;
+    ahoj:claimSubject ent:PETase_standardized_workflow ;
+    ahoj:claimText "The workflow lays groundwork for accelerating PETase research and enzymatic PET degradation applications." .
+
+ent:Absence_of_standardized_PETase_protocol a ahoj:Concept ;
+    rdfs:label "Absence of standardized PETase protocol" ;
+    pred:limits ent:Comparability_between_studies .
+
+ent:Assay_setup_variability a ahoj:Concept,
+        ahoj:ResearchProblem ;
+    rdfs:label "Assay setup variability",
+        "assay setup variability" ;
+    pred:affects ent:Observed_PETase_activity .
+
+ent:BL21_CodonPlus_DE3_RIL a ahoj:Concept,
+        ahoj:ExpressionHost ;
+    rdfs:label "BL21 CodonPlus DE3 RIL",
+        "E. coli BL21-CodonPlus(DE3)-RIL" ;
+    pred:was_selected_for ent:Large_scale_PETase_production .
+
+ent:Different_product_quantification_methods a ahoj:Concept ;
+    rdfs:label "Different product quantification methods" ;
+    pred:introduce ent:PETase_activity_comparison_variability .
+
+ent:E_coli_expression_strains a ahoj:Concept ;
+    rdfs:label "E coli expression strains" ;
+    pred:do_not_show_significant_difference_in ent:FAST_PETase_solubility .
+
+ent:Engineered_PETase_variants a ahoj:Concept ;
+    rdfs:label "Engineered PETase variants" ;
+    pred:aim_to_improve ent:Thermostability .
+
+ent:Expression_at_20_to_25_C a ahoj:Concept ;
+    rdfs:label "Expression at 20 to 25 C" ;
+    pred:improves ent:Soluble_PETase_yield .
+
+ent:Expression_at_37_C a ahoj:Concept ;
+    rdfs:label "Expression at 37 C" ;
+    pred:leads_to ent:Protein_accumulation_in_pellet_fraction .
+
+ent:Expression_temperature a ahoj:Concept,
+        ahoj:Metric ;
+    rdfs:label "Expression temperature",
+        "expression temperature" ;
+    pred:has_greater_impact_on ent:Soluble_protein_yield .
+
+ent:FAST_PETase_and_HOT_PETase a ahoj:Concept ;
+    rdfs:label "FAST PETase and HOT PETase" ;
+    pred:outperform ent:Wild_type_IsPETase_at_elevated_temperatures .
+
+ent:Five_IsPETase_variants a ahoj:Concept ;
+    rdfs:label "Five IsPETase variants" ;
+    pred:were_benchmarked_by ent:PETase_standardized_workflow .
+
+ent:Naturally_occurring_PETases a ahoj:Concept ;
+    rdfs:label "Naturally occurring PETases" ;
+    pred:exhibit ent:Limited_catalytic_efficiency .
+
+ent:Ni_NTA a ahoj:Concept,
+        ahoj:PurificationMethod ;
+    rdfs:label "Ni NTA",
+        "Ni-NTA affinity chromatography" ;
+    pred:produces_higher_purity_than ent:HisTrap .
+
+ent:Ni_NTA_SEC_protocol a ahoj:Concept,
+        ahoj:ExperimentalProtocol ;
+    rdfs:label "Ni NTA SEC protocol",
+        "Ni-NTA plus SEC protocol" ;
+    pred:is_standardized_protocol_for ent:PETase_activity_assessment .
+
+ent:PETase a ahoj:Concept ;
+    rdfs:label "PETase",
+        "PETase enzyme" ;
+    pred:contains ent:Disulfide_bond .
+
+ent:PETase_active_site a ahoj:Concept ;
+    rdfs:label "PETase active site" ;
+    pred:is_a ent:Binding_pocket .
+
+ent:PETase_activity_comparison a ahoj:Concept ;
+    rdfs:label "PETase activity comparison" ;
+    pred:can_be_enriched_by ent:Binding_pocket_geometry .
+
+ent:PETase_variant a ahoj:Concept,
+        ahoj:ProteinVariant ;
+    rdfs:label "PETase variant" ;
+    pred:has ent:Protein_structure .
+
+ent:PETase_variant_activity a ahoj:Concept ;
+    rdfs:label "PETase variant activity" ;
+    pred:correlates_with ent:Melting_temperature .
+
+ent:Residual_imidazole a ahoj:Concept ;
+    rdfs:label "Residual imidazole" ;
+    pred:does_not_impair ent:PETase_catalytic_function .
+
+ent:SEC a ahoj:Concept,
+        ahoj:PurificationMethod ;
+    rdfs:label "SEC",
+        "size exclusion chromatography" ;
+    pred:is_crucial_for ent:Consistent_PETase_purity .
+
+ent:Signal_peptide a ahoj:Concept ;
+    rdfs:label "Signal peptide",
+        "signal peptide" ;
+    pred:is_cleaved_during ent:PETase_expression .
+
+ent:Signal_peptide_presence a ahoj:Concept ;
+    rdfs:label "Signal peptide presence" ;
+    pred:appears_inconsequential_for ent:Downstream_PETase_activity .
+
+ent:Spectrophotometric_A240_assay a ahoj:Assay,
+        ahoj:Concept ;
+    rdfs:label "Spectrophotometric A240 assay",
+        "spectrophotometric A240 assay" ;
+    pred:measures ent:Soluble_aromatic_product_release .
+
+ent:Standardized_assay_setup a ahoj:Assay,
+        ahoj:Concept ;
+    rdfs:label "Standardized assay setup",
+        "standardized assay setup" ;
+    pred:uses ent:Semi_crystalline_PET_powder .
+
+ent:Two_step_IMAC_SEC a ahoj:Concept,
+        ahoj:PurificationMethod ;
+    rdfs:label "Two step IMAC SEC",
+        "two-step IMAC plus SEC" ;
+    pred:produces_higher_activity_than ent:Single_step_IMAC .
+
+pred:addresses a rdf:Property ;
+    rdfs:label "addresses" .
+
+pred:affects a rdf:Property ;
+    rdfs:label "affects" .
+
+pred:aim_to_improve a rdf:Property ;
+    rdfs:label "aim to improve" .
+
+pred:appears_inconsequential_for a rdf:Property ;
+    rdfs:label "appears inconsequential for" .
+
+pred:benefits_from a rdf:Property ;
+    rdfs:label "benefits from" .
+
+pred:can_be_enriched_by a rdf:Property ;
+    rdfs:label "can be enriched by" .
+
+pred:contains a rdf:Property ;
+    rdfs:label "contains" .
+
+pred:correlates_with a rdf:Property ;
+    rdfs:label "correlates with" .
+
+pred:do_not_show_significant_difference_in a rdf:Property ;
+    rdfs:label "do not show significant difference in" .
+
+pred:does_not_impair a rdf:Property ;
+    rdfs:label "does not impair" .
+
+pred:exhibit a rdf:Property ;
+    rdfs:label "exhibit" .
+
+pred:facilitates a rdf:Property ;
+    rdfs:label "facilitates" .
+
+pred:has a rdf:Property ;
+    rdfs:label "has" .
+
+pred:has_greater_impact_on a rdf:Property ;
+    rdfs:label "has greater impact on" .
+
+pred:has_highest_activity_at a rdf:Property ;
+    rdfs:label "has highest activity at" .
+
+pred:has_increased_activity_at a rdf:Property ;
+    rdfs:label "has increased activity at" .
+
+pred:has_low a rdf:Property ;
+    rdfs:label "has low" .
+
+pred:has_moderate_activity_at a rdf:Property ;
+    rdfs:label "has moderate activity at" .
+
+pred:has_optimal_hydrolysis_at a rdf:Property ;
+    rdfs:label "has optimal hydrolysis at" .
+
+pred:improves a rdf:Property ;
+    rdfs:label "improves" .
+
+pred:introduce a rdf:Property ;
+    rdfs:label "introduce" .
+
+pred:is_a a rdf:Property ;
+    rdfs:label "is a" .
+
+pred:is_cleaved_during a rdf:Property ;
+    rdfs:label "is cleaved during" .
+
+pred:is_complementary_to a rdf:Property ;
+    rdfs:label "is complementary to" .
+
+pred:is_crucial_for a rdf:Property ;
+    rdfs:label "is crucial for" .
+
+pred:is_overlooked_contributor_to a rdf:Property ;
+    rdfs:label "is overlooked contributor to" .
+
+pred:is_standardized_protocol_for a rdf:Property ;
+    rdfs:label "is standardized protocol for" .
+
+pred:lays_groundwork_for a rdf:Property ;
+    rdfs:label "lays groundwork for" .
+
+pred:leads_to a rdf:Property ;
+    rdfs:label "leads to" .
+
+pred:limits a rdf:Property ;
+    rdfs:label "limits" .
+
+pred:measures a rdf:Property ;
+    rdfs:label "measures" .
+
+pred:outperform a rdf:Property ;
+    rdfs:label "outperform" .
+
+pred:produces_higher_activity_than a rdf:Property ;
+    rdfs:label "produces higher activity than" .
+
+pred:produces_higher_purity_than a rdf:Property ;
+    rdfs:label "produces higher purity than" .
+
+pred:reduces a rdf:Property ;
+    rdfs:label "reduces" .
+
+pred:suffers_from a rdf:Property ;
+    rdfs:label "suffers from" .
+
+pred:uses a rdf:Property ;
+    rdfs:label "uses" .
+
+pred:was_selected_for a rdf:Property ;
+    rdfs:label "was selected for" .
+
+pred:were_benchmarked_by a rdf:Property ;
+    rdfs:label "were benchmarked by" .
+
+ent:30_C a ahoj:Concept ;
+    rdfs:label "30 C" .
+
+ent:50_C a ahoj:Concept ;
+    rdfs:label "50 C" .
+
+ent:AHoJ_DB a ahoj:Concept,
+        ahoj:Database ;
+    rdfs:label "AHoJ DB",
+        "AHoJ-DB" ;
+    skos:exactMatch <https://www.apoholo.cz/db> ;
+    ahoj:externalAlignment kgreg: ;
+    pred:can_support ent:Allosteric_effect_detection,
+        ent:Cryptic_binding_site_validation,
+        ent:Drug_design_and_docking,
+        ent:Folding_dynamics_investigation,
+        ent:Ligand_binding_site_predictor_training_and_testing,
+        ent:Machine_learning_tool_development,
+        ent:Order_to_disorder_transition_analysis,
+        ent:Protein_structure_analysis ;
+    pred:covers ent:27983_proteins ;
+    pred:is_claimed_to_be ent:Most_comprehensive_apo_holo_structure_database_to_date ;
+    pred:processed ent:468293_biologically_relevant_protein_ligand_interactions ;
+    pred:reports ent:Pocket_level_metrics,
+        ent:Relevant_chain_metrics,
+        ent:Whole_structure_metrics ;
+    pred:uses_input_interactions_from ent:BioLiP2 ;
+    pred:uses_residue_mappings_from ent:SIFTS ;
+    pred:uses_structures_from ent:PDB .
+
+ent:Activity_comparison a ahoj:Concept ;
+    rdfs:label "Activity comparison",
+        "activity comparison" .
+
+ent:Binding_pocket a ahoj:Concept ;
+    rdfs:label "Binding pocket",
+        "binding pocket" ;
+    ahoj:externalAlignment biolink:GrossAnatomicalStructure ;
+    pred:provides_reference_point_for ent:Apo_holo_classification .
+
+ent:Binding_pocket_geometry a ahoj:Concept ;
+    rdfs:label "Binding pocket geometry",
+        "binding pocket geometry" .
+
+ent:Biocatalyst_development a ahoj:Concept,
+        ahoj:UseCase ;
+    rdfs:label "Biocatalyst development",
+        "biocatalyst development" .
+
+ent:Comparability_between_studies a ahoj:Concept ;
+    rdfs:label "Comparability between studies",
+        "comparability between studies" .
+
+ent:Consistent_PETase_purity a ahoj:Concept ;
+    rdfs:label "Consistent PETase purity" .
+
+ent:Disulfide_bond a ahoj:Concept ;
+    rdfs:label "Disulfide bond",
+        "disulfide bond" .
+
+ent:Downstream_PETase_activity a ahoj:Concept ;
+    rdfs:label "Downstream PETase activity" .
+
+ent:EG a ahoj:ChemicalEntity,
+        ahoj:Concept ;
+    rdfs:label "EG",
+        "ethylene glycol" ;
+    skos:closeMatch chebi:30742 .
+
+ent:Enzymatic_PET_degradation_applications a ahoj:Concept ;
+    rdfs:label "Enzymatic PET degradation applications" .
+
+ent:Enzymatic_PET_recycling a ahoj:Concept,
+        ahoj:UseCase ;
+    rdfs:label "Enzymatic PET recycling",
+        "enzymatic PET recycling" ;
+    pred:supports ent:Plastic_waste_management .
+
+ent:FAST_PETase a ahoj:Concept,
+        ahoj:ProteinVariant ;
+    rdfs:label "FAST PETase",
+        "FAST-PETase" ;
+    pred:has_optimal_hydrolysis_at ent:40_C ;
+    pred:is_variant_of ent:IsPETase .
+
+ent:FAST_PETase_solubility a ahoj:Concept ;
+    rdfs:label "FAST PETase solubility" .
+
+ent:HOT_PETase a ahoj:Concept,
+        ahoj:ProteinVariant ;
+    rdfs:label "HOT PETase",
+        "HOT-PETase" ;
+    pred:has_highest_activity_at ent:50_C ;
+    pred:is_variant_of ent:IsPETase .
+
+ent:HisTrap a ahoj:Concept,
+        ahoj:PurificationMethod ;
+    rdfs:label "HisTrap",
+        "HisTrap purification" .
+
+ent:Inter_study_variability a ahoj:Concept,
+        ahoj:ResearchProblem ;
+    rdfs:label "Inter study variability",
+        "inter-study variability" .
+
+ent:IsPETase_WT a ahoj:Concept,
+        ahoj:ProteinVariant ;
+    rdfs:label "IsPETase WT",
+        "wild-type IsPETase" ;
+    pred:has_moderate_activity_at ent:30_C ;
+    pred:is_variant_of ent:IsPETase .
+
+ent:Large_scale_PETase_production a ahoj:Concept ;
+    rdfs:label "Large scale PETase production" .
+
+ent:Limited_catalytic_efficiency a ahoj:Concept ;
+    rdfs:label "Limited catalytic efficiency" .
+
+ent:Melting_temperature a ahoj:Concept,
+        ahoj:Metric ;
+    rdfs:label "Melting temperature",
+        "melting temperature" .
+
+ent:Observed_PETase_activity a ahoj:Concept ;
+    rdfs:label "Observed PETase activity" .
+
+ent:PET a ahoj:ChemicalEntity,
+        ahoj:Concept ;
+    rdfs:label "PET",
+        "polyethylene terephthalate" ;
+    skos:closeMatch chebi:53259 ;
+    ahoj:externalAlignment biolink:ChemicalEntity ;
+    pred:is_depolymerized_into ent:EG,
+        ent:TPA .
+
+ent:PET_hydrolysis_activity a ahoj:Concept,
+        ahoj:Metric ;
+    rdfs:label "PET hydrolysis activity" .
+
+ent:PETase_W159H_S238F a ahoj:Concept,
+        ahoj:ProteinVariant ;
+    rdfs:label "IsPETase W159H/S238F",
+        "PETase W159H S238F" ;
+    pred:has_increased_activity_at ent:40_C ;
+    pred:is_variant_of ent:IsPETase .
+
+ent:PETase_W185A a ahoj:Concept,
+        ahoj:ProteinVariant ;
+    rdfs:label "IsPETase W185A",
+        "PETase W185A" ;
+    pred:has_low ent:PET_hydrolysis_activity ;
+    pred:is_variant_of ent:IsPETase .
+
+ent:PETase_activity_assessment a ahoj:Concept ;
+    rdfs:label "PETase activity assessment" .
+
+ent:PETase_activity_comparison_variability a ahoj:Concept ;
+    rdfs:label "PETase activity comparison variability" .
+
+ent:PETase_catalytic_function a ahoj:Concept ;
+    rdfs:label "PETase catalytic function" .
+
+ent:PETase_expression a ahoj:Concept ;
+    rdfs:label "PETase expression" .
+
+ent:PETase_performance_inconsistency a ahoj:Concept ;
+    rdfs:label "PETase performance inconsistency" .
+
+ent:Plastic_waste_management a ahoj:Concept,
+        ahoj:UseCase ;
+    rdfs:label "Plastic waste management",
+        "plastic waste management" .
+
+ent:Protein_accumulation_in_pellet_fraction a ahoj:Concept ;
+    rdfs:label "Protein accumulation in pellet fraction" .
+
+ent:Protein_structure a ahoj:Concept ;
+    rdfs:label "Protein structure",
+        "protein structure" .
+
+ent:Protocol_heterogeneity a ahoj:Concept,
+        ahoj:ResearchProblem ;
+    rdfs:label "Protocol heterogeneity",
+        "protocol heterogeneity" .
+
+ent:Reproducibility a ahoj:Concept ;
+    rdfs:label "Reproducibility",
+        "reproducibility" .
+
+ent:Semi_crystalline_PET_powder a ahoj:ChemicalEntity,
+        ahoj:Concept ;
+    rdfs:label "Semi crystalline PET powder",
+        "semi-crystalline PET powder" .
+
+ent:Single_step_IMAC a ahoj:Concept,
+        ahoj:PurificationMethod ;
+    rdfs:label "Single step IMAC",
+        "single-step IMAC" .
+
+ent:Soluble_PETase_yield a ahoj:Concept ;
+    rdfs:label "Soluble PETase yield" .
+
+ent:Soluble_aromatic_product_release a ahoj:Concept ;
+    rdfs:label "Soluble aromatic product release" .
+
+ent:Soluble_protein_yield a ahoj:Concept,
+        ahoj:Metric ;
+    rdfs:label "Soluble protein yield",
+        "soluble protein yield" .
+
+ent:TPA a ahoj:ChemicalEntity,
+        ahoj:Concept ;
+    rdfs:label "TPA",
+        "terephthalic acid" ;
+    skos:closeMatch chebi:15702 .
+
+ent:Thermostability a ahoj:Concept,
+        ahoj:Metric ;
+    rdfs:label "Thermostability",
+        "thermostability" .
+
+ent:Wild_type_IsPETase_at_elevated_temperatures a ahoj:Concept ;
+    rdfs:label "Wild type IsPETase at elevated temperatures" .
+
+pred:is_depolymerized_into a rdf:Property ;
+    rdfs:label "is depolymerized into" .
+
+pred:supports a rdf:Property ;
+    rdfs:label "supports" .
+
+ent:Expression_and_purification_variability a ahoj:Concept,
+        ahoj:ResearchProblem ;
+    rdfs:label "Expression and purification variability",
+        "expression and purification variability" ;
+    pred:is_overlooked_contributor_to ent:PETase_performance_inconsistency .
+
+ent:PETase_research a ahoj:Concept ;
+    rdfs:label "PETase research" ;
+    pred:benefits_from ent:Reproducibility ;
+    pred:suffers_from ent:Protocol_heterogeneity .
+
+ent:40_C a ahoj:Concept ;
+    rdfs:label "40 C" .
+
+pred:is_variant_of a rdf:Property ;
+    rdfs:label "is variant of" .
+
+ent:PETase_standardized_workflow a ahoj:Concept,
+        ahoj:ExperimentalProtocol ;
+    rdfs:label "PETase standardized workflow",
+        "standardized PETase workflow" ;
+    pred:addresses ent:Expression_and_purification_variability ;
+    pred:facilitates ent:Activity_comparison ;
+    pred:is_complementary_to ent:AHoJ_DB ;
+    pred:lays_groundwork_for ent:Enzymatic_PET_degradation_applications ;
+    pred:reduces ent:Inter_study_variability ;
+    pred:supports ent:Biocatalyst_development .
+
+ent:IsPETase a ahoj:Concept ;
+    rdfs:label "Ideonella sakaiensis PETase",
+        "IsPETase" ;
+    skos:closeMatch ncbi_protein:GAP38373.1 .
+
+ent:Article_PETase_Workflow_2025 a schema:ScholarlyArticle,
+        ahoj:Paper ;
+    rdfs:label "Toward reproducible PETase research: A standardized workflow for reliable enzyme production and comparison" ;
+    schema:about ent:Enzymatic_PET_recycling,
+        ent:IsPETase,
+        ent:PET_degradation,
+        ent:PETase_research,
+        ent:PETase_standardized_workflow ;
+    schema:author ent:Jakub_Ptacek,
+        ent:Jiri_Vondrasek,
+        ent:Katerina_Jiraskova,
+        ent:Kristyna_Vydra_Bousova ;
+    schema:datePublished "2025"^^xsd:gYear ;
+    schema:identifier <https://doi.org/10.1016/j.pep.2025.106801> ;
+    schema:isPartOf "Protein Expression and Purification 236 (2025) 106801" ;
+    schema:license <https://creativecommons.org/licenses/by/4.0/> ;
+    schema:name "Toward reproducible PETase research: A standardized workflow for reliable enzyme production and comparison" ;
+    ahoj:hasClaim claim:PETASE_P001,
+        claim:PETASE_P002,
+        claim:PETASE_P003,
+        claim:PETASE_P004,
+        claim:PETASE_P005,
+        claim:PETASE_P006,
+        claim:PETASE_P007,
+        claim:PETASE_P008,
+        claim:PETASE_P009,
+        claim:PETASE_P010,
+        claim:PETASE_P011,
+        claim:PETASE_P012,
+        claim:PETASE_P013,
+        claim:PETASE_P014,
+        claim:PETASE_P015,
+        claim:PETASE_P016,
+        claim:PETASE_P017,
+        claim:PETASE_P018,
+        claim:PETASE_P019,
+        claim:PETASE_P020,
+        claim:PETASE_P021,
+        claim:PETASE_P022,
+        claim:PETASE_P023,
+        claim:PETASE_P024,
+        claim:PETASE_P025,
+        claim:PETASE_P026,
+        claim:PETASE_P027,
+        claim:PETASE_P028,
+        claim:PETASE_P029,
+        claim:PETASE_P030,
+        claim:PETASE_P031,
+        claim:PETASE_P032,
+        claim:PETASE_P033,
+        claim:PETASE_P034,
+        claim:PETASE_P035,
+        claim:PETASE_P036,
+        claim:PETASE_P037,
+        claim:PETASE_P038,
+        claim:PETASE_P039,
+        claim:PETASE_P040,
+        claim:PETASE_P041,
+        claim:PETASE_P042,
+        claim:PETASE_P043,
+        claim:PETASE_P044,
+        claim:PETASE_P045,
+        claim:PETASE_P046,
+        claim:PETASE_P047,
+        claim:PETASE_P048 .
+

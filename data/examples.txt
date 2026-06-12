@@ -1,0 +1,67 @@
+examples
+
+claim:C085
+  ent:UniProt_search_use_case
+    -- pred:can_reveal_binding_sites_for -->
+  ent:Glycogen_phosphorylase_Oryctolagus_cuniculus
+
+ent:Glycogen_phosphorylase_Oryctolagus_cuniculus
+  -- rdf:type -->
+  biolink:Protein
+
+claim:C086
+  ent:Glycogen_phosphorylase_Oryctolagus_cuniculus
+    -- pred:has_known_binding_site -->
+  ent:PLP_binding_site
+
+claim:C087
+  ent:PLP_binding_site
+    -- pred:is_binding_site_of -->
+  ent:Glycogen_phosphorylase_Oryctolagus_cuniculus
+
+claim:C084
+  ent:Glycogen_phosphorylase_Oryctolagus_cuniculus
+    -- pred:has_UniProt_accession -->
+  ent:UniProt_P00489
+
+ent:UniProt_P00489
+  -- skos:exactMatch -->
+  uniprot:P00489
+
+---------------------------------
+
+9. AHoJ-DB → PDB → same protein → conformational variability → data workflow → EDAM
+
+claim:C014
+  ent:AHoJ_DB -- pred:uses_structures_from --> ent:PDB
+
+claim:C074
+  ent:PDB -- pred:contains_multiple_structures_for --> ent:Same_protein
+
+claim:C076
+  ent:Same_protein -- pred:can_adopt --> ent:Protein_conformational_variability
+
+claim:C077
+  ent:Protein_conformational_variability -- pred:is_not_readily_available_without --> ent:Data_processing_workflow
+
+ent:Data_processing_workflow
+  -- skos:relatedMatch --> edam:operation_2409  
+
+----------------------------------
+
+10. AHoJ-DB → drug design → protein structure → conformational variability → data workflow → EDAM
+
+claim:C068
+  ent:AHoJ_DB -- pred:can_support --> ent:Drug_design_and_docking
+
+claim:C003
+  ent:Drug_design_and_docking -- pred:often_rely_on --> ent:Protein_structure
+
+claim:C001
+  ent:Protein_structure -- pred:rarely_captures --> ent:Protein_conformational_variability
+
+claim:C077
+  ent:Protein_conformational_variability -- pred:is_not_readily_available_without --> ent:Data_processing_workflow
+
+ent:Data_processing_workflow
+  -- skos:relatedMatch --> edam:operation_2409  

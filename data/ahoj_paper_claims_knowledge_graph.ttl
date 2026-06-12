@@ -1,0 +1,1587 @@
+@prefix ahoj: <https://w3id.org/ahoj/ontology/> .
+@prefix biolink: <https://w3id.org/biolink/vocab/> .
+@prefix biolip2: <https://zhanggroup.org/BioLiP/> .
+@prefix chembl: <https://www.ebi.ac.uk/chembl/> .
+@prefix claim: <https://w3id.org/ahoj/claim/> .
+@prefix ent: <https://w3id.org/ahoj/entity/> .
+@prefix idsm: <https://idsm.elixir-czech.cz/resource/> .
+@prefix kgreg: <https://kghub.org/> .
+@prefix pdb: <https://identifiers.org/pdb/> .
+@prefix pred: <https://w3id.org/ahoj/predicate/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sifts: <https://www.ebi.ac.uk/pdbe/docs/sifts/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix uniprot: <https://identifiers.org/uniprot/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ahoj:ClaimTriplet a rdfs:Class ;
+    rdfs:label "Reified claim represented as subject-predicate-object plus a text explanation" .
+
+ahoj:Concept a rdfs:Class ;
+    rdfs:label "Scientific concept" .
+
+ahoj:Database a rdfs:Class ;
+    rdfs:label "Database or web resource" .
+
+ahoj:ExternalResource a rdfs:Class ;
+    rdfs:label "External biomedical or structural resource" .
+
+ahoj:MethodStep a rdfs:Class ;
+    rdfs:label "Methodological step" .
+
+ahoj:Metric a rdfs:Class ;
+    rdfs:label "Structural or dataset metric" .
+
+ahoj:Paper a rdfs:Class ;
+    rdfs:label "Scholarly article" .
+
+ahoj:ResearchProblem a rdfs:Class ;
+    rdfs:label "Research problem or motivation" .
+
+ahoj:Software a rdfs:Class ;
+    rdfs:label "Software application" .
+
+ahoj:Statistic a rdfs:Class ;
+    rdfs:label "Reported quantitative statistic" .
+
+ahoj:UseCase a rdfs:Class ;
+    rdfs:label "Downstream use case" .
+
+ent:AHoJ a ahoj:Software ;
+    rdfs:label "AHoJ software" .
+
+ent:Bio2RDF a ahoj:ExternalResource ;
+    rdfs:label "Bio2RDF" ;
+    skos:exactMatch <https://bio2rdf.org/> .
+
+ent:ChEMBL a ahoj:ExternalResource ;
+    rdfs:label "ChEMBL" ;
+    skos:exactMatch chembl: .
+
+ent:Chem2Bio2RDF a ahoj:ExternalResource ;
+    rdfs:label "Chem2Bio2RDF" .
+
+ent:IDSM a ahoj:ExternalResource ;
+    rdfs:label "Integrated Database of Small Molecules" ;
+    skos:exactMatch <https://idsm.elixir-czech.cz/> .
+
+ent:KG_Hub_KG_Registry a ahoj:ExternalResource ;
+    rdfs:label "KG-Hub / KG-Registry" .
+
+ent:Ligand a ahoj:Concept ;
+    rdfs:label "Ligand" ;
+    ahoj:externalAlignment idsm:,
+        chembl: .
+
+ent:Multi_UniProt_binding_site_percentage a ahoj:Statistic ;
+    rdfs:label "Multi UniProt binding site percentage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:reportedValue 9 ;
+    ahoj:unit "percent" .
+
+ent:Multi_chain_binding_site_percentage a ahoj:Statistic ;
+    rdfs:label "Multi chain binding site percentage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:reportedValue 24 ;
+    ahoj:unit "percent" .
+
+ent:PDB_structure a ahoj:Concept ;
+    rdfs:label "PDB structure" ;
+    ahoj:externalAlignment pdb: .
+
+ent:Processed_protein_ligand_interactions a ahoj:Statistic ;
+    rdfs:label "Processed protein ligand interactions" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:reportedValue 468293 ;
+    ahoj:unit "count" .
+
+ent:Protein a ahoj:Concept ;
+    rdfs:label "Protein" ;
+    ahoj:externalAlignment uniprot: .
+
+ent:Protein_ligand_interaction a ahoj:Concept ;
+    rdfs:label "Protein ligand interaction" ;
+    ahoj:externalAlignment biolink:ChemicalToGeneAssociation .
+
+ent:Proteins_covered a ahoj:Statistic ;
+    rdfs:label "Proteins covered" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:reportedValue 27983 ;
+    ahoj:unit "count" .
+
+ent:Unfiltered_UniProt_accessions_with_apo_form a ahoj:Statistic ;
+    rdfs:label "Unfiltered UniProt accessions with apo form" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:reportedValue 13068 ;
+    ahoj:unit "count" .
+
+ent:Unfiltered_UniProt_accessions_with_apo_form_percentage a ahoj:Statistic ;
+    rdfs:label "Unfiltered UniProt accessions with apo form percentage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:reportedValue 46.7 ;
+    ahoj:unit "percent" .
+
+ent:Unfiltered_entries_with_apo_form a ahoj:Statistic ;
+    rdfs:label "Unfiltered entries with apo form" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:reportedValue 230269 ;
+    ahoj:unit "count" .
+
+ent:Unfiltered_entries_with_apo_form_percentage a ahoj:Statistic ;
+    rdfs:label "Unfiltered entries with apo form percentage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:reportedValue 49.2 ;
+    ahoj:unit "percent" .
+
+ent:UniProt a ahoj:ExternalResource ;
+    rdfs:label "UniProt" ;
+    skos:exactMatch <https://www.uniprot.org/> .
+
+ahoj:claimObject a rdf:Property ;
+    rdfs:label "claim object" .
+
+ahoj:claimPredicate a rdf:Property ;
+    rdfs:label "claim predicate" .
+
+ahoj:claimSubject a rdf:Property ;
+    rdfs:label "claim subject" .
+
+ahoj:claimText a rdf:Property ;
+    rdfs:label "claim text" .
+
+ahoj:externalAlignment a rdf:Property ;
+    rdfs:label "external alignment" .
+
+ahoj:hasClaim a rdf:Property ;
+    rdfs:label "has claim" .
+
+ahoj:reportedValue a rdf:Property ;
+    rdfs:label "reported value" .
+
+ahoj:sourcePaper a rdf:Property ;
+    rdfs:label "source paper" .
+
+ahoj:supportsUseCase a rdf:Property ;
+    rdfs:label "supports use case" .
+
+ahoj:unit a rdf:Property ;
+    rdfs:label "unit" .
+
+ahoj:usesResource a rdf:Property ;
+    rdfs:label "uses resource" .
+
+claim:C001 a ahoj:ClaimTriplet ;
+    rdfs:label "C001: Single protein structure - rarely captures - Protein conformational variability" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_conformational_variability ;
+    ahoj:claimPredicate pred:rarely_captures ;
+    ahoj:claimSubject ent:Single_protein_structure ;
+    ahoj:claimText "A single experimentally determined protein structure is usually insufficient to describe the conformational variability of a protein. Both apo and holo structures are needed to understand protein geometry and make meaningful comparisons." .
+
+claim:C002 a ahoj:ClaimTriplet ;
+    rdfs:label "C002: Apo structure and holo structure - are essential for - Understanding protein geometry" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Understanding_protein_geometry ;
+    ahoj:claimPredicate pred:are_essential_for ;
+    ahoj:claimSubject ent:Apo_structure_and_holo_structure ;
+    ahoj:claimText "Apo and holo forms provide complementary views of the same protein. Comparing them helps expose structural changes associated with ligand binding." .
+
+claim:C003 a ahoj:ClaimTriplet ;
+    rdfs:label "C003: Docking and drug design studies - often rely on - Single rigid holo structures" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Single_rigid_holo_structures ;
+    ahoj:claimPredicate pred:often_rely_on ;
+    ahoj:claimSubject ent:Docking_and_drug_design_studies ;
+    ahoj:claimText "The paper argues that docking and drug-design studies often still use mostly rigid holo structures. This can miss conformational diversity relevant to binding and prediction." .
+
+claim:C004 a ahoj:ClaimTriplet ;
+    rdfs:label "C004: Ligand binding site prediction benchmarks - often use - Single holo representative structures" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Single_holo_representative_structures ;
+    ahoj:claimPredicate pred:often_use ;
+    ahoj:claimSubject ent:Ligand_binding_site_prediction_benchmarks ;
+    ahoj:claimText "Training and testing of ligand-binding-site predictors is often performed on one holo structure as a representative. The paper presents this as unrealistic because the apo form may differ from the holo binding-site geometry." .
+
+claim:C005 a ahoj:ClaimTriplet ;
+    rdfs:label "C005: Large curated apo holo datasets - are needed for - Machine learning based structural biology" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Machine_learning_based_structural_biology ;
+    ahoj:claimPredicate pred:are_needed_for ;
+    ahoj:claimSubject ent:Large_curated_apo_holo_datasets ;
+    ahoj:claimText "The paper states that curated apo-holo datasets are needed for machine-learning development, benchmarking, and structural analysis. Dataset size and availability are presented as limiting factors for progress." .
+
+claim:C006 a ahoj:ClaimTriplet ;
+    rdfs:label "C006: Whole chain apo holo classification - can be ambiguous for - Proteins with multiple binding sites" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Proteins_with_multiple_binding_sites ;
+    ahoj:claimPredicate pred:can_be_ambiguous_for ;
+    ahoj:claimSubject ent:Whole_chain_apo_holo_classification ;
+    ahoj:claimText "Assigning apo or holo status to an entire chain can be misleading when the same chain contains multiple pockets. One site may be ligand-bound while another site is not." .
+
+claim:C007 a ahoj:ClaimTriplet ;
+    rdfs:label "C007: Whole structure apo holo classification - can be ambiguous for - Multi pocket structures" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Multi_pocket_structures ;
+    ahoj:claimPredicate pred:can_be_ambiguous_for ;
+    ahoj:claimSubject ent:Whole_structure_apo_holo_classification ;
+    ahoj:claimText "Classifying a whole structure as apo or holo can obscure the state of individual binding pockets. The paper therefore argues for pocket-level classification." .
+
+claim:C008 a ahoj:ClaimTriplet ;
+    rdfs:label "C008: Binding pocket - provides reference point for - Apo holo classification" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_holo_classification ;
+    ahoj:claimPredicate pred:provides_reference_point_for ;
+    ahoj:claimSubject ent:Binding_pocket ;
+    ahoj:claimText "AHoJ-DB treats the binding pocket, not the full protein structure, as the reference point for apo/holo assignment. This makes classification more precise for proteins with multiple binding sites." .
+
+claim:C009 a ahoj:ClaimTriplet ;
+    rdfs:label "C009: Pocket centric view - clarifies - Apo holo status" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_holo_status ;
+    ahoj:claimPredicate pred:clarifies ;
+    ahoj:claimSubject ent:Pocket_centric_view ;
+    ahoj:claimText "The paper claims that a pocket-centric view is practical for clarifying whether a corresponding site is apo or holo. This is one of the conceptual foundations of AHoJ-DB." .
+
+claim:C010 a ahoj:ClaimTriplet ;
+    rdfs:label "C010: AHoJ-DB - uses input interactions from - BioLiP2" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:BioLiP2 ;
+    ahoj:claimPredicate pred:uses_input_interactions_from ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB starts from biologically relevant protein-ligand interactions taken from the redundant set of BioLiP2. These interactions define the initial holo query sites." .
+
+claim:C011 a ahoj:ClaimTriplet ;
+    rdfs:label "C011: AHoJ DB input selection - excludes - Protein peptide interactions" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_peptide_interactions ;
+    ahoj:claimPredicate pred:excludes ;
+    ahoj:claimSubject ent:AHoJ_DB_input_selection ;
+    ahoj:claimText "The authors excluded interactions between proteins and peptides from the input set. The database focuses on non-peptide, non-nucleic-acid ligand interactions." .
+
+claim:C012 a ahoj:ClaimTriplet ;
+    rdfs:label "C012: AHoJ DB input selection - excludes - Protein nucleic acid interactions" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_nucleic_acid_interactions ;
+    ahoj:claimPredicate pred:excludes ;
+    ahoj:claimSubject ent:AHoJ_DB_input_selection ;
+    ahoj:claimText "Protein-nucleic-acid interactions were discarded from the initial query set. This keeps the database focused on protein-small-molecule ligand binding." .
+
+claim:C013 a ahoj:ClaimTriplet ;
+    rdfs:label "C013: Candidate search - requires - UniProt accession assignment" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:UniProt_accession_assignment ;
+    ahoj:claimPredicate pred:requires ;
+    ahoj:claimSubject ent:Candidate_search ;
+    ahoj:claimText "Interactions without UniProt accession assignment were excluded because the method searches for candidate structures within the same UniProt accession. UniProt is therefore essential for grouping comparable structures." .
+
+claim:C014 a ahoj:ClaimTriplet ;
+    rdfs:label "C014: AHoJ-DB - uses structures from - Protein Data Bank" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:PDB ;
+    ahoj:claimPredicate pred:uses_structures_from ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The PDB provides the experimental protein structures searched by AHoJ-DB. Candidate apo and holo pockets are identified across PDB structures assigned to the same UniProt accession." .
+
+claim:C015 a ahoj:ClaimTriplet ;
+    rdfs:label "C015: AHoJ-DB - uses residue mappings from - SIFTS" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:SIFTS ;
+    ahoj:claimPredicate pred:uses_residue_mappings_from ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "SIFTS is used to map query pocket residues across other PDB structures of the same UniProt protein. This enables comparison of corresponding sequence positions across different structures." .
+
+claim:C016 a ahoj:ClaimTriplet ;
+    rdfs:label "C016: Query ligand - defines - Query pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Query_pocket ;
+    ahoj:claimPredicate pred:defines ;
+    ahoj:claimSubject ent:Query_ligand ;
+    ahoj:claimText "The query ligand defines the binding pocket by proximity. Residues near the ligand become the binding residues of the query pocket." .
+
+claim:C017 a ahoj:ClaimTriplet ;
+    rdfs:label "C017: Query pocket definition - uses distance cutoff - 4 5 angstrom" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:4_5_angstrom ;
+    ahoj:claimPredicate pred:uses_distance_cutoff ;
+    ahoj:claimSubject ent:Query_pocket_definition ;
+    ahoj:claimText "AHoJ-DB defines binding residues using a 4.5 Å distance cutoff around the query ligand. The same cutoff is later used to detect ligands near mapped candidate pockets." .
+
+claim:C018 a ahoj:ClaimTriplet ;
+    rdfs:label "C018: Query pocket residues - are mapped through - SIFTS" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:SIFTS ;
+    ahoj:claimPredicate pred:are_mapped_through ;
+    ahoj:claimSubject ent:Query_pocket_residues ;
+    ahoj:claimText "The residues of the query pocket are mapped through SIFTS to corresponding residues in candidate PDB structures. This mapping creates candidate pockets representing the same sequence region." .
+
+claim:C019 a ahoj:ClaimTriplet ;
+    rdfs:label "C019: Candidate structures - are restricted to - Same UniProt accession" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Same_UniProt_accession ;
+    ahoj:claimPredicate pred:are_restricted_to ;
+    ahoj:claimSubject ent:Candidate_structures ;
+    ahoj:claimText "AHoJ-DB searches for candidate pockets only in structures assigned to the same UniProt accession as the query protein. This constrains comparisons to structures of the same protein sequence context." .
+
+claim:C020 a ahoj:ClaimTriplet ;
+    rdfs:label "C020: Mapped candidate pocket - corresponds to - Query pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Query_pocket ;
+    ahoj:claimPredicate pred:corresponds_to ;
+    ahoj:claimSubject ent:Mapped_candidate_pocket ;
+    ahoj:claimText "A mapped candidate pocket is the equivalent pocket region in another PDB structure. It corresponds to the query pocket by residue mapping, not necessarily by identical 3D geometry." .
+
+claim:C021 a ahoj:ClaimTriplet ;
+    rdfs:label "C021: Mapped candidate pocket - may differ geometrically from - Query pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Query_pocket ;
+    ahoj:claimPredicate pred:may_differ_geometrically_from ;
+    ahoj:claimSubject ent:Mapped_candidate_pocket ;
+    ahoj:claimText "Although mapped candidate pockets correspond to the same sequence region, their local geometry can differ. AHoJ-DB records metrics such as RMSD, volume, SASA, and b-factor to capture these differences." .
+
+claim:C022 a ahoj:ClaimTriplet ;
+    rdfs:label "C022: Mapped candidate pocket - is classified by - Ligand presence nearby" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Ligand_presence_nearby ;
+    ahoj:claimPredicate pred:is_classified_by ;
+    ahoj:claimSubject ent:Mapped_candidate_pocket ;
+    ahoj:claimText "Candidate pockets are classified as apo or holo depending on whether a ligand is detected near the mapped pocket. The classification is local to the pocket." .
+
+claim:C023 a ahoj:ClaimTriplet ;
+    rdfs:label "C023: Holo candidate pocket - has - Detected non solvent ligand nearby" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Detected_non_solvent_ligand_nearby ;
+    ahoj:claimPredicate pred:has ;
+    ahoj:claimSubject ent:Holo_candidate_pocket ;
+    ahoj:claimText "A mapped candidate pocket is classified as holo if at least one non-solvent ligand is detected within the cutoff distance. The detected ligand does not have to be the same as the query ligand." .
+
+claim:C024 a ahoj:ClaimTriplet ;
+    rdfs:label "C024: Apo candidate pocket - lacks - Detected non solvent ligand nearby" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Detected_non_solvent_ligand_nearby ;
+    ahoj:claimPredicate pred:lacks ;
+    ahoj:claimSubject ent:Apo_candidate_pocket ;
+    ahoj:claimText "A mapped candidate pocket is classified as apo when no non-solvent ligand is detected near the mapped pocket. This does not mean the entire structure is ligand-free." .
+
+claim:C025 a ahoj:ClaimTriplet ;
+    rdfs:label "C025: Solvent molecules - are excluded from - Apo holo ligand detection" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_holo_ligand_detection ;
+    ahoj:claimPredicate pred:are_excluded_from ;
+    ahoj:claimSubject ent:Solvent_molecules ;
+    ahoj:claimText "The apo/holo classification ignores solvent molecules. Only non-solvent ligands near the mapped pocket determine holo status." .
+
+claim:C026 a ahoj:ClaimTriplet ;
+    rdfs:label "C026: Any detected ligand - can justify - Holo classification" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Holo_classification ;
+    ahoj:claimPredicate pred:can_justify ;
+    ahoj:claimSubject ent:Any_detected_ligand ;
+    ahoj:claimText "The paper treats any detected ligand near the mapped pocket as valid for holo classification, even if the ligand may be crystallographic or not biologically relevant. The rationale is that such ligands can still affect local pocket geometry." .
+
+claim:C027 a ahoj:ClaimTriplet ;
+    rdfs:label "C027: Candidate structure processing - requires maximum resolution - 7 angstrom" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:7_angstrom ;
+    ahoj:claimPredicate pred:requires_maximum_resolution ;
+    ahoj:claimSubject ent:Candidate_structure_processing ;
+    ahoj:claimText "Candidate structures were processed only if they satisfied a broad resolution cutoff of 7 Å. The authors used this permissive threshold to allow broad search coverage." .
+
+claim:C028 a ahoj:ClaimTriplet ;
+    rdfs:label "C028: Candidate structure processing - requires minimum mapped binding residues on SEQRES - 30 percent" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:30_percent ;
+    ahoj:claimPredicate pred:requires_minimum_mapped_binding_residues_on_SEQRES ;
+    ahoj:claimSubject ent:Candidate_structure_processing ;
+    ahoj:claimText "Candidate structures were processed only if at least 30% of the query pocket residues could be mapped onto the candidate SEQRES. Otherwise, the structure was not processed." .
+
+claim:C029 a ahoj:ClaimTriplet ;
+    rdfs:label "C029: Soft filtered displayed results - use maximum resolution - 4 5 angstrom" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:4_5_angstrom ;
+    ahoj:claimPredicate pred:use_maximum_resolution ;
+    ahoj:claimSubject ent:Soft_filtered_displayed_results ;
+    ahoj:claimText "For filtered results displayed in AHoJ-DB, the authors used a softer post-processing filter with a 4.5 Å resolution threshold. These filtered results are separate from the broader processed results." .
+
+claim:C030 a ahoj:ClaimTriplet ;
+    rdfs:label "C030: Filtered candidate results - are sorted by - Mapped binding residue percentage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Mapped_binding_residue_percentage ;
+    ahoj:claimPredicate pred:are_sorted_by ;
+    ahoj:claimSubject ent:Filtered_candidate_results ;
+    ahoj:claimText "Filtered candidate results are primarily sorted by the percentage of mapped binding residues. This favors candidates where the original pocket is more completely represented." .
+
+claim:C031 a ahoj:ClaimTriplet ;
+    rdfs:label "C031: Filtered candidate results - are also sorted by - Observed residues and resolution" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Observed_residues_and_resolution ;
+    ahoj:claimPredicate pred:are_also_sorted_by ;
+    ahoj:claimSubject ent:Filtered_candidate_results ;
+    ahoj:claimText "After mapped-residue coverage, filtered results are sorted by number of observed residues and then by resolution. This prioritizes structurally complete and higher-quality candidate pockets." .
+
+claim:C032 a ahoj:ClaimTriplet ;
+    rdfs:label "C032: AHoJ-DB - reports - Whole structure metrics" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Whole_structure_metrics ;
+    ahoj:claimPredicate pred:reports ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB reports metrics describing the whole candidate structure, including resolution and experimental method. These provide context for interpreting pocket-level comparisons." .
+
+claim:C033 a ahoj:ClaimTriplet ;
+    rdfs:label "C033: AHoJ-DB - reports - Relevant chain metrics" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Relevant_chain_metrics ;
+    ahoj:claimPredicate pred:reports ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB reports metrics for protein chains involved in the mapped pocket, including TM-score, chain RMSD, and allosteric factors. These connect pocket changes to broader chain-level structure." .
+
+claim:C034 a ahoj:ClaimTriplet ;
+    rdfs:label "C034: AHoJ-DB - reports - Pocket level metrics" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Pocket_level_metrics ;
+    ahoj:claimPredicate pred:reports ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB reports pocket-level metrics including mapped residues, observed residues, SASA, molecular surface, volume, b-factor, radius of gyration, and pocket RMSD. These describe local geometry and completeness of the mapped pocket." .
+
+claim:C035 a ahoj:ClaimTriplet ;
+    rdfs:label "C035: Allosteric factors - occur within - Relevant chains" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Relevant_chains ;
+    ahoj:claimPredicate pred:occur_within ;
+    ahoj:claimSubject ent:Allosteric_factors ;
+    ahoj:claimText "The paper describes allosteric factors as PTMs or ligands occurring within relevant chains but outside the mapped pocket itself. These may help explain structural differences between states." .
+
+claim:C036 a ahoj:ClaimTriplet ;
+    rdfs:label "C036: Orthosteric factors - occur within - Mapped pocket residues" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Mapped_pocket_residues ;
+    ahoj:claimPredicate pred:occur_within ;
+    ahoj:claimSubject ent:Orthosteric_factors ;
+    ahoj:claimText "Orthosteric factors are ligands, solvent molecules, or PTMs found within the mapped pocket residues. They directly affect interpretation of the local binding site." .
+
+claim:C037 a ahoj:ClaimTriplet ;
+    rdfs:label "C037: AHoJ-DB - processed - 468293 biologically relevant protein ligand interactions" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:468293_biologically_relevant_protein_ligand_interactions ;
+    ahoj:claimPredicate pred:processed ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The paper reports that AHoJ-DB processed 468,293 biologically relevant protein-ligand interactions. Each processed interaction corresponds to a separate entry and query binding site." .
+
+claim:C038 a ahoj:ClaimTriplet ;
+    rdfs:label "C038: AHoJ-DB - covers - 27983 proteins" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:27983_proteins ;
+    ahoj:claimPredicate pred:covers ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The processed interactions span 27,983 proteins. Protein identity is organized through UniProt accession assignments." .
+
+claim:C039 a ahoj:ClaimTriplet ;
+    rdfs:label "C039: Unfiltered AHoJ DB - has apo form for - 230269 entries" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:230269_entries ;
+    ahoj:claimPredicate pred:has_apo_form_for ;
+    ahoj:claimSubject ent:Unfiltered_AHoJ_DB ;
+    ahoj:claimText "In the unfiltered database, 230,269 of 468,293 entries have at least one apo form. This corresponds to 49.2% of processed entries." .
+
+claim:C040 a ahoj:ClaimTriplet ;
+    rdfs:label "C040: Unfiltered AHoJ DB - has apo form for - 13068 UniProt accessions" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:13068_UniProt_accessions ;
+    ahoj:claimPredicate pred:has_apo_form_for ;
+    ahoj:claimSubject ent:Unfiltered_AHoJ_DB ;
+    ahoj:claimText "At the UniProt level, 13,068 of 27,983 accessions have at least one apo candidate in the unfiltered database. This corresponds to 46.7% of represented UniProt accessions." .
+
+claim:C041 a ahoj:ClaimTriplet ;
+    rdfs:label "C041: Processed binding sites - often lack - Apo form in PDB" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_form_in_PDB ;
+    ahoj:claimPredicate pred:often_lack ;
+    ahoj:claimSubject ent:Processed_binding_sites ;
+    ahoj:claimText "The paper concludes that less than half of the processed binding sites have an apo form in the PDB. This lack of apo structures may limit benchmark construction and model evaluation." .
+
+claim:C042 a ahoj:ClaimTriplet ;
+    rdfs:label "C042: Subset 1 - applies - 4 5 angstrom resolution threshold and diffraction method restriction" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:4_5_angstrom_resolution_threshold_and_diffraction_method_restriction ;
+    ahoj:claimPredicate pred:applies ;
+    ahoj:claimSubject ent:Subset_1 ;
+    ahoj:claimText "Subset 1 includes structures with resolution 4.5 Å or better and only diffraction methods. It also requires 100% mapped binding residues on SEQRES but allows some mapped residues to be unobserved." .
+
+claim:C043 a ahoj:ClaimTriplet ;
+    rdfs:label "C043: Subset 1 - yielded - 451408 entries" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:451408_entries ;
+    ahoj:claimPredicate pred:yielded ;
+    ahoj:claimSubject ent:Subset_1 ;
+    ahoj:claimText "Subset 1 yielded 451,408 entries across 27,162 UniProt accessions. Among these, 41% had at least one apo state." .
+
+claim:C044 a ahoj:ClaimTriplet ;
+    rdfs:label "C044: Apo pockets in Subset 1 - have more - Unobserved mapped binding residues than holo pockets" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Unobserved_mapped_binding_residues_than_holo_pockets ;
+    ahoj:claimPredicate pred:have_more ;
+    ahoj:claimSubject ent:Apo_pockets_in_Subset_1 ;
+    ahoj:claimText "In Subset 1, apo pockets showed a much higher percentage of unobserved mapped binding residues than holo pockets. The paper interprets this as evidence that apo pockets are less likely to have ordered structural representation." .
+
+claim:C045 a ahoj:ClaimTriplet ;
+    rdfs:label "C045: Subset 2 - requires - All mapped binding residues observed" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:All_mapped_binding_residues_observed ;
+    ahoj:claimPredicate pred:requires ;
+    ahoj:claimSubject ent:Subset_2 ;
+    ahoj:claimText "Subset 2 applies the same resolution and diffraction-method filters as Subset 1 but also requires all mapped binding residues to be observed. This enables more confident pocket-level geometric comparisons." .
+
+claim:C046 a ahoj:ClaimTriplet ;
+    rdfs:label "C046: Subset 2 - has apo result for - 175388 entries" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:175388_entries ;
+    ahoj:claimPredicate pred:has_apo_result_for ;
+    ahoj:claimSubject ent:Subset_2 ;
+    ahoj:claimText "In Subset 2, 175,388 entries had at least one apo result. This corresponds to 39% of entries under those filtering criteria." .
+
+claim:C047 a ahoj:ClaimTriplet ;
+    rdfs:label "C047: Apo pockets in Subset 2 - have higher - Pocket RMSD than holo pockets" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Pocket_RMSD_than_holo_pockets ;
+    ahoj:claimPredicate pred:have_higher ;
+    ahoj:claimSubject ent:Apo_pockets_in_Subset_2 ;
+    ahoj:claimText "Subset 2 shows that apo pockets have consistently higher RMSD relative to the query pocket than holo pockets. The paper suggests this may point toward cryptic-site-like behavior." .
+
+claim:C048 a ahoj:ClaimTriplet ;
+    rdfs:label "C048: Apo relevant chains in Subset 2 - have higher - Chain RMSD than holo relevant chains" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Chain_RMSD_than_holo_relevant_chains ;
+    ahoj:claimPredicate pred:have_higher ;
+    ahoj:claimSubject ent:Apo_relevant_chains_in_Subset_2 ;
+    ahoj:claimText "The higher RMSD trend also extends to the chain level. Apo relevant chains show higher chain RMSD than holo relevant chains." .
+
+claim:C049 a ahoj:ClaimTriplet ;
+    rdfs:label "C049: Apo pockets in Subset 2 - have smaller - Pocket volume than holo pockets" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Pocket_volume_than_holo_pockets ;
+    ahoj:claimPredicate pred:have_smaller ;
+    ahoj:claimSubject ent:Apo_pockets_in_Subset_2 ;
+    ahoj:claimText "The paper reports that apo pockets appear smaller overall than holo pockets in Subset 2. This supports the idea that ligand binding may open or stabilize pocket geometry." .
+
+claim:C050 a ahoj:ClaimTriplet ;
+    rdfs:label "C050: Apo pockets - have higher - Average b factor than holo pockets" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Average_b_factor_than_holo_pockets ;
+    ahoj:claimPredicate pred:have_higher ;
+    ahoj:claimSubject ent:Apo_pockets ;
+    ahoj:claimText "Apo pockets show higher per-atom b-factor values than holo pockets. The paper interprets this as supporting the idea that apo pockets are less ordered overall." .
+
+claim:C051 a ahoj:ClaimTriplet ;
+    rdfs:label "C051: Protein Data Bank - is biased toward - Holo structures" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Holo_structures ;
+    ahoj:claimPredicate pred:is_biased_toward ;
+    ahoj:claimSubject ent:PDB ;
+    ahoj:claimText "The paper observes consistently higher numbers of pockets, structures, and chains for holo states than apo states. This is interpreted as evidence of an inherent PDB bias toward holo structures." .
+
+claim:C052 a ahoj:ClaimTriplet ;
+    rdfs:label "C052: Ligand identity - influences - Apo paired coverage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_paired_coverage ;
+    ahoj:claimPredicate pred:influences ;
+    ahoj:claimSubject ent:Ligand_identity ;
+    ahoj:claimText "When entries are grouped by ligand, the fraction of sites with apo-paired entries varies strongly. This suggests that apo availability is ligand-dependent." .
+
+claim:C053 a ahoj:ClaimTriplet ;
+    rdfs:label "C053: Glucose binding sites - have high - Apo paired coverage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_paired_coverage ;
+    ahoj:claimPredicate pred:have_high ;
+    ahoj:claimSubject ent:Glucose_binding_sites ;
+    ahoj:claimText "Glucose-binding entries show high apo-paired coverage compared with many other ligands. The paper reports glucose coverage around 73% by sites in the ligand-group analysis." .
+
+claim:C054 a ahoj:ClaimTriplet ;
+    rdfs:label "C054: Chlorophyll A binding sites - have low - Apo paired coverage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_paired_coverage ;
+    ahoj:claimPredicate pred:have_low ;
+    ahoj:claimSubject ent:Chlorophyll_A_binding_sites ;
+    ahoj:claimText "Chlorophyll A binding sites show very low apo-paired coverage. The paper reports about 1% coverage by sites for chlorophyll A in the analyzed subset." .
+
+claim:C055 a ahoj:ClaimTriplet ;
+    rdfs:label "C055: Iron sulfur cluster binding sites - have very low - Apo paired coverage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_paired_coverage ;
+    ahoj:claimPredicate pred:have_very_low ;
+    ahoj:claimSubject ent:Iron_sulfur_cluster_binding_sites ;
+    ahoj:claimText "Fe4S4 iron-sulfur cluster binding sites show almost no apo-paired coverage. The paper suggests such ligand classes may correspond to pockets or structures that are difficult to resolve without the ligand." .
+
+claim:C056 a ahoj:ClaimTriplet ;
+    rdfs:label "C056: Certain ligands - may stabilize - Less ordered pockets" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Less_ordered_pockets ;
+    ahoj:claimPredicate pred:may_stabilize ;
+    ahoj:claimSubject ent:Certain_ligands ;
+    ahoj:claimText "The paper suggests that some ligands may bind less ordered pockets or structures that are harder to resolve in the absence of ligand. This is offered as a possible explanation for ligand-specific differences in apo coverage." .
+
+claim:C057 a ahoj:ClaimTriplet ;
+    rdfs:label "C057: Binding pockets - can occur at - Interfaces of multiple chains" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Interfaces_of_multiple_chains ;
+    ahoj:claimPredicate pred:can_occur_at ;
+    ahoj:claimSubject ent:Binding_pockets ;
+    ahoj:claimText "The paper emphasizes that many protein-ligand binding sites are formed at interfaces between chains. These sites are important but harder to annotate across structures." .
+
+claim:C058 a ahoj:ClaimTriplet ;
+    rdfs:label "C058: Multi chain binding pockets - account for - About 24 percent of known binding sites" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:About_24_percent_of_known_binding_sites ;
+    ahoj:claimPredicate pred:account_for ;
+    ahoj:claimSubject ent:Multi_chain_binding_pockets ;
+    ahoj:claimText "Using the 4.5 Å cutoff, the paper reports that approximately 24% of binding sites involve two or more chains. This makes interface pockets a substantial fraction of binding sites." .
+
+claim:C059 a ahoj:ClaimTriplet ;
+    rdfs:label "C059: Multi UniProt binding pockets - account for - About 9 percent of known binding sites" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:About_9_percent_of_known_binding_sites ;
+    ahoj:claimPredicate pred:account_for ;
+    ahoj:claimSubject ent:Multi_UniProt_binding_pockets ;
+    ahoj:claimText "The paper reports that about 9% of binding pockets involve multiple UniProt accessions, corresponding to heteromeric binding sites. These are a subset of multi-chain pockets." .
+
+claim:C060 a ahoj:ClaimTriplet ;
+    rdfs:label "C060: Interface binding pockets - are often neglected or misrepresented in - Datasets" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Datasets ;
+    ahoj:claimPredicate pred:are_often_neglected_or_misrepresented_in ;
+    ahoj:claimSubject ent:Interface_binding_pockets ;
+    ahoj:claimText "The paper states that interface pockets are often neglected or misrepresented because of their complexity. AHoJ-DB explicitly supports such pockets." .
+
+claim:C061 a ahoj:ClaimTriplet ;
+    rdfs:label "C061: AHoJ DB approach - is compatible with - Interchain binding sites" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Interchain_binding_sites ;
+    ahoj:claimPredicate pred:is_compatible_with ;
+    ahoj:claimSubject ent:AHoJ_DB_approach ;
+    ahoj:claimText "AHoJ-DB can handle binding sites formed by multiple chains. This allows the database to represent apo/holo relationships for pockets at protein-protein interfaces." .
+
+claim:C062 a ahoj:ClaimTriplet ;
+    rdfs:label "C062: Existing apo holo datasets - are often - Manually assembled" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Manually_assembled ;
+    ahoj:claimPredicate pred:are_often ;
+    ahoj:claimSubject ent:Existing_apo_holo_datasets ;
+    ahoj:claimText "The paper notes that many existing apo-holo datasets were manually assembled. Manual assembly indirectly limits size and expandability." .
+
+claim:C063 a ahoj:ClaimTriplet ;
+    rdfs:label "C063: Manual dataset assembly - limits - Dataset size and expandability" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Dataset_size_and_expandability ;
+    ahoj:claimPredicate pred:limits ;
+    ahoj:claimSubject ent:Manual_dataset_assembly ;
+    ahoj:claimText "Manual curation can produce high-quality datasets but makes comprehensive and easily updatable apo-holo resources difficult. This motivates the large-scale automated approach of AHoJ-DB." .
+
+claim:C064 a ahoj:ClaimTriplet ;
+    rdfs:label "C064: Current apo holo resources - are not - Exhaustive" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Exhaustive ;
+    ahoj:claimPredicate pred:are_not ;
+    ahoj:claimSubject ent:Current_apo_holo_resources ;
+    ahoj:claimText "The paper argues that existing apo-holo resources are not exhaustive. Therefore, large annotated datasets remain necessary." .
+
+claim:C065 a ahoj:ClaimTriplet ;
+    rdfs:label "C065: AHoJ-DB - is claimed to be - Most comprehensive apo holo structure database to date" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Most_comprehensive_apo_holo_structure_database_to_date ;
+    ahoj:claimPredicate pred:is_claimed_to_be ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "In the conclusion, the authors state that AHoJ-DB is, to their knowledge, the most comprehensive database for apo and holo structures to date. This claim is based on the scale and pocket-centric coverage reported in the paper." .
+
+claim:C066 a ahoj:ClaimTriplet ;
+    rdfs:label "C066: AHoJ-DB - can support - Protein structure analysis" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_structure_analysis ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The authors state that AHoJ-DB can support protein structure analysis by providing annotated apo/holo structure ensembles. These ensembles reflect conformational variability present in the PDB." .
+
+claim:C067 a ahoj:ClaimTriplet ;
+    rdfs:label "C067: AHoJ-DB - can support - Machine learning tool development" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Machine_learning_tool_development ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The database can be used to train and evaluate machine-learning tools. The paper specifically connects this to ligand-binding-site prediction and structural comparison." .
+
+claim:C068 a ahoj:ClaimTriplet ;
+    rdfs:label "C068: AHoJ-DB - can support - Drug design and docking" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Drug_design_and_docking ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB can help drug-design and docking experiments by exposing apo/holo pocket variability. This may reduce reliance on a single rigid holo structure." .
+
+claim:C069 a ahoj:ClaimTriplet ;
+    rdfs:label "C069: AHoJ-DB - can support - Ligand binding site predictor training and testing" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Ligand_binding_site_predictor_training_and_testing ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The database provides pocket-level apo/holo annotations that can be used to train or evaluate ligand-binding-site predictors. This is one of the motivating use cases behind the resource." .
+
+claim:C070 a ahoj:ClaimTriplet ;
+    rdfs:label "C070: AHoJ-DB - can support - Cryptic binding site validation" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Cryptic_binding_site_validation ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "Because AHoJ-DB compares apo and holo pocket geometries, it can support analysis of cryptic binding sites. Higher apo pocket RMSD and smaller apo pocket volume may indicate hidden or ligand-induced binding-site behavior." .
+
+claim:C071 a ahoj:ClaimTriplet ;
+    rdfs:label "C071: AHoJ-DB - can support - Allosteric effect detection" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Allosteric_effect_detection ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The database records ligands, PTMs, and other factors that may occur on relevant chains or within pockets. These annotations can support studies of allosteric effects." .
+
+claim:C072 a ahoj:ClaimTriplet ;
+    rdfs:label "C072: AHoJ-DB - can support - Order to disorder transition analysis" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Order_to_disorder_transition_analysis ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The paper states that AHoJ-DB can help investigate order-to-disorder transitions. This is supported by its tracking of observed and unobserved residues in mapped pockets." .
+
+claim:C073 a ahoj:ClaimTriplet ;
+    rdfs:label "C073: AHoJ-DB - can support - Folding dynamics investigation" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Folding_dynamics_investigation ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "By collecting conformational variability across structures with identical or corresponding sequences, AHoJ-DB may support studies of folding dynamics. The paper links structural variability to sequence-independent folding behavior." .
+
+claim:C074 a ahoj:ClaimTriplet ;
+    rdfs:label "C074: Protein Data Bank - contains multiple structures for - Same protein" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Same_protein ;
+    ahoj:claimPredicate pred:contains_multiple_structures_for ;
+    ahoj:claimSubject ent:PDB ;
+    ahoj:claimText "The paper notes that many PDB structures correspond to the same protein. These structures may differ because they were solved under different conditions or with different bound molecules." .
+
+claim:C075 a ahoj:ClaimTriplet ;
+    rdfs:label "C075: Same protein PDB structures - can adopt - Different local geometries" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Different_local_geometries ;
+    ahoj:claimPredicate pred:can_adopt ;
+    ahoj:claimSubject ent:Same_protein_PDB_structures ;
+    ahoj:claimText "Structures of the same protein sequence can show different local geometries. Binding pockets are one important site where such differences appear." .
+
+claim:C076 a ahoj:ClaimTriplet ;
+    rdfs:label "C076: Same protein PDB structures - can adopt - Different global geometries" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Different_global_geometries ;
+    ahoj:claimPredicate pred:can_adopt ;
+    ahoj:claimSubject ent:Same_protein_PDB_structures ;
+    ahoj:claimText "The paper also notes that identical-sequence protein structures may differ globally. AHoJ-DB helps expose agents responsible for such geometric differences." .
+
+claim:C077 a ahoj:ClaimTriplet ;
+    rdfs:label "C077: Protein conformational variability - is not readily available without - Extraction filtering grouping and analysis" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Extraction_filtering_grouping_and_analysis ;
+    ahoj:claimPredicate pred:is_not_readily_available_without ;
+    ahoj:claimSubject ent:Protein_conformational_variability ;
+    ahoj:claimText "Although conformational variability exists in the PDB, it is not immediately available to researchers. It must be extracted, filtered, grouped, and analyzed across structures." .
+
+claim:C078 a ahoj:ClaimTriplet ;
+    rdfs:label "C078: AHoJ DB web server - provides - Visualization capabilities" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Visualization_capabilities ;
+    ahoj:claimPredicate pred:provides ;
+    ahoj:claimSubject ent:AHoJ_DB_web_server ;
+    ahoj:claimText "The web server provides visualization of apo/holo results and structural superpositions. The figure on page 6 shows the interface with search results and detailed visualization." .
+
+claim:C079 a ahoj:ClaimTriplet ;
+    rdfs:label "C079: AHoJ DB web server - provides - Search capabilities" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Search_capabilities ;
+    ahoj:claimPredicate pred:provides ;
+    ahoj:claimSubject ent:AHoJ_DB_web_server ;
+    ahoj:claimText "The web server allows users to search the database by PDB code, UniProt accession, or ligand ID. These search modes support different biological questions." .
+
+claim:C080 a ahoj:ClaimTriplet ;
+    rdfs:label "C080: Search by PDB code - can reveal - Diversity of known bound ligands" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Diversity_of_known_bound_ligands ;
+    ahoj:claimPredicate pred:can_reveal ;
+    ahoj:claimSubject ent:Search_by_PDB_code ;
+    ahoj:claimText "The paper says searching by PDB code can reveal information about the diversity of known bound ligands and binding modes. This is useful for inspecting structure-specific ligand binding." .
+
+claim:C081 a ahoj:ClaimTriplet ;
+    rdfs:label "C081: Search by UniProt accession - can reveal - Known binding sites of a protein" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Known_binding_sites_of_a_protein ;
+    ahoj:claimPredicate pred:can_reveal ;
+    ahoj:claimSubject ent:Search_by_UniProt_accession ;
+    ahoj:claimText "Searching by UniProt accession provides an overview of known binding sites and biologically relevant ligands for a protein. The paper illustrates this with glycogen phosphorylase." .
+
+claim:C082 a ahoj:ClaimTriplet ;
+    rdfs:label "C082: Search by ligand ID - can reveal - Ligand specific apo holo coverage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Ligand_specific_apo_holo_coverage ;
+    ahoj:claimPredicate pred:can_reveal ;
+    ahoj:claimSubject ent:Search_by_ligand_ID ;
+    ahoj:claimText "Searching by ligand name or ID can show how many binding sites for that ligand have apo counterparts. The paper uses bacteriochlorophyll A as an example of low apo coverage." .
+
+ent:AHoJ_DB_approach a ahoj:Concept ;
+    rdfs:label "AHoJ DB approach" ;
+    pred:is_compatible_with ent:Interchain_binding_sites .
+
+ent:Allosteric_factors a ahoj:Concept ;
+    rdfs:label "Allosteric factors" ;
+    pred:occur_within ent:Relevant_chains .
+
+ent:Any_detected_ligand a ahoj:Concept ;
+    rdfs:label "Any detected ligand" ;
+    pred:can_justify ent:Holo_classification .
+
+ent:Apo_candidate_pocket a ahoj:Concept ;
+    rdfs:label "Apo candidate pocket" ;
+    pred:lacks ent:Detected_non_solvent_ligand_nearby .
+
+ent:Apo_pockets a ahoj:Concept ;
+    rdfs:label "Apo pockets" ;
+    pred:have_higher ent:Average_b_factor_than_holo_pockets .
+
+ent:Apo_pockets_in_Subset_1 a ahoj:Concept ;
+    rdfs:label "Apo pockets in Subset 1" ;
+    pred:have_more ent:Unobserved_mapped_binding_residues_than_holo_pockets .
+
+ent:Apo_relevant_chains_in_Subset_2 a ahoj:Concept ;
+    rdfs:label "Apo relevant chains in Subset 2" ;
+    pred:have_higher ent:Chain_RMSD_than_holo_relevant_chains .
+
+ent:Apo_structure_and_holo_structure a ahoj:Concept ;
+    rdfs:label "Apo structure and holo structure" ;
+    pred:are_essential_for ent:Understanding_protein_geometry .
+
+ent:Binding_pocket a ahoj:Concept ;
+    rdfs:label "Binding pocket" ;
+    ahoj:externalAlignment biolink:GrossAnatomicalStructure ;
+    pred:provides_reference_point_for ent:Apo_holo_classification .
+
+ent:Binding_pockets a ahoj:Concept ;
+    rdfs:label "Binding pockets" ;
+    pred:can_occur_at ent:Interfaces_of_multiple_chains .
+
+ent:Candidate_search a ahoj:Concept ;
+    rdfs:label "Candidate search" ;
+    pred:requires ent:UniProt_accession_assignment .
+
+ent:Candidate_structures a ahoj:Concept ;
+    rdfs:label "Candidate structures" ;
+    pred:are_restricted_to ent:Same_UniProt_accession .
+
+ent:Certain_ligands a ahoj:Concept ;
+    rdfs:label "Certain ligands" ;
+    pred:may_stabilize ent:Less_ordered_pockets .
+
+ent:Chlorophyll_A_binding_sites a ahoj:Concept ;
+    rdfs:label "Chlorophyll A binding sites" ;
+    pred:have_low ent:Apo_paired_coverage .
+
+ent:Christos_P_Feidakis a ahoj:Concept ;
+    rdfs:label "Christos P. Feidakis" .
+
+ent:Current_apo_holo_resources a ahoj:Concept ;
+    rdfs:label "Current apo holo resources" ;
+    pred:are_not ent:Exhaustive .
+
+ent:David_Hoksza a ahoj:Concept ;
+    rdfs:label "David Hoksza" .
+
+ent:Docking_and_drug_design_studies a ahoj:Concept ;
+    rdfs:label "Docking and drug design studies" ;
+    pred:often_rely_on ent:Single_rigid_holo_structures .
+
+ent:Existing_apo_holo_datasets a ahoj:Concept ;
+    rdfs:label "Existing apo holo datasets" ;
+    pred:are_often ent:Manually_assembled .
+
+ent:Glucose_binding_sites a ahoj:Concept ;
+    rdfs:label "Glucose binding sites" ;
+    pred:have_high ent:Apo_paired_coverage .
+
+ent:Holo_candidate_pocket a ahoj:Concept ;
+    rdfs:label "Holo candidate pocket" ;
+    pred:has ent:Detected_non_solvent_ligand_nearby .
+
+ent:Interface_binding_pockets a ahoj:Concept ;
+    rdfs:label "Interface binding pockets" ;
+    pred:are_often_neglected_or_misrepresented_in ent:Datasets .
+
+ent:Iron_sulfur_cluster_binding_sites a ahoj:Concept ;
+    rdfs:label "Iron sulfur cluster binding sites" ;
+    pred:have_very_low ent:Apo_paired_coverage .
+
+ent:Large_curated_apo_holo_datasets a ahoj:Concept ;
+    rdfs:label "Large curated apo holo datasets" ;
+    pred:are_needed_for ent:Machine_learning_based_structural_biology .
+
+ent:Ligand_binding_site_prediction_benchmarks a ahoj:Concept ;
+    rdfs:label "Ligand binding site prediction benchmarks" ;
+    pred:often_use ent:Single_holo_representative_structures .
+
+ent:Ligand_identity a ahoj:Concept ;
+    rdfs:label "Ligand identity" ;
+    pred:influences ent:Apo_paired_coverage .
+
+ent:Manual_dataset_assembly a ahoj:Concept ;
+    rdfs:label "Manual dataset assembly" ;
+    pred:limits ent:Dataset_size_and_expandability .
+
+ent:Marian_Novotny a ahoj:Concept ;
+    rdfs:label "Marian Novotny" .
+
+ent:Multi_UniProt_binding_pockets a ahoj:Concept ;
+    rdfs:label "Multi UniProt binding pockets" ;
+    pred:account_for ent:About_9_percent_of_known_binding_sites .
+
+ent:Multi_chain_binding_pockets a ahoj:Concept ;
+    rdfs:label "Multi chain binding pockets" ;
+    pred:account_for ent:About_24_percent_of_known_binding_sites .
+
+ent:Orthosteric_factors a ahoj:Concept ;
+    rdfs:label "Orthosteric factors" ;
+    pred:occur_within ent:Mapped_pocket_residues .
+
+ent:Pocket_centric_view a ahoj:Concept ;
+    rdfs:label "Pocket centric view" ;
+    pred:clarifies ent:Apo_holo_status .
+
+ent:Processed_binding_sites a ahoj:Concept ;
+    rdfs:label "Processed binding sites" ;
+    pred:often_lack ent:Apo_form_in_PDB .
+
+ent:Query_ligand a ahoj:Concept ;
+    rdfs:label "Query ligand" ;
+    pred:defines ent:Query_pocket .
+
+ent:Query_pocket_definition a ahoj:Concept ;
+    rdfs:label "Query pocket definition" ;
+    pred:uses_distance_cutoff ent:4_5_angstrom .
+
+ent:Query_pocket_residues a ahoj:Concept ;
+    rdfs:label "Query pocket residues" ;
+    pred:are_mapped_through ent:SIFTS .
+
+ent:Radoslav_Krivak a ahoj:Concept ;
+    rdfs:label "Radoslav Krivak" .
+
+ent:Search_by_PDB_code a ahoj:Concept ;
+    rdfs:label "Search by PDB code" ;
+    pred:can_reveal ent:Diversity_of_known_bound_ligands .
+
+ent:Search_by_UniProt_accession a ahoj:Concept ;
+    rdfs:label "Search by UniProt accession" ;
+    pred:can_reveal ent:Known_binding_sites_of_a_protein .
+
+ent:Search_by_ligand_ID a ahoj:Concept ;
+    rdfs:label "Search by ligand ID" ;
+    pred:can_reveal ent:Ligand_specific_apo_holo_coverage .
+
+ent:Single_protein_structure a ahoj:Concept ;
+    rdfs:label "Single protein structure" ;
+    pred:rarely_captures ent:Protein_conformational_variability .
+
+ent:Soft_filtered_displayed_results a ahoj:Concept ;
+    rdfs:label "Soft filtered displayed results" ;
+    pred:use_maximum_resolution ent:4_5_angstrom .
+
+ent:Solvent_molecules a ahoj:Concept ;
+    rdfs:label "Solvent molecules" ;
+    pred:are_excluded_from ent:Apo_holo_ligand_detection .
+
+ent:Whole_chain_apo_holo_classification a ahoj:Concept ;
+    rdfs:label "Whole chain apo holo classification" ;
+    pred:can_be_ambiguous_for ent:Proteins_with_multiple_binding_sites .
+
+ent:Whole_structure_apo_holo_classification a ahoj:Concept ;
+    rdfs:label "Whole structure apo holo classification" ;
+    pred:can_be_ambiguous_for ent:Multi_pocket_structures .
+
+pred:applies a rdf:Property ;
+    rdfs:label "applies" .
+
+pred:are_also_sorted_by a rdf:Property ;
+    rdfs:label "are also sorted by" .
+
+pred:are_essential_for a rdf:Property ;
+    rdfs:label "are essential for" .
+
+pred:are_excluded_from a rdf:Property ;
+    rdfs:label "are excluded from" .
+
+pred:are_mapped_through a rdf:Property ;
+    rdfs:label "are mapped through" .
+
+pred:are_needed_for a rdf:Property ;
+    rdfs:label "are needed for" .
+
+pred:are_not a rdf:Property ;
+    rdfs:label "are not" .
+
+pred:are_often a rdf:Property ;
+    rdfs:label "are often" .
+
+pred:are_often_neglected_or_misrepresented_in a rdf:Property ;
+    rdfs:label "are often neglected or misrepresented in" .
+
+pred:are_restricted_to a rdf:Property ;
+    rdfs:label "are restricted to" .
+
+pred:are_sorted_by a rdf:Property ;
+    rdfs:label "are sorted by" .
+
+pred:can_justify a rdf:Property ;
+    rdfs:label "can justify" .
+
+pred:can_occur_at a rdf:Property ;
+    rdfs:label "can occur at" .
+
+pred:clarifies a rdf:Property ;
+    rdfs:label "clarifies" .
+
+pred:contains_multiple_structures_for a rdf:Property ;
+    rdfs:label "contains multiple structures for" .
+
+pred:corresponds_to a rdf:Property ;
+    rdfs:label "corresponds to" .
+
+pred:covers a rdf:Property ;
+    rdfs:label "covers" .
+
+pred:defines a rdf:Property ;
+    rdfs:label "defines" .
+
+pred:has a rdf:Property ;
+    rdfs:label "has" .
+
+pred:has_apo_result_for a rdf:Property ;
+    rdfs:label "has apo result for" .
+
+pred:have_high a rdf:Property ;
+    rdfs:label "have high" .
+
+pred:have_low a rdf:Property ;
+    rdfs:label "have low" .
+
+pred:have_more a rdf:Property ;
+    rdfs:label "have more" .
+
+pred:have_smaller a rdf:Property ;
+    rdfs:label "have smaller" .
+
+pred:have_very_low a rdf:Property ;
+    rdfs:label "have very low" .
+
+pred:influences a rdf:Property ;
+    rdfs:label "influences" .
+
+pred:is_biased_toward a rdf:Property ;
+    rdfs:label "is biased toward" .
+
+pred:is_claimed_to_be a rdf:Property ;
+    rdfs:label "is claimed to be" .
+
+pred:is_classified_by a rdf:Property ;
+    rdfs:label "is classified by" .
+
+pred:is_compatible_with a rdf:Property ;
+    rdfs:label "is compatible with" .
+
+pred:is_not_readily_available_without a rdf:Property ;
+    rdfs:label "is not readily available without" .
+
+pred:lacks a rdf:Property ;
+    rdfs:label "lacks" .
+
+pred:limits a rdf:Property ;
+    rdfs:label "limits" .
+
+pred:may_differ_geometrically_from a rdf:Property ;
+    rdfs:label "may differ geometrically from" .
+
+pred:may_stabilize a rdf:Property ;
+    rdfs:label "may stabilize" .
+
+pred:often_lack a rdf:Property ;
+    rdfs:label "often lack" .
+
+pred:often_rely_on a rdf:Property ;
+    rdfs:label "often rely on" .
+
+pred:often_use a rdf:Property ;
+    rdfs:label "often use" .
+
+pred:processed a rdf:Property ;
+    rdfs:label "processed" .
+
+pred:provides_reference_point_for a rdf:Property ;
+    rdfs:label "provides reference point for" .
+
+pred:rarely_captures a rdf:Property ;
+    rdfs:label "rarely captures" .
+
+pred:requires_maximum_resolution a rdf:Property ;
+    rdfs:label "requires maximum resolution" .
+
+pred:requires_minimum_mapped_binding_residues_on_SEQRES a rdf:Property ;
+    rdfs:label "requires minimum mapped binding residues on SEQRES" .
+
+pred:use_maximum_resolution a rdf:Property ;
+    rdfs:label "use maximum resolution" .
+
+pred:uses_distance_cutoff a rdf:Property ;
+    rdfs:label "uses distance cutoff" .
+
+pred:uses_input_interactions_from a rdf:Property ;
+    rdfs:label "uses input interactions from" .
+
+pred:uses_residue_mappings_from a rdf:Property ;
+    rdfs:label "uses residue mappings from" .
+
+pred:uses_structures_from a rdf:Property ;
+    rdfs:label "uses structures from" .
+
+pred:yielded a rdf:Property ;
+    rdfs:label "yielded" .
+
+ent:13068_UniProt_accessions a ahoj:Concept ;
+    rdfs:label "13068 UniProt accessions" .
+
+ent:175388_entries a ahoj:Concept ;
+    rdfs:label "175388 entries" .
+
+ent:230269_entries a ahoj:Concept ;
+    rdfs:label "230269 entries" .
+
+ent:27983_proteins a ahoj:Concept ;
+    rdfs:label "27983 proteins" .
+
+ent:30_percent a ahoj:Concept ;
+    rdfs:label "30 percent" .
+
+ent:451408_entries a ahoj:Concept ;
+    rdfs:label "451408 entries" .
+
+ent:468293_biologically_relevant_protein_ligand_interactions a ahoj:Concept ;
+    rdfs:label "468293 biologically relevant protein ligand interactions" .
+
+ent:4_5_angstrom_resolution_threshold_and_diffraction_method_restriction a ahoj:Concept ;
+    rdfs:label "4 5 angstrom resolution threshold and diffraction method restriction" .
+
+ent:7_angstrom a ahoj:Concept ;
+    rdfs:label "7 angstrom" .
+
+ent:AHoJ_DB_input_selection a ahoj:Concept ;
+    rdfs:label "AHoJ DB input selection" ;
+    pred:excludes ent:Protein_nucleic_acid_interactions,
+        ent:Protein_peptide_interactions .
+
+ent:AHoJ_DB_web_server a ahoj:Concept ;
+    rdfs:label "AHoJ DB web server" ;
+    pred:provides ent:Search_capabilities,
+        ent:Visualization_capabilities .
+
+ent:About_24_percent_of_known_binding_sites a ahoj:Concept ;
+    rdfs:label "About 24 percent of known binding sites" .
+
+ent:About_9_percent_of_known_binding_sites a ahoj:Concept ;
+    rdfs:label "About 9 percent of known binding sites" .
+
+ent:All_mapped_binding_residues_observed a ahoj:Concept ;
+    rdfs:label "All mapped binding residues observed" .
+
+ent:Allosteric_effect_detection a ahoj:Concept ;
+    rdfs:label "Allosteric effect detection" .
+
+ent:Apo_form_in_PDB a ahoj:Concept ;
+    rdfs:label "Apo form in PDB" .
+
+ent:Apo_holo_classification a ahoj:Concept ;
+    rdfs:label "Apo holo classification" .
+
+ent:Apo_holo_ligand_detection a ahoj:Concept ;
+    rdfs:label "Apo holo ligand detection" .
+
+ent:Apo_holo_status a ahoj:Concept ;
+    rdfs:label "Apo holo status" .
+
+ent:Apo_pockets_in_Subset_2 a ahoj:Concept ;
+    rdfs:label "Apo pockets in Subset 2" ;
+    pred:have_higher ent:Pocket_RMSD_than_holo_pockets ;
+    pred:have_smaller ent:Pocket_volume_than_holo_pockets .
+
+ent:Average_b_factor_than_holo_pockets a ahoj:Concept ;
+    rdfs:label "Average b factor than holo pockets" .
+
+ent:BioLiP2 a ahoj:ExternalResource ;
+    rdfs:label "BioLiP2" ;
+    skos:exactMatch biolip2: .
+
+ent:Candidate_structure_processing a ahoj:Concept ;
+    rdfs:label "Candidate structure processing" ;
+    pred:requires_maximum_resolution ent:7_angstrom ;
+    pred:requires_minimum_mapped_binding_residues_on_SEQRES ent:30_percent .
+
+ent:Chain_RMSD_than_holo_relevant_chains a ahoj:Concept ;
+    rdfs:label "Chain RMSD than holo relevant chains" .
+
+ent:Cryptic_binding_site_validation a ahoj:Concept ;
+    rdfs:label "Cryptic binding site validation" .
+
+ent:Dataset_size_and_expandability a ahoj:Concept ;
+    rdfs:label "Dataset size and expandability" .
+
+ent:Datasets a ahoj:Concept ;
+    rdfs:label "Datasets" .
+
+ent:Different_global_geometries a ahoj:Concept ;
+    rdfs:label "Different global geometries" .
+
+ent:Different_local_geometries a ahoj:Concept ;
+    rdfs:label "Different local geometries" .
+
+ent:Diversity_of_known_bound_ligands a ahoj:Concept ;
+    rdfs:label "Diversity of known bound ligands" .
+
+ent:Drug_design_and_docking a ahoj:Concept ;
+    rdfs:label "Drug design and docking" .
+
+ent:Exhaustive a ahoj:Concept ;
+    rdfs:label "Exhaustive" .
+
+ent:Extraction_filtering_grouping_and_analysis a ahoj:Concept ;
+    rdfs:label "Extraction filtering grouping and analysis" .
+
+ent:Filtered_candidate_results a ahoj:Concept ;
+    rdfs:label "Filtered candidate results" ;
+    pred:are_also_sorted_by ent:Observed_residues_and_resolution ;
+    pred:are_sorted_by ent:Mapped_binding_residue_percentage .
+
+ent:Folding_dynamics_investigation a ahoj:Concept ;
+    rdfs:label "Folding dynamics investigation" .
+
+ent:Holo_classification a ahoj:Concept ;
+    rdfs:label "Holo classification" .
+
+ent:Holo_structures a ahoj:Concept ;
+    rdfs:label "Holo structures" .
+
+ent:Interchain_binding_sites a ahoj:Concept ;
+    rdfs:label "Interchain binding sites" .
+
+ent:Interfaces_of_multiple_chains a ahoj:Concept ;
+    rdfs:label "Interfaces of multiple chains" .
+
+ent:Known_binding_sites_of_a_protein a ahoj:Concept ;
+    rdfs:label "Known binding sites of a protein" .
+
+ent:Less_ordered_pockets a ahoj:Concept ;
+    rdfs:label "Less ordered pockets" .
+
+ent:Ligand_binding_site_predictor_training_and_testing a ahoj:Concept ;
+    rdfs:label "Ligand binding site predictor training and testing" .
+
+ent:Ligand_presence_nearby a ahoj:Concept ;
+    rdfs:label "Ligand presence nearby" .
+
+ent:Ligand_specific_apo_holo_coverage a ahoj:Concept ;
+    rdfs:label "Ligand specific apo holo coverage" .
+
+ent:Machine_learning_based_structural_biology a ahoj:Concept ;
+    rdfs:label "Machine learning based structural biology" .
+
+ent:Machine_learning_tool_development a ahoj:Concept ;
+    rdfs:label "Machine learning tool development" .
+
+ent:Manually_assembled a ahoj:Concept ;
+    rdfs:label "Manually assembled" .
+
+ent:Mapped_binding_residue_percentage a ahoj:Concept ;
+    rdfs:label "Mapped binding residue percentage" .
+
+ent:Mapped_pocket_residues a ahoj:Concept ;
+    rdfs:label "Mapped pocket residues" .
+
+ent:Most_comprehensive_apo_holo_structure_database_to_date a ahoj:Concept ;
+    rdfs:label "Most comprehensive apo holo structure database to date" .
+
+ent:Multi_pocket_structures a ahoj:Concept ;
+    rdfs:label "Multi pocket structures" .
+
+ent:Observed_residues_and_resolution a ahoj:Concept ;
+    rdfs:label "Observed residues and resolution" .
+
+ent:Order_to_disorder_transition_analysis a ahoj:Concept ;
+    rdfs:label "Order to disorder transition analysis" .
+
+ent:Pocket_RMSD_than_holo_pockets a ahoj:Concept ;
+    rdfs:label "Pocket RMSD than holo pockets" .
+
+ent:Pocket_level_metrics a ahoj:Concept ;
+    rdfs:label "Pocket level metrics" .
+
+ent:Pocket_volume_than_holo_pockets a ahoj:Concept ;
+    rdfs:label "Pocket volume than holo pockets" .
+
+ent:Protein_nucleic_acid_interactions a ahoj:Concept ;
+    rdfs:label "Protein nucleic acid interactions" .
+
+ent:Protein_peptide_interactions a ahoj:Concept ;
+    rdfs:label "Protein peptide interactions" .
+
+ent:Protein_structure_analysis a ahoj:Concept ;
+    rdfs:label "Protein structure analysis" .
+
+ent:Proteins_with_multiple_binding_sites a ahoj:Concept ;
+    rdfs:label "Proteins with multiple binding sites" .
+
+ent:Relevant_chain_metrics a ahoj:Concept ;
+    rdfs:label "Relevant chain metrics" .
+
+ent:Relevant_chains a ahoj:Concept ;
+    rdfs:label "Relevant chains" .
+
+ent:Same_UniProt_accession a ahoj:Concept ;
+    rdfs:label "Same UniProt accession" .
+
+ent:Same_protein a ahoj:Concept ;
+    rdfs:label "Same protein" .
+
+ent:Same_protein_PDB_structures a ahoj:Concept ;
+    rdfs:label "Same protein PDB structures" ;
+    pred:can_adopt ent:Different_global_geometries,
+        ent:Different_local_geometries .
+
+ent:Search_capabilities a ahoj:Concept ;
+    rdfs:label "Search capabilities" .
+
+ent:Single_holo_representative_structures a ahoj:Concept ;
+    rdfs:label "Single holo representative structures" .
+
+ent:Single_rigid_holo_structures a ahoj:Concept ;
+    rdfs:label "Single rigid holo structures" .
+
+ent:Subset_1 a ahoj:Concept ;
+    rdfs:label "Subset 1" ;
+    pred:applies ent:4_5_angstrom_resolution_threshold_and_diffraction_method_restriction ;
+    pred:yielded ent:451408_entries .
+
+ent:Subset_2 a ahoj:Concept ;
+    rdfs:label "Subset 2" ;
+    pred:has_apo_result_for ent:175388_entries ;
+    pred:requires ent:All_mapped_binding_residues_observed .
+
+ent:Understanding_protein_geometry a ahoj:Concept ;
+    rdfs:label "Understanding protein geometry" .
+
+ent:Unfiltered_AHoJ_DB a ahoj:Concept ;
+    rdfs:label "Unfiltered AHoJ DB" ;
+    pred:has_apo_form_for ent:13068_UniProt_accessions,
+        ent:230269_entries .
+
+ent:UniProt_accession_assignment a ahoj:Concept ;
+    rdfs:label "UniProt accession assignment" .
+
+ent:Unobserved_mapped_binding_residues_than_holo_pockets a ahoj:Concept ;
+    rdfs:label "Unobserved mapped binding residues than holo pockets" .
+
+ent:Visualization_capabilities a ahoj:Concept ;
+    rdfs:label "Visualization capabilities" .
+
+ent:Whole_structure_metrics a ahoj:Concept ;
+    rdfs:label "Whole structure metrics" .
+
+pred:account_for a rdf:Property ;
+    rdfs:label "account for" .
+
+pred:can_adopt a rdf:Property ;
+    rdfs:label "can adopt" .
+
+pred:can_be_ambiguous_for a rdf:Property ;
+    rdfs:label "can be ambiguous for" .
+
+pred:excludes a rdf:Property ;
+    rdfs:label "excludes" .
+
+pred:has_apo_form_for a rdf:Property ;
+    rdfs:label "has apo form for" .
+
+pred:occur_within a rdf:Property ;
+    rdfs:label "occur within" .
+
+pred:provides a rdf:Property ;
+    rdfs:label "provides" .
+
+pred:requires a rdf:Property ;
+    rdfs:label "requires" .
+
+ent:Mapped_candidate_pocket a ahoj:Concept ;
+    rdfs:label "Mapped candidate pocket" ;
+    pred:corresponds_to ent:Query_pocket ;
+    pred:is_classified_by ent:Ligand_presence_nearby ;
+    pred:may_differ_geometrically_from ent:Query_pocket .
+
+ent:Protein_conformational_variability a ahoj:Concept ;
+    rdfs:label "Protein conformational variability" ;
+    pred:is_not_readily_available_without ent:Extraction_filtering_grouping_and_analysis .
+
+pred:can_reveal a rdf:Property ;
+    rdfs:label "can reveal" .
+
+pred:have_higher a rdf:Property ;
+    rdfs:label "have higher" .
+
+pred:reports a rdf:Property ;
+    rdfs:label "reports" .
+
+ent:4_5_angstrom a ahoj:Concept ;
+    rdfs:label "4 5 angstrom" .
+
+ent:Detected_non_solvent_ligand_nearby a ahoj:Concept ;
+    rdfs:label "Detected non solvent ligand nearby" .
+
+ent:PDB a ahoj:ExternalResource ;
+    rdfs:label "Protein Data Bank" ;
+    skos:exactMatch <https://www.rcsb.org/> ;
+    pred:contains_multiple_structures_for ent:Same_protein ;
+    pred:is_biased_toward ent:Holo_structures .
+
+ent:SIFTS a ahoj:ExternalResource ;
+    rdfs:label "SIFTS" ;
+    skos:exactMatch sifts: .
+
+ent:Query_pocket a ahoj:Concept ;
+    rdfs:label "Query pocket" .
+
+ent:Apo_paired_coverage a ahoj:Concept ;
+    rdfs:label "Apo paired coverage" .
+
+pred:can_support a rdf:Property ;
+    rdfs:label "can support" .
+
+ent:AHoJ_DB a ahoj:Database ;
+    rdfs:label "AHoJ-DB" ;
+    skos:exactMatch <https://www.apoholo.cz/db> ;
+    ahoj:externalAlignment kgreg: ;
+    pred:can_support ent:Allosteric_effect_detection,
+        ent:Cryptic_binding_site_validation,
+        ent:Drug_design_and_docking,
+        ent:Folding_dynamics_investigation,
+        ent:Ligand_binding_site_predictor_training_and_testing,
+        ent:Machine_learning_tool_development,
+        ent:Order_to_disorder_transition_analysis,
+        ent:Protein_structure_analysis ;
+    pred:covers ent:27983_proteins ;
+    pred:is_claimed_to_be ent:Most_comprehensive_apo_holo_structure_database_to_date ;
+    pred:processed ent:468293_biologically_relevant_protein_ligand_interactions ;
+    pred:reports ent:Pocket_level_metrics,
+        ent:Relevant_chain_metrics,
+        ent:Whole_structure_metrics ;
+    pred:uses_input_interactions_from ent:BioLiP2 ;
+    pred:uses_residue_mappings_from ent:SIFTS ;
+    pred:uses_structures_from ent:PDB .
+
+ent:Article_AHoJDB_2024 a schema:ScholarlyArticle,
+        ahoj:Paper ;
+    rdfs:label "AHoJ-DB: A PDB-wide Assignment of apo & holo Relationships Based on Individual Protein–Ligand Interactions" ;
+    schema:author ent:Christos_P_Feidakis,
+        ent:David_Hoksza,
+        ent:Marian_Novotny,
+        ent:Radoslav_Krivak ;
+    schema:datePublished "2024"^^xsd:gYear ;
+    schema:identifier <https://doi.org/10.1016/j.jmb.2024.168545> ;
+    schema:isPartOf "Journal of Molecular Biology 436 (2024) 168545" ;
+    schema:license <https://creativecommons.org/licenses/by-nc-nd/4.0/> ;
+    schema:name "AHoJ-DB: A PDB-wide Assignment of apo & holo Relationships Based on Individual Protein–Ligand Interactions" ;
+    ahoj:hasClaim claim:C001,
+        claim:C002,
+        claim:C003,
+        claim:C004,
+        claim:C005,
+        claim:C006,
+        claim:C007,
+        claim:C008,
+        claim:C009,
+        claim:C010,
+        claim:C011,
+        claim:C012,
+        claim:C013,
+        claim:C014,
+        claim:C015,
+        claim:C016,
+        claim:C017,
+        claim:C018,
+        claim:C019,
+        claim:C020,
+        claim:C021,
+        claim:C022,
+        claim:C023,
+        claim:C024,
+        claim:C025,
+        claim:C026,
+        claim:C027,
+        claim:C028,
+        claim:C029,
+        claim:C030,
+        claim:C031,
+        claim:C032,
+        claim:C033,
+        claim:C034,
+        claim:C035,
+        claim:C036,
+        claim:C037,
+        claim:C038,
+        claim:C039,
+        claim:C040,
+        claim:C041,
+        claim:C042,
+        claim:C043,
+        claim:C044,
+        claim:C045,
+        claim:C046,
+        claim:C047,
+        claim:C048,
+        claim:C049,
+        claim:C050,
+        claim:C051,
+        claim:C052,
+        claim:C053,
+        claim:C054,
+        claim:C055,
+        claim:C056,
+        claim:C057,
+        claim:C058,
+        claim:C059,
+        claim:C060,
+        claim:C061,
+        claim:C062,
+        claim:C063,
+        claim:C064,
+        claim:C065,
+        claim:C066,
+        claim:C067,
+        claim:C068,
+        claim:C069,
+        claim:C070,
+        claim:C071,
+        claim:C072,
+        claim:C073,
+        claim:C074,
+        claim:C075,
+        claim:C076,
+        claim:C077,
+        claim:C078,
+        claim:C079,
+        claim:C080,
+        claim:C081,
+        claim:C082 .
+

@@ -1,0 +1,2630 @@
+@prefix ahoj: <https://w3id.org/ahoj/ontology/> .
+@prefix bio2rdf: <http://bio2rdf.org/> .
+@prefix biolink: <https://w3id.org/biolink/vocab/> .
+@prefix biolip2: <https://zhanggroup.org/BioLiP/> .
+@prefix chebi: <https://identifiers.org/chebi/> .
+@prefix chembl: <https://www.ebi.ac.uk/chembl/> .
+@prefix claim: <https://w3id.org/ahoj/claim/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix edam: <http://edamontology.org/> .
+@prefix ent: <https://w3id.org/ahoj/entity/> .
+@prefix kgreg: <https://kghub.org/> .
+@prefix pdbe-kb: <https://www.ebi.ac.uk/pdbe/pdbe-kb/> .
+@prefix pred: <https://w3id.org/ahoj/predicate/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sifts: <https://www.ebi.ac.uk/pdbe/docs/sifts/> .
+@prefix sio: <http://semanticscience.org/resource/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix uniprot: <https://identifiers.org/uniprot/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ahoj:ClaimTriplet a rdfs:Class ;
+    rdfs:label "Reified claim represented as subject-predicate-object plus a text explanation" .
+
+ahoj:Concept a rdfs:Class ;
+    rdfs:label "Scientific concept" .
+
+ahoj:Database a rdfs:Class ;
+    rdfs:label "Database or web resource" .
+
+ahoj:ExternalMapping a rdfs:Class ;
+    rdfs:label "external mapping" .
+
+ahoj:ExternalResource a rdfs:Class ;
+    rdfs:label "External biomedical or structural resource" .
+
+ahoj:MappingSet a rdfs:Class ;
+    rdfs:label "mapping set" .
+
+ahoj:MethodStep a rdfs:Class ;
+    rdfs:label "Methodological step" .
+
+ahoj:Metric a rdfs:Class ;
+    rdfs:label "Structural or dataset metric" .
+
+ahoj:Paper a rdfs:Class ;
+    rdfs:label "Scholarly article" .
+
+ahoj:ResearchProblem a rdfs:Class ;
+    rdfs:label "Research problem or motivation" .
+
+ahoj:Software a rdfs:Class ;
+    rdfs:label "Software application" .
+
+ahoj:Statistic a rdfs:Class ;
+    rdfs:label "Reported quantitative statistic" .
+
+ahoj:UseCase a rdfs:Class ;
+    rdfs:label "Downstream use case" .
+
+ent:AHoJ a ahoj:Software ;
+    rdfs:label "AHoJ software" .
+
+ent:Chem2Bio2RDF a ahoj:ExternalResource ;
+    rdfs:label "Chem2Bio2RDF" .
+
+ent:Mapping_AHoJ_DB_AHoJ-DB a ahoj:ExternalMapping ;
+    rdfs:label "AHoJ_DB mapping to AHoJ-DB" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.apoholo.cz/db> ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:AHoJ_DB .
+
+ent:Mapping_AHoJ_DB_AHoJ_website a ahoj:ExternalMapping ;
+    rdfs:label "AHoJ_DB mapping to AHoJ website" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.apoholo.cz> ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:AHoJ_DB .
+
+ent:Mapping_AHoJ_DB_input_selection_EDAM_data_retrieval a ahoj:ExternalMapping ;
+    rdfs:label "AHoJ_DB_input_selection mapping to EDAM data retrieval" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject edam:operation_2422 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:AHoJ_DB_input_selection .
+
+ent:Mapping_AHoJ_DB_web_server_AHoJ-DB a ahoj:ExternalMapping ;
+    rdfs:label "AHoJ_DB_web_server mapping to AHoJ-DB" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.apoholo.cz/db> ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:AHoJ_DB_web_server .
+
+ent:Mapping_Apo_coverage_statistic_SIO_quantity a ahoj:ExternalMapping ;
+    rdfs:label "Apo_coverage_statistic mapping to SIO quantity" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject sio:SIO_001018 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Apo_coverage_statistic .
+
+ent:Mapping_Apo_holo_classification_EDAM_classification a ahoj:ExternalMapping ;
+    rdfs:label "Apo_holo_classification mapping to EDAM classification" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject edam:operation_2990 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Apo_holo_classification .
+
+ent:Mapping_Apo_pocket_Biolink_ChemicalEntity a ahoj:ExternalMapping ;
+    rdfs:label "Apo_pocket mapping to Biolink ChemicalEntity" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolink:ChemicalEntity ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Apo_pocket .
+
+ent:Mapping_Article_AHoJDB_2024_DOI a ahoj:ExternalMapping ;
+    rdfs:label "Article_AHoJDB_2024 mapping to DOI" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://doi.org/10.1016/j.jmb.2024.168545> ;
+    ahoj:mappingPredicate schema:identifier ;
+    ahoj:mappingSubject ent:Article_AHoJDB_2024 .
+
+ent:Mapping_Binding_pocket_Biolink_AnatomicalEntity a ahoj:ExternalMapping ;
+    rdfs:label "Binding_pocket mapping to Biolink AnatomicalEntity" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolink:AnatomicalEntity ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Binding_pocket .
+
+ent:Mapping_Binding_pocket_SIO_site a ahoj:ExternalMapping ;
+    rdfs:label "Binding_pocket mapping to SIO site" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject sio:SIO_010046 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Binding_pocket .
+
+ent:Mapping_Bio2RDF_Bio2RDF a ahoj:ExternalMapping ;
+    rdfs:label "Bio2RDF mapping to Bio2RDF" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://bio2rdf.org/> ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:Bio2RDF .
+
+ent:Mapping_BioLiP2_BioLiP a ahoj:ExternalMapping ;
+    rdfs:label "BioLiP2 mapping to BioLiP" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolip2: ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:BioLiP2 .
+
+ent:Mapping_Candidate_structures_PDB_identifier_namespace a ahoj:ExternalMapping ;
+    rdfs:label "Candidate_structures mapping to PDB identifier namespace" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.rcsb.org/> ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Candidate_structures .
+
+ent:Mapping_ChEMBL_Bio2RDF a ahoj:ExternalMapping ;
+    rdfs:label "ChEMBL mapping to Bio2RDF" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject bio2rdf:chembl ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:ChEMBL .
+
+ent:Mapping_ChEMBL_ChEMBL a ahoj:ExternalMapping ;
+    rdfs:label "ChEMBL mapping to ChEMBL" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:ChEMBL .
+
+ent:Mapping_Data_processing_workflow_EDAM_data_handling a ahoj:ExternalMapping ;
+    rdfs:label "Data_processing_workflow mapping to EDAM data handling" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject edam:operation_2409 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Data_processing_workflow .
+
+ent:Mapping_Dataset_size_statistic_SIO_quantity a ahoj:ExternalMapping ;
+    rdfs:label "Dataset_size_statistic mapping to SIO quantity" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject sio:SIO_001018 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Dataset_size_statistic .
+
+ent:Mapping_Detected_ligand_near_pocket_Biolink_ChemicalEntity a ahoj:ExternalMapping ;
+    rdfs:label "Detected_ligand_near_pocket mapping to Biolink ChemicalEntity" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolink:ChemicalEntity ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Detected_ligand_near_pocket .
+
+ent:Mapping_Distance_cutoff_4_5_angstrom_EDAM_comparison a ahoj:ExternalMapping ;
+    rdfs:label "Distance_cutoff_4_5_angstrom mapping to EDAM comparison" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject edam:operation_2428 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Distance_cutoff_4_5_angstrom .
+
+ent:Mapping_Drug_design_and_docking_EDAM_drug_discovery a ahoj:ExternalMapping ;
+    rdfs:label "Drug_design_and_docking mapping to EDAM drug discovery" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject edam:topic_3376 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Drug_design_and_docking .
+
+ent:Mapping_Glycogen_phosphorylase_Oryctolagus_cuniculus_UniProt_P00489 a ahoj:ExternalMapping ;
+    rdfs:label "Glycogen_phosphorylase_Oryctolagus_cuniculus mapping to UniProt P00489" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject uniprot:P00489 ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:Glycogen_phosphorylase_Oryctolagus_cuniculus .
+
+ent:Mapping_Holo_pocket_Biolink_ChemicalEntity a ahoj:ExternalMapping ;
+    rdfs:label "Holo_pocket mapping to Biolink ChemicalEntity" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolink:ChemicalEntity ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Holo_pocket .
+
+ent:Mapping_IDSM_IDSM a ahoj:ExternalMapping ;
+    rdfs:label "IDSM mapping to IDSM" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://idsm.elixir-czech.cz/> ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:IDSM .
+
+ent:Mapping_Interface_site_statistic_SIO_quantity a ahoj:ExternalMapping ;
+    rdfs:label "Interface_site_statistic mapping to SIO quantity" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject sio:SIO_001018 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Interface_site_statistic .
+
+ent:Mapping_KG_Hub_KG_Registry_KG-Hub a ahoj:ExternalMapping ;
+    rdfs:label "KG_Hub_KG_Registry mapping to KG-Hub" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject kgreg: ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:KG_Hub_KG_Registry .
+
+ent:Mapping_Ligand_Biolink_ChemicalEntity a ahoj:ExternalMapping ;
+    rdfs:label "Ligand mapping to Biolink ChemicalEntity" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolink:ChemicalEntity ;
+    ahoj:mappingPredicate skos:closeMatch ;
+    ahoj:mappingSubject ent:Ligand .
+
+ent:Mapping_Ligand_ChEBI_52214_corrected a ahoj:ExternalMapping ;
+    rdfs:label "Ligand corrected mapping to CHEBI:52214" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_correction_2026_06_11 ;
+    ahoj:mappingObject chebi:52214 ;
+    ahoj:mappingPredicate skos:closeMatch ;
+    ahoj:mappingSubject ent:Ligand .
+
+ent:Mapping_Ligand_ChEBI_ligand a ahoj:ExternalMapping ;
+    rdfs:label "Ligand mapping to ChEBI ligand" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject chebi:52214 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Ligand .
+
+ent:Mapping_Ligand_ChEMBL a ahoj:ExternalMapping ;
+    rdfs:label "Ligand mapping to ChEMBL" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Ligand .
+
+ent:Mapping_Ligand_IDSM a ahoj:ExternalMapping ;
+    rdfs:label "Ligand mapping to IDSM" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://idsm.elixir-czech.cz/> ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Ligand .
+
+ent:Mapping_Ligand_search_use_case_ChEMBL a ahoj:ExternalMapping ;
+    rdfs:label "Ligand_search_use_case mapping to ChEMBL" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Ligand_search_use_case .
+
+ent:Mapping_Ligand_search_use_case_IDSM a ahoj:ExternalMapping ;
+    rdfs:label "Ligand_search_use_case mapping to IDSM" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://idsm.elixir-czech.cz/> ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Ligand_search_use_case .
+
+ent:Mapping_Machine_learning_tool_development_Biolink_ComputationalModel a ahoj:ExternalMapping ;
+    rdfs:label "Machine_learning_tool_development mapping to Biolink ComputationalModel" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolink:ComputationalModel ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Machine_learning_tool_development .
+
+ent:Mapping_Mapped_binding_residue_metric_EDAM_data a ahoj:ExternalMapping ;
+    rdfs:label "Mapped_binding_residue_metric mapping to EDAM data" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject edam:data_2082 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Mapped_binding_residue_metric .
+
+ent:Mapping_Mapped_candidate_pocket_SIFTS a ahoj:ExternalMapping ;
+    rdfs:label "Mapped_candidate_pocket mapping to SIFTS" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject sifts: ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Mapped_candidate_pocket .
+
+ent:Mapping_Mapped_residue_coverage_threshold_SIO_quantity a ahoj:ExternalMapping ;
+    rdfs:label "Mapped_residue_coverage_threshold mapping to SIO quantity" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject sio:SIO_001018 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Mapped_residue_coverage_threshold .
+
+ent:Mapping_PDB_Bio2RDF a ahoj:ExternalMapping ;
+    rdfs:label "PDB mapping to Bio2RDF" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject bio2rdf:pdb ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:PDB .
+
+ent:Mapping_PDB_PDBe a ahoj:ExternalMapping ;
+    rdfs:label "PDB mapping to PDBe" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.ebi.ac.uk/pdbe/> ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:PDB .
+
+ent:Mapping_PDB_RCSB_PDB a ahoj:ExternalMapping ;
+    rdfs:label "PDB mapping to RCSB PDB" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.rcsb.org/> ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:PDB .
+
+ent:Mapping_PDB_search_use_case_PDB_identifiers a ahoj:ExternalMapping ;
+    rdfs:label "PDB_search_use_case mapping to PDB identifiers" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.rcsb.org/> ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:PDB_search_use_case .
+
+ent:Mapping_Pocket_geometry_metric_EDAM_data a ahoj:ExternalMapping ;
+    rdfs:label "Pocket_geometry_metric mapping to EDAM data" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject edam:data_2082 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Pocket_geometry_metric .
+
+ent:Mapping_Protein_Biolink_Protein a ahoj:ExternalMapping ;
+    rdfs:label "Protein mapping to Biolink Protein" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolink:Protein ;
+    ahoj:mappingPredicate skos:closeMatch ;
+    ahoj:mappingSubject ent:Protein .
+
+ent:Mapping_Protein_UniProt_namespace a ahoj:ExternalMapping ;
+    rdfs:label "Protein mapping to UniProt namespace" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.uniprot.org/help/uniprotkb> ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Protein .
+
+ent:Mapping_Protein_ligand_interaction_Bio2RDF a ahoj:ExternalMapping ;
+    rdfs:label "Protein_ligand_interaction mapping to Bio2RDF" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject bio2rdf:bio2rdf.dataset ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Protein_ligand_interaction .
+
+ent:Mapping_Protein_ligand_interaction_Biolink_ChemicalToGeneAssociation a ahoj:ExternalMapping ;
+    rdfs:label "Protein_ligand_interaction mapping to Biolink ChemicalToGeneAssociation" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolink:ChemicalToGeneAssociation ;
+    ahoj:mappingPredicate skos:closeMatch ;
+    ahoj:mappingSubject ent:Protein_ligand_interaction .
+
+ent:Mapping_Protein_structure_Biolink_MacromolecularMachine a ahoj:ExternalMapping ;
+    rdfs:label "Protein_structure mapping to Biolink MacromolecularMachine" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolink:MacromolecularMachine ;
+    ahoj:mappingPredicate skos:closeMatch ;
+    ahoj:mappingSubject ent:Protein_structure .
+
+ent:Mapping_Protein_structure_PDB_identifier_namespace a ahoj:ExternalMapping ;
+    rdfs:label "Protein_structure mapping to PDB identifier namespace" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.rcsb.org/> ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Protein_structure .
+
+ent:Mapping_Query_pocket_SIO_site a ahoj:ExternalMapping ;
+    rdfs:label "Query_pocket mapping to SIO site" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject sio:SIO_010046 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Query_pocket .
+
+ent:Mapping_Resolution_threshold_EDAM_data a ahoj:ExternalMapping ;
+    rdfs:label "Resolution_threshold mapping to EDAM data" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject edam:data_2082 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Resolution_threshold .
+
+ent:Mapping_SIFTS_SIFTS a ahoj:ExternalMapping ;
+    rdfs:label "SIFTS mapping to SIFTS" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject sifts: ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:SIFTS .
+
+ent:Mapping_Same_protein_UniProt_namespace a ahoj:ExternalMapping ;
+    rdfs:label "Same_protein mapping to UniProt namespace" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.uniprot.org/help/accession_numbers> ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Same_protein .
+
+ent:Mapping_Solvent_or_non_solvent_ligand_ChEBI_solvent a ahoj:ExternalMapping ;
+    rdfs:label "Solvent_or_non_solvent_ligand mapping to ChEBI solvent" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject chebi:46787 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Solvent_or_non_solvent_ligand .
+
+ent:Mapping_Structural_biology_use_case_EDAM_structure_analysis a ahoj:ExternalMapping ;
+    rdfs:label "Structural_biology_use_case mapping to EDAM structure analysis" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject edam:topic_0081 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Structural_biology_use_case .
+
+ent:Mapping_Structural_factor_Biolink_ChemicalEntity a ahoj:ExternalMapping ;
+    rdfs:label "Structural_factor mapping to Biolink ChemicalEntity" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject biolink:ChemicalEntity ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Structural_factor .
+
+ent:Mapping_Structure_metrics_EDAM_data a ahoj:ExternalMapping ;
+    rdfs:label "Structure_metrics mapping to EDAM data" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject edam:data_2082 ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:Structure_metrics .
+
+ent:Mapping_UniProt_Bio2RDF a ahoj:ExternalMapping ;
+    rdfs:label "UniProt mapping to Bio2RDF" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject bio2rdf:uniprot ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:UniProt .
+
+ent:Mapping_UniProt_UniProt a ahoj:ExternalMapping ;
+    rdfs:label "UniProt mapping to UniProt" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.uniprot.org/> ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:UniProt .
+
+ent:Mapping_UniProt_accession_UniProt_accession_help a ahoj:ExternalMapping ;
+    rdfs:label "UniProt_accession mapping to UniProt accession help" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.uniprot.org/help/accession_numbers> ;
+    ahoj:mappingPredicate skos:exactMatch ;
+    ahoj:mappingSubject ent:UniProt_accession .
+
+ent:Mapping_UniProt_search_use_case_UniProt_accession a ahoj:ExternalMapping ;
+    rdfs:label "UniProt_search_use_case mapping to UniProt accession" ;
+    prov:wasGeneratedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mappingObject <https://www.uniprot.org/help/accession_numbers> ;
+    ahoj:mappingPredicate skos:relatedMatch ;
+    ahoj:mappingSubject ent:UniProt_search_use_case .
+
+ent:Pyridoxal_5_phosphate rdfs:label "pyridoxal 5'-phosphate" ;
+    skos:relatedMatch <https://identifiers.org/chebi/CHEBI:18405> .
+
+ahoj:claimObject a rdf:Property ;
+    rdfs:label "claim object" .
+
+ahoj:claimPredicate a rdf:Property ;
+    rdfs:label "claim predicate" .
+
+ahoj:claimSubject a rdf:Property ;
+    rdfs:label "claim subject" .
+
+ahoj:claimText a rdf:Property ;
+    rdfs:label "claim text" .
+
+ahoj:externalAlignment a rdf:Property ;
+    rdfs:label "external alignment" .
+
+ahoj:hasClaim a rdf:Property ;
+    rdfs:label "has claim" .
+
+ahoj:mappedBy a rdf:Property ;
+    rdfs:label "mapped by" .
+
+ahoj:mappingObject a rdf:Property ;
+    rdfs:label "mapping object" .
+
+ahoj:mappingPredicate a rdf:Property ;
+    rdfs:label "mapping predicate" .
+
+ahoj:mappingSubject a rdf:Property ;
+    rdfs:label "mapping subject" .
+
+ahoj:reportedValue a rdf:Property ;
+    rdfs:label "reported value" .
+
+ahoj:sourcePaper a rdf:Property ;
+    rdfs:label "source paper" .
+
+ahoj:supportsUseCase a rdf:Property ;
+    rdfs:label "supports use case" .
+
+ahoj:unit a rdf:Property ;
+    rdfs:label "unit" .
+
+ahoj:usesResource a rdf:Property ;
+    rdfs:label "uses resource" .
+
+chembl: rdfs:label "ChEMBL" .
+
+chebi:18405 rdfs:label "pyridoxal 5'-phosphate" .
+
+claim:C001 a ahoj:ClaimTriplet ;
+    rdfs:label "C001: Protein_structure - rarely captures - Protein_conformational_variability" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_conformational_variability ;
+    ahoj:claimPredicate pred:rarely_captures ;
+    ahoj:claimSubject ent:Protein_structure ;
+    ahoj:claimText "A single experimentally determined protein structure is usually insufficient to describe the conformational variability of a protein. Both apo and holo structures are needed to understand protein geometry and make meaningful comparisons." .
+
+claim:C002 a ahoj:ClaimTriplet ;
+    rdfs:label "C002: Apo_structure_and_holo_structure - are essential for - Protein_conformational_variability" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_conformational_variability ;
+    ahoj:claimPredicate pred:are_essential_for ;
+    ahoj:claimSubject ent:Apo_structure_and_holo_structure ;
+    ahoj:claimText "Apo and holo forms provide complementary views of the same protein. Comparing them helps expose structural changes associated with ligand binding." .
+
+claim:C003 a ahoj:ClaimTriplet ;
+    rdfs:label "C003: Drug_design_and_docking - often rely on - Protein_structure" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_structure ;
+    ahoj:claimPredicate pred:often_rely_on ;
+    ahoj:claimSubject ent:Drug_design_and_docking ;
+    ahoj:claimText "The paper argues that docking and drug-design studies often still use mostly rigid holo structures. This can miss conformational diversity relevant to binding and prediction." .
+
+claim:C004 a ahoj:ClaimTriplet ;
+    rdfs:label "C004: Machine_learning_tool_development - often use - Protein_structure" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_structure ;
+    ahoj:claimPredicate pred:often_use ;
+    ahoj:claimSubject ent:Machine_learning_tool_development ;
+    ahoj:claimText "Training and testing of ligand-binding-site predictors is often performed on one holo structure as a representative. The paper presents this as unrealistic because the apo form may differ from the holo binding-site geometry." .
+
+claim:C005 a ahoj:ClaimTriplet ;
+    rdfs:label "C005: Existing_apo_holo_resource - are needed for - Structural_biology_use_case" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Structural_biology_use_case ;
+    ahoj:claimPredicate pred:are_needed_for ;
+    ahoj:claimSubject ent:Existing_apo_holo_resource ;
+    ahoj:claimText "The paper states that curated apo-holo datasets are needed for machine-learning development, benchmarking, and structural analysis. Dataset size and availability are presented as limiting factors for progress." .
+
+claim:C006 a ahoj:ClaimTriplet ;
+    rdfs:label "C006: Apo_holo_classification - can be ambiguous for - Protein" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein ;
+    ahoj:claimPredicate pred:can_be_ambiguous_for ;
+    ahoj:claimSubject ent:Apo_holo_classification ;
+    ahoj:claimText "Assigning apo or holo status to an entire chain can be misleading when the same chain contains multiple pockets. One site may be ligand-bound while another site is not." .
+
+claim:C007 a ahoj:ClaimTriplet ;
+    rdfs:label "C007: Apo_holo_classification - can be ambiguous for - Multi_pocket_structure" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Multi_pocket_structure ;
+    ahoj:claimPredicate pred:can_be_ambiguous_for ;
+    ahoj:claimSubject ent:Apo_holo_classification ;
+    ahoj:claimText "Classifying a whole structure as apo or holo can obscure the state of individual binding pockets. The paper therefore argues for pocket-level classification." .
+
+claim:C008 a ahoj:ClaimTriplet ;
+    rdfs:label "C008: Binding_pocket - provides reference point for - Apo_holo_classification" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_holo_classification ;
+    ahoj:claimPredicate pred:provides_reference_point_for ;
+    ahoj:claimSubject ent:Binding_pocket ;
+    ahoj:claimText "AHoJ-DB treats the binding pocket, not the full protein structure, as the reference point for apo/holo assignment. This makes classification more precise for proteins with multiple binding sites." .
+
+claim:C009 a ahoj:ClaimTriplet ;
+    rdfs:label "C009: Pocket_centric_view - clarifies - Apo_holo_classification" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_holo_classification ;
+    ahoj:claimPredicate pred:clarifies ;
+    ahoj:claimSubject ent:Pocket_centric_view ;
+    ahoj:claimText "The paper claims that a pocket-centric view is practical for clarifying whether a corresponding site is apo or holo. This is one of the conceptual foundations of AHoJ-DB." .
+
+claim:C010 a ahoj:ClaimTriplet ;
+    rdfs:label "C010: AHoJ_DB - uses input interactions from - BioLiP2" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:BioLiP2 ;
+    ahoj:claimPredicate pred:uses_input_interactions_from ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB starts from biologically relevant protein-ligand interactions taken from the redundant set of BioLiP2. These interactions define the initial holo query sites." .
+
+claim:C011 a ahoj:ClaimTriplet ;
+    rdfs:label "C011: AHoJ_DB_input_selection - excludes - Excluded_interaction_type" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Excluded_interaction_type ;
+    ahoj:claimPredicate pred:excludes ;
+    ahoj:claimSubject ent:AHoJ_DB_input_selection ;
+    ahoj:claimText "The authors excluded interactions between proteins and peptides from the input set. The database focuses on non-peptide, non-nucleic-acid ligand interactions." .
+
+claim:C012 a ahoj:ClaimTriplet ;
+    rdfs:label "C012: AHoJ_DB_input_selection - excludes - Excluded_interaction_type" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Excluded_interaction_type ;
+    ahoj:claimPredicate pred:excludes ;
+    ahoj:claimSubject ent:AHoJ_DB_input_selection ;
+    ahoj:claimText "Protein-nucleic-acid interactions were discarded from the initial query set. This keeps the database focused on protein-small-molecule ligand binding." .
+
+claim:C013 a ahoj:ClaimTriplet ;
+    rdfs:label "C013: AHoJ_DB_input_selection - requires - UniProt_accession" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:UniProt_accession ;
+    ahoj:claimPredicate pred:requires ;
+    ahoj:claimSubject ent:AHoJ_DB_input_selection ;
+    ahoj:claimText "Interactions without UniProt accession assignment were excluded because the method searches for candidate structures within the same UniProt accession. UniProt is therefore essential for grouping comparable structures." .
+
+claim:C014 a ahoj:ClaimTriplet ;
+    rdfs:label "C014: AHoJ_DB - uses structures from - PDB" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:PDB ;
+    ahoj:claimPredicate pred:uses_structures_from ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The PDB provides the experimental protein structures searched by AHoJ-DB. Candidate apo and holo pockets are identified across PDB structures assigned to the same UniProt accession." .
+
+claim:C015 a ahoj:ClaimTriplet ;
+    rdfs:label "C015: AHoJ_DB - uses residue mappings from - SIFTS" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:SIFTS ;
+    ahoj:claimPredicate pred:uses_residue_mappings_from ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "SIFTS is used to map query pocket residues across other PDB structures of the same UniProt protein. This enables comparison of corresponding sequence positions across different structures." .
+
+claim:C016 a ahoj:ClaimTriplet ;
+    rdfs:label "C016: Query_ligand - defines - Query_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Query_pocket ;
+    ahoj:claimPredicate pred:defines ;
+    ahoj:claimSubject ent:Query_ligand ;
+    ahoj:claimText "The query ligand defines the binding pocket by proximity. Residues near the ligand become the binding residues of the query pocket." .
+
+claim:C017 a ahoj:ClaimTriplet ;
+    rdfs:label "C017: Query_pocket - uses distance cutoff - Distance_cutoff_4_5_angstrom" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Distance_cutoff_4_5_angstrom ;
+    ahoj:claimPredicate pred:uses_distance_cutoff ;
+    ahoj:claimSubject ent:Query_pocket ;
+    ahoj:claimText "AHoJ-DB defines binding residues using a 4.5 Å distance cutoff around the query ligand. The same cutoff is later used to detect ligands near mapped candidate pockets." .
+
+claim:C018 a ahoj:ClaimTriplet ;
+    rdfs:label "C018: Query_pocket - are mapped through - SIFTS" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:SIFTS ;
+    ahoj:claimPredicate pred:are_mapped_through ;
+    ahoj:claimSubject ent:Query_pocket ;
+    ahoj:claimText "The residues of the query pocket are mapped through SIFTS to corresponding residues in candidate PDB structures. This mapping creates candidate pockets representing the same sequence region." .
+
+claim:C019 a ahoj:ClaimTriplet ;
+    rdfs:label "C019: Candidate_structures - are restricted to - UniProt_accession" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:UniProt_accession ;
+    ahoj:claimPredicate pred:are_restricted_to ;
+    ahoj:claimSubject ent:Candidate_structures ;
+    ahoj:claimText "AHoJ-DB searches for candidate pockets only in structures assigned to the same UniProt accession as the query protein. This constrains comparisons to structures of the same protein sequence context." .
+
+claim:C020 a ahoj:ClaimTriplet ;
+    rdfs:label "C020: Mapped_candidate_pocket - corresponds to - Query_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Query_pocket ;
+    ahoj:claimPredicate pred:corresponds_to ;
+    ahoj:claimSubject ent:Mapped_candidate_pocket ;
+    ahoj:claimText "A mapped candidate pocket is the equivalent pocket region in another PDB structure. It corresponds to the query pocket by residue mapping, not necessarily by identical 3D geometry." .
+
+claim:C021 a ahoj:ClaimTriplet ;
+    rdfs:label "C021: Mapped_candidate_pocket - may differ geometrically from - Query_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Query_pocket ;
+    ahoj:claimPredicate pred:may_differ_geometrically_from ;
+    ahoj:claimSubject ent:Mapped_candidate_pocket ;
+    ahoj:claimText "Although mapped candidate pockets correspond to the same sequence region, their local geometry can differ. AHoJ-DB records metrics such as RMSD, volume, SASA, and b-factor to capture these differences." .
+
+claim:C022 a ahoj:ClaimTriplet ;
+    rdfs:label "C022: Mapped_candidate_pocket - is classified by - Detected_ligand_near_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Detected_ligand_near_pocket ;
+    ahoj:claimPredicate pred:is_classified_by ;
+    ahoj:claimSubject ent:Mapped_candidate_pocket ;
+    ahoj:claimText "Candidate pockets are classified as apo or holo depending on whether a ligand is detected near the mapped pocket. The classification is local to the pocket." .
+
+claim:C023 a ahoj:ClaimTriplet ;
+    rdfs:label "C023: Holo_pocket - has - Detected_ligand_near_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Detected_ligand_near_pocket ;
+    ahoj:claimPredicate pred:has ;
+    ahoj:claimSubject ent:Holo_pocket ;
+    ahoj:claimText "A mapped candidate pocket is classified as holo if at least one non-solvent ligand is detected within the cutoff distance. The detected ligand does not have to be the same as the query ligand." .
+
+claim:C024 a ahoj:ClaimTriplet ;
+    rdfs:label "C024: Apo_pocket - lacks - Detected_ligand_near_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Detected_ligand_near_pocket ;
+    ahoj:claimPredicate pred:lacks ;
+    ahoj:claimSubject ent:Apo_pocket ;
+    ahoj:claimText "A mapped candidate pocket is classified as apo when no non-solvent ligand is detected near the mapped pocket. This does not mean the entire structure is ligand-free." .
+
+claim:C025 a ahoj:ClaimTriplet ;
+    rdfs:label "C025: Solvent_or_non_solvent_ligand - are excluded from - Apo_holo_classification" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_holo_classification ;
+    ahoj:claimPredicate pred:are_excluded_from ;
+    ahoj:claimSubject ent:Solvent_or_non_solvent_ligand ;
+    ahoj:claimText "The apo/holo classification ignores solvent molecules. Only non-solvent ligands near the mapped pocket determine holo status." .
+
+claim:C026 a ahoj:ClaimTriplet ;
+    rdfs:label "C026: Detected_ligand_near_pocket - can justify - Holo_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Holo_pocket ;
+    ahoj:claimPredicate pred:can_justify ;
+    ahoj:claimSubject ent:Detected_ligand_near_pocket ;
+    ahoj:claimText "The paper treats any detected ligand near the mapped pocket as valid for holo classification, even if the ligand may be crystallographic or not biologically relevant. The rationale is that such ligands can still affect local pocket geometry." .
+
+claim:C027 a ahoj:ClaimTriplet ;
+    rdfs:label "C027: AHoJ_DB_input_selection - requires maximum resolution - Resolution_threshold" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Resolution_threshold ;
+    ahoj:claimPredicate pred:requires_maximum_resolution ;
+    ahoj:claimSubject ent:AHoJ_DB_input_selection ;
+    ahoj:claimText "Candidate structures were processed only if they satisfied a broad resolution cutoff of 7 Å. The authors used this permissive threshold to allow broad search coverage." .
+
+claim:C028 a ahoj:ClaimTriplet ;
+    rdfs:label "C028: AHoJ_DB_input_selection - requires minimum mapped binding residues on SEQRES - Mapped_residue_coverage_threshold" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Mapped_residue_coverage_threshold ;
+    ahoj:claimPredicate pred:requires_minimum_mapped_binding_residues_on_SEQRES ;
+    ahoj:claimSubject ent:AHoJ_DB_input_selection ;
+    ahoj:claimText "Candidate structures were processed only if at least 30% of the query pocket residues could be mapped onto the candidate SEQRES. Otherwise, the structure was not processed." .
+
+claim:C029 a ahoj:ClaimTriplet ;
+    rdfs:label "C029: Candidate_structures - use maximum resolution - Distance_cutoff_4_5_angstrom" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Distance_cutoff_4_5_angstrom ;
+    ahoj:claimPredicate pred:use_maximum_resolution ;
+    ahoj:claimSubject ent:Candidate_structures ;
+    ahoj:claimText "For filtered results displayed in AHoJ-DB, the authors used a softer post-processing filter with a 4.5 Å resolution threshold. These filtered results are separate from the broader processed results." .
+
+claim:C030 a ahoj:ClaimTriplet ;
+    rdfs:label "C030: Candidate_structures - are sorted by - Mapped_binding_residue_metric" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Mapped_binding_residue_metric ;
+    ahoj:claimPredicate pred:are_sorted_by ;
+    ahoj:claimSubject ent:Candidate_structures ;
+    ahoj:claimText "Filtered candidate results are primarily sorted by the percentage of mapped binding residues. This favors candidates where the original pocket is more completely represented." .
+
+claim:C031 a ahoj:ClaimTriplet ;
+    rdfs:label "C031: Candidate_structures - are also sorted by - Mapped_binding_residue_metric" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Mapped_binding_residue_metric ;
+    ahoj:claimPredicate pred:are_also_sorted_by ;
+    ahoj:claimSubject ent:Candidate_structures ;
+    ahoj:claimText "After mapped-residue coverage, filtered results are sorted by number of observed residues and then by resolution. This prioritizes structurally complete and higher-quality candidate pockets." .
+
+claim:C032 a ahoj:ClaimTriplet ;
+    rdfs:label "C032: AHoJ_DB - reports - Structure_metrics" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Structure_metrics ;
+    ahoj:claimPredicate pred:reports ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB reports metrics describing the whole candidate structure, including resolution and experimental method. These provide context for interpreting pocket-level comparisons." .
+
+claim:C033 a ahoj:ClaimTriplet ;
+    rdfs:label "C033: AHoJ_DB - reports - Structure_metrics" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Structure_metrics ;
+    ahoj:claimPredicate pred:reports ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB reports metrics for protein chains involved in the mapped pocket, including TM-score, chain RMSD, and allosteric factors. These connect pocket changes to broader chain-level structure." .
+
+claim:C034 a ahoj:ClaimTriplet ;
+    rdfs:label "C034: AHoJ_DB - reports - Structure_metrics" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Structure_metrics ;
+    ahoj:claimPredicate pred:reports ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB reports pocket-level metrics including mapped residues, observed residues, SASA, molecular surface, volume, b-factor, radius of gyration, and pocket RMSD. These describe local geometry and completeness of the mapped pocket." .
+
+claim:C035 a ahoj:ClaimTriplet ;
+    rdfs:label "C035: Structural_factor - occur within - Relevant_chain" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Relevant_chain ;
+    ahoj:claimPredicate pred:occur_within ;
+    ahoj:claimSubject ent:Structural_factor ;
+    ahoj:claimText "The paper describes allosteric factors as PTMs or ligands occurring within relevant chains but outside the mapped pocket itself. These may help explain structural differences between states." .
+
+claim:C036 a ahoj:ClaimTriplet ;
+    rdfs:label "C036: Structural_factor - occur within - Mapped_candidate_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Mapped_candidate_pocket ;
+    ahoj:claimPredicate pred:occur_within ;
+    ahoj:claimSubject ent:Structural_factor ;
+    ahoj:claimText "Orthosteric factors are ligands, solvent molecules, or PTMs found within the mapped pocket residues. They directly affect interpretation of the local binding site." .
+
+claim:C037 a ahoj:ClaimTriplet ;
+    rdfs:label "C037: AHoJ_DB - processed - Protein_ligand_interaction" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_ligand_interaction ;
+    ahoj:claimPredicate pred:processed ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The paper reports that AHoJ-DB processed 468,293 biologically relevant protein-ligand interactions. Each processed interaction corresponds to a separate entry and query binding site." .
+
+claim:C038 a ahoj:ClaimTriplet ;
+    rdfs:label "C038: AHoJ_DB - covers - Protein" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein ;
+    ahoj:claimPredicate pred:covers ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The processed interactions span 27,983 proteins. Protein identity is organized through UniProt accession assignments." .
+
+claim:C039 a ahoj:ClaimTriplet ;
+    rdfs:label "C039: AHoJ_DB - has apo form for - Apo_coverage_statistic" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_coverage_statistic ;
+    ahoj:claimPredicate pred:has_apo_form_for ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "In the unfiltered database, 230,269 of 468,293 entries have at least one apo form. This corresponds to 49.2% of processed entries." .
+
+claim:C040 a ahoj:ClaimTriplet ;
+    rdfs:label "C040: AHoJ_DB - has apo form for - UniProt_accession" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:UniProt_accession ;
+    ahoj:claimPredicate pred:has_apo_form_for ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "At the UniProt level, 13,068 of 27,983 accessions have at least one apo candidate in the unfiltered database. This corresponds to 46.7% of represented UniProt accessions." .
+
+claim:C041 a ahoj:ClaimTriplet ;
+    rdfs:label "C041: Processed_binding_sites - often lack - Apo_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_pocket ;
+    ahoj:claimPredicate pred:often_lack ;
+    ahoj:claimSubject ent:Processed_binding_sites ;
+    ahoj:claimText "The paper concludes that less than half of the processed binding sites have an apo form in the PDB. This lack of apo structures may limit benchmark construction and model evaluation." .
+
+claim:C042 a ahoj:ClaimTriplet ;
+    rdfs:label "C042: Filtered_subset - applies - Resolution_threshold" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Resolution_threshold ;
+    ahoj:claimPredicate pred:applies ;
+    ahoj:claimSubject ent:Filtered_subset ;
+    ahoj:claimText "Subset 1 includes structures with resolution 4.5 Å or better and only diffraction methods. It also requires 100% mapped binding residues on SEQRES but allows some mapped residues to be unobserved." .
+
+claim:C043 a ahoj:ClaimTriplet ;
+    rdfs:label "C043: Filtered_subset - yielded - Dataset_size_statistic" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Dataset_size_statistic ;
+    ahoj:claimPredicate pred:yielded ;
+    ahoj:claimSubject ent:Filtered_subset ;
+    ahoj:claimText "Subset 1 yielded 451,408 entries across 27,162 UniProt accessions. Among these, 41% had at least one apo state." .
+
+claim:C044 a ahoj:ClaimTriplet ;
+    rdfs:label "C044: Apo_pocket_in_filtered_subset - have more - Mapped_binding_residue_metric" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Mapped_binding_residue_metric ;
+    ahoj:claimPredicate pred:have_more ;
+    ahoj:claimSubject ent:Apo_pocket_in_filtered_subset ;
+    ahoj:claimText "In Subset 1, apo pockets showed a much higher percentage of unobserved mapped binding residues than holo pockets. The paper interprets this as evidence that apo pockets are less likely to have ordered structural representation." .
+
+claim:C045 a ahoj:ClaimTriplet ;
+    rdfs:label "C045: Filtered_subset - requires - Mapped_binding_residue_metric" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Mapped_binding_residue_metric ;
+    ahoj:claimPredicate pred:requires ;
+    ahoj:claimSubject ent:Filtered_subset ;
+    ahoj:claimText "Subset 2 applies the same resolution and diffraction-method filters as Subset 1 but also requires all mapped binding residues to be observed. This enables more confident pocket-level geometric comparisons." .
+
+claim:C046 a ahoj:ClaimTriplet ;
+    rdfs:label "C046: Filtered_subset - has apo result for - Apo_coverage_statistic" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_coverage_statistic ;
+    ahoj:claimPredicate pred:has_apo_result_for ;
+    ahoj:claimSubject ent:Filtered_subset ;
+    ahoj:claimText "In Subset 2, 175,388 entries had at least one apo result. This corresponds to 39% of entries under those filtering criteria." .
+
+claim:C047 a ahoj:ClaimTriplet ;
+    rdfs:label "C047: Apo_pocket_in_filtered_subset - have higher - Pocket_geometry_metric" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Pocket_geometry_metric ;
+    ahoj:claimPredicate pred:have_higher ;
+    ahoj:claimSubject ent:Apo_pocket_in_filtered_subset ;
+    ahoj:claimText "Subset 2 shows that apo pockets have consistently higher RMSD relative to the query pocket than holo pockets. The paper suggests this may point toward cryptic-site-like behavior." .
+
+claim:C048 a ahoj:ClaimTriplet ;
+    rdfs:label "C048: Apo_pocket_in_filtered_subset - have higher - Pocket_geometry_metric" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Pocket_geometry_metric ;
+    ahoj:claimPredicate pred:have_higher ;
+    ahoj:claimSubject ent:Apo_pocket_in_filtered_subset ;
+    ahoj:claimText "The higher RMSD trend also extends to the chain level. Apo relevant chains show higher chain RMSD than holo relevant chains." .
+
+claim:C049 a ahoj:ClaimTriplet ;
+    rdfs:label "C049: Apo_pocket_in_filtered_subset - have smaller - Pocket_geometry_metric" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Pocket_geometry_metric ;
+    ahoj:claimPredicate pred:have_smaller ;
+    ahoj:claimSubject ent:Apo_pocket_in_filtered_subset ;
+    ahoj:claimText "The paper reports that apo pockets appear smaller overall than holo pockets in Subset 2. This supports the idea that ligand binding may open or stabilize pocket geometry." .
+
+claim:C050 a ahoj:ClaimTriplet ;
+    rdfs:label "C050: Apo_pocket - have higher - Pocket_geometry_metric" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Pocket_geometry_metric ;
+    ahoj:claimPredicate pred:have_higher ;
+    ahoj:claimSubject ent:Apo_pocket ;
+    ahoj:claimText "Apo pockets show higher per-atom b-factor values than holo pockets. The paper interprets this as supporting the idea that apo pockets are less ordered overall." .
+
+claim:C051 a ahoj:ClaimTriplet ;
+    rdfs:label "C051: PDB - is biased toward - Holo_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Holo_pocket ;
+    ahoj:claimPredicate pred:is_biased_toward ;
+    ahoj:claimSubject ent:PDB ;
+    ahoj:claimText "The paper observes consistently higher numbers of pockets, structures, and chains for holo states than apo states. This is interpreted as evidence of an inherent PDB bias toward holo structures." .
+
+claim:C052 a ahoj:ClaimTriplet ;
+    rdfs:label "C052: Ligand - influences - Ligand_apo_coverage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Ligand_apo_coverage ;
+    ahoj:claimPredicate pred:influences ;
+    ahoj:claimSubject ent:Ligand ;
+    ahoj:claimText "When entries are grouped by ligand, the fraction of sites with apo-paired entries varies strongly. This suggests that apo availability is ligand-dependent." .
+
+claim:C053 a ahoj:ClaimTriplet ;
+    rdfs:label "C053: Ligand_apo_coverage - have high - Ligand_apo_coverage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Ligand_apo_coverage ;
+    ahoj:claimPredicate pred:have_high ;
+    ahoj:claimSubject ent:Ligand_apo_coverage ;
+    ahoj:claimText "Glucose-binding entries show high apo-paired coverage compared with many other ligands. The paper reports glucose coverage around 73% by sites in the ligand-group analysis." .
+
+claim:C054 a ahoj:ClaimTriplet ;
+    rdfs:label "C054: Ligand_apo_coverage - have low - Ligand_apo_coverage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Ligand_apo_coverage ;
+    ahoj:claimPredicate pred:have_low ;
+    ahoj:claimSubject ent:Ligand_apo_coverage ;
+    ahoj:claimText "Chlorophyll A binding sites show very low apo-paired coverage. The paper reports about 1% coverage by sites for chlorophyll A in the analyzed subset." .
+
+claim:C055 a ahoj:ClaimTriplet ;
+    rdfs:label "C055: Ligand_apo_coverage - have very low - Ligand_apo_coverage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Ligand_apo_coverage ;
+    ahoj:claimPredicate pred:have_very_low ;
+    ahoj:claimSubject ent:Ligand_apo_coverage ;
+    ahoj:claimText "Fe4S4 iron-sulfur cluster binding sites show almost no apo-paired coverage. The paper suggests such ligand classes may correspond to pockets or structures that are difficult to resolve without the ligand." .
+
+claim:C056 a ahoj:ClaimTriplet ;
+    rdfs:label "C056: Ligand - may stabilize - Less_ordered_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Less_ordered_pocket ;
+    ahoj:claimPredicate pred:may_stabilize ;
+    ahoj:claimSubject ent:Ligand ;
+    ahoj:claimText "The paper suggests that some ligands may bind less ordered pockets or structures that are harder to resolve in the absence of ligand. This is offered as a possible explanation for ligand-specific differences in apo coverage." .
+
+claim:C057 a ahoj:ClaimTriplet ;
+    rdfs:label "C057: Binding_pocket - can occur at - Interface_binding_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Interface_binding_pocket ;
+    ahoj:claimPredicate pred:can_occur_at ;
+    ahoj:claimSubject ent:Binding_pocket ;
+    ahoj:claimText "The paper emphasizes that many protein-ligand binding sites are formed at interfaces between chains. These sites are important but harder to annotate across structures." .
+
+claim:C058 a ahoj:ClaimTriplet ;
+    rdfs:label "C058: Interface_binding_pocket - account for - Interface_site_statistic" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Interface_site_statistic ;
+    ahoj:claimPredicate pred:account_for ;
+    ahoj:claimSubject ent:Interface_binding_pocket ;
+    ahoj:claimText "Using the 4.5 Å cutoff, the paper reports that approximately 24% of binding sites involve two or more chains. This makes interface pockets a substantial fraction of binding sites." .
+
+claim:C059 a ahoj:ClaimTriplet ;
+    rdfs:label "C059: Interface_binding_pocket - account for - Interface_site_statistic" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Interface_site_statistic ;
+    ahoj:claimPredicate pred:account_for ;
+    ahoj:claimSubject ent:Interface_binding_pocket ;
+    ahoj:claimText "The paper reports that about 9% of binding pockets involve multiple UniProt accessions, corresponding to heteromeric binding sites. These are a subset of multi-chain pockets." .
+
+claim:C060 a ahoj:ClaimTriplet ;
+    rdfs:label "C060: Interface_binding_pocket - are often neglected or misrepresented in - Data_processing_workflow" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Data_processing_workflow ;
+    ahoj:claimPredicate pred:are_often_neglected_or_misrepresented_in ;
+    ahoj:claimSubject ent:Interface_binding_pocket ;
+    ahoj:claimText "The paper states that interface pockets are often neglected or misrepresented because of their complexity. AHoJ-DB explicitly supports such pockets." .
+
+claim:C061 a ahoj:ClaimTriplet ;
+    rdfs:label "C061: AHoJ_DB - is compatible with - Interface_binding_pocket" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Interface_binding_pocket ;
+    ahoj:claimPredicate pred:is_compatible_with ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB can handle binding sites formed by multiple chains. This allows the database to represent apo/holo relationships for pockets at protein-protein interfaces." .
+
+claim:C062 a ahoj:ClaimTriplet ;
+    rdfs:label "C062: Existing_apo_holo_resource - are often - Manual_dataset_assembly" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Manual_dataset_assembly ;
+    ahoj:claimPredicate pred:are_often ;
+    ahoj:claimSubject ent:Existing_apo_holo_resource ;
+    ahoj:claimText "The paper notes that many existing apo-holo datasets were manually assembled. Manual assembly indirectly limits size and expandability." .
+
+claim:C063 a ahoj:ClaimTriplet ;
+    rdfs:label "C063: Manual_dataset_assembly - limits - Manual_dataset_assembly" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Manual_dataset_assembly ;
+    ahoj:claimPredicate pred:limits ;
+    ahoj:claimSubject ent:Manual_dataset_assembly ;
+    ahoj:claimText "Manual curation can produce high-quality datasets but makes comprehensive and easily updatable apo-holo resources difficult. This motivates the large-scale automated approach of AHoJ-DB." .
+
+claim:C064 a ahoj:ClaimTriplet ;
+    rdfs:label "C064: Existing_apo_holo_resource - are not - Manual_dataset_assembly" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Manual_dataset_assembly ;
+    ahoj:claimPredicate pred:are_not ;
+    ahoj:claimSubject ent:Existing_apo_holo_resource ;
+    ahoj:claimText "The paper argues that existing apo-holo resources are not exhaustive. Therefore, large annotated datasets remain necessary." .
+
+claim:C065 a ahoj:ClaimTriplet ;
+    rdfs:label "C065: AHoJ_DB - is claimed to be - Comprehensive_apo_holo_database_claim" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Comprehensive_apo_holo_database_claim ;
+    ahoj:claimPredicate pred:is_claimed_to_be ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "In the conclusion, the authors state that AHoJ-DB is, to their knowledge, the most comprehensive database for apo and holo structures to date. This claim is based on the scale and pocket-centric coverage reported in the paper." .
+
+claim:C066 a ahoj:ClaimTriplet ;
+    rdfs:label "C066: AHoJ_DB - can support - Structural_biology_use_case" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Structural_biology_use_case ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The authors state that AHoJ-DB can support protein structure analysis by providing annotated apo/holo structure ensembles. These ensembles reflect conformational variability present in the PDB." .
+
+claim:C067 a ahoj:ClaimTriplet ;
+    rdfs:label "C067: AHoJ_DB - can support - Machine_learning_tool_development" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Machine_learning_tool_development ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The database can be used to train and evaluate machine-learning tools. The paper specifically connects this to ligand-binding-site prediction and structural comparison." .
+
+claim:C068 a ahoj:ClaimTriplet ;
+    rdfs:label "C068: AHoJ_DB - can support - Drug_design_and_docking" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Drug_design_and_docking ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "AHoJ-DB can help drug-design and docking experiments by exposing apo/holo pocket variability. This may reduce reliance on a single rigid holo structure." .
+
+claim:C069 a ahoj:ClaimTriplet ;
+    rdfs:label "C069: AHoJ_DB - can support - Machine_learning_tool_development" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Machine_learning_tool_development ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The database provides pocket-level apo/holo annotations that can be used to train or evaluate ligand-binding-site predictors. This is one of the motivating use cases behind the resource." .
+
+claim:C070 a ahoj:ClaimTriplet ;
+    rdfs:label "C070: AHoJ_DB - can support - Binding_site_analysis_use_case" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Binding_site_analysis_use_case ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "Because AHoJ-DB compares apo and holo pocket geometries, it can support analysis of cryptic binding sites. Higher apo pocket RMSD and smaller apo pocket volume may indicate hidden or ligand-induced binding-site behavior." .
+
+claim:C071 a ahoj:ClaimTriplet ;
+    rdfs:label "C071: AHoJ_DB - can support - Binding_site_analysis_use_case" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Binding_site_analysis_use_case ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The database records ligands, PTMs, and other factors that may occur on relevant chains or within pockets. These annotations can support studies of allosteric effects." .
+
+claim:C072 a ahoj:ClaimTriplet ;
+    rdfs:label "C072: AHoJ_DB - can support - Binding_site_analysis_use_case" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Binding_site_analysis_use_case ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "The paper states that AHoJ-DB can help investigate order-to-disorder transitions. This is supported by its tracking of observed and unobserved residues in mapped pockets." .
+
+claim:C073 a ahoj:ClaimTriplet ;
+    rdfs:label "C073: AHoJ_DB - can support - Binding_site_analysis_use_case" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Binding_site_analysis_use_case ;
+    ahoj:claimPredicate pred:can_support ;
+    ahoj:claimSubject ent:AHoJ_DB ;
+    ahoj:claimText "By collecting conformational variability across structures with identical or corresponding sequences, AHoJ-DB may support studies of folding dynamics. The paper links structural variability to sequence-independent folding behavior." .
+
+claim:C074 a ahoj:ClaimTriplet ;
+    rdfs:label "C074: PDB - contains multiple structures for - Same_protein" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Same_protein ;
+    ahoj:claimPredicate pred:contains_multiple_structures_for ;
+    ahoj:claimSubject ent:PDB ;
+    ahoj:claimText "The paper notes that many PDB structures correspond to the same protein. These structures may differ because they were solved under different conditions or with different bound molecules." .
+
+claim:C075 a ahoj:ClaimTriplet ;
+    rdfs:label "C075: Same_protein - can adopt - Protein_conformational_variability" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_conformational_variability ;
+    ahoj:claimPredicate pred:can_adopt ;
+    ahoj:claimSubject ent:Same_protein ;
+    ahoj:claimText "Structures of the same protein sequence can show different local geometries. Binding pockets are one important site where such differences appear." .
+
+claim:C076 a ahoj:ClaimTriplet ;
+    rdfs:label "C076: Same_protein - can adopt - Protein_conformational_variability" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Protein_conformational_variability ;
+    ahoj:claimPredicate pred:can_adopt ;
+    ahoj:claimSubject ent:Same_protein ;
+    ahoj:claimText "The paper also notes that identical-sequence protein structures may differ globally. AHoJ-DB helps expose agents responsible for such geometric differences." .
+
+claim:C077 a ahoj:ClaimTriplet ;
+    rdfs:label "C077: Protein_conformational_variability - is not readily available without - Data_processing_workflow" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Data_processing_workflow ;
+    ahoj:claimPredicate pred:is_not_readily_available_without ;
+    ahoj:claimSubject ent:Protein_conformational_variability ;
+    ahoj:claimText "Although conformational variability exists in the PDB, it is not immediately available to researchers. It must be extracted, filtered, grouped, and analyzed across structures." .
+
+claim:C078 a ahoj:ClaimTriplet ;
+    rdfs:label "C078: AHoJ_DB_web_server - provides - AHoJ_DB_web_server" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:AHoJ_DB_web_server ;
+    ahoj:claimPredicate pred:provides ;
+    ahoj:claimSubject ent:AHoJ_DB_web_server ;
+    ahoj:claimText "The web server provides visualization of apo/holo results and structural superpositions. The figure on page 6 shows the interface with search results and detailed visualization." .
+
+claim:C079 a ahoj:ClaimTriplet ;
+    rdfs:label "C079: AHoJ_DB_web_server - provides - AHoJ_DB_web_server" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:AHoJ_DB_web_server ;
+    ahoj:claimPredicate pred:provides ;
+    ahoj:claimSubject ent:AHoJ_DB_web_server ;
+    ahoj:claimText "The web server allows users to search the database by PDB code, UniProt accession, or ligand ID. These search modes support different biological questions." .
+
+claim:C080 a ahoj:ClaimTriplet ;
+    rdfs:label "C080: PDB_search_use_case - can reveal - PDB_search_use_case" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:PDB_search_use_case ;
+    ahoj:claimPredicate pred:can_reveal ;
+    ahoj:claimSubject ent:PDB_search_use_case ;
+    ahoj:claimText "The paper says searching by PDB code can reveal information about the diversity of known bound ligands and binding modes. This is useful for inspecting structure-specific ligand binding." .
+
+claim:C081 a ahoj:ClaimTriplet ;
+    rdfs:label "C081: UniProt_search_use_case - can reveal - UniProt_search_use_case" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:UniProt_search_use_case ;
+    ahoj:claimPredicate pred:can_reveal ;
+    ahoj:claimSubject ent:UniProt_search_use_case ;
+    ahoj:claimText "Searching by UniProt accession provides an overview of known binding sites and biologically relevant ligands for a protein. The paper illustrates this with glycogen phosphorylase." .
+
+claim:C082 a ahoj:ClaimTriplet ;
+    rdfs:label "C082: Ligand_search_use_case - can reveal - Ligand_apo_coverage" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Ligand_apo_coverage ;
+    ahoj:claimPredicate pred:can_reveal ;
+    ahoj:claimSubject ent:Ligand_search_use_case ;
+    ahoj:claimText "Searching by ligand name or ID can show how many binding sites for that ligand have apo counterparts. The paper uses bacteriochlorophyll A as an example of low apo coverage." .
+
+claim:C083 a ahoj:ClaimTriplet ;
+    rdfs:label "C083: ent:Glycogen_phosphorylase_Oryctolagus_cuniculus - is concrete example for - ent:UniProt_search_use_case" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:UniProt_search_use_case ;
+    ahoj:claimPredicate pred:is_concrete_example_for ;
+    ahoj:claimSubject ent:Glycogen_phosphorylase_Oryctolagus_cuniculus ;
+    ahoj:claimText "The AHoJ-DB paper uses glycogen phosphorylase from Oryctolagus cuniculus as a concrete example for search by UniProt accession." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C084 a ahoj:ClaimTriplet ;
+    rdfs:label "C084: ent:Glycogen_phosphorylase_Oryctolagus_cuniculus - has UniProt accession - ent:UniProt_P00489" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:UniProt_P00489 ;
+    ahoj:claimPredicate pred:has_UniProt_accession ;
+    ahoj:claimSubject ent:Glycogen_phosphorylase_Oryctolagus_cuniculus ;
+    ahoj:claimText "The protein example is identified in the paper by UniProt accession P00489." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C085 a ahoj:ClaimTriplet ;
+    rdfs:label "C085: ent:UniProt_search_use_case - can reveal binding sites for - ent:Glycogen_phosphorylase_Oryctolagus_cuniculus" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Glycogen_phosphorylase_Oryctolagus_cuniculus ;
+    ahoj:claimPredicate pred:can_reveal_binding_sites_for ;
+    ahoj:claimSubject ent:UniProt_search_use_case ;
+    ahoj:claimText "The paper's UniProt-search use case shows that searching by UniProt accession can reveal known binding sites for glycogen phosphorylase." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C086 a ahoj:ClaimTriplet ;
+    rdfs:label "C086: ent:Glycogen_phosphorylase_Oryctolagus_cuniculus - has known binding site - ent:PLP_binding_site" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:PLP_binding_site ;
+    ahoj:claimPredicate pred:has_known_binding_site ;
+    ahoj:claimSubject ent:Glycogen_phosphorylase_Oryctolagus_cuniculus ;
+    ahoj:claimText "The AHoJ-DB use-case discussion links the glycogen phosphorylase example to known PLP binding-site information." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C087 a ahoj:ClaimTriplet ;
+    rdfs:label "C087: ent:PLP_binding_site - is binding site of - ent:Glycogen_phosphorylase_Oryctolagus_cuniculus" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Glycogen_phosphorylase_Oryctolagus_cuniculus ;
+    ahoj:claimPredicate pred:is_binding_site_of ;
+    ahoj:claimSubject ent:PLP_binding_site ;
+    ahoj:claimText "The PLP binding site is represented as a binding site associated with the glycogen phosphorylase protein example." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C088 a ahoj:ClaimTriplet ;
+    rdfs:label "C088: UniProt_AC_search - provides overview of - Known_binding_sites_overview" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Known_binding_sites_overview ;
+    ahoj:claimPredicate pred:provides_overview_of ;
+    ahoj:claimSubject ent:UniProt_AC_search ;
+    ahoj:claimText "Search by UniProt AC provides an overview of known binding sites of the protein." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C089 a ahoj:ClaimTriplet ;
+    rdfs:label "C089: UniProt_AC_search - provides number of - Biologically_relevant_ligands_found" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Biologically_relevant_ligands_found ;
+    ahoj:claimPredicate pred:provides_number_of ;
+    ahoj:claimSubject ent:UniProt_AC_search ;
+    ahoj:claimText "Search by UniProt AC provides the number of biologically relevant ligands found." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C090 a ahoj:ClaimTriplet ;
+    rdfs:label "C090: UniProt_AC_search - can be compared to - PDBe_KB" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:PDBe_KB ;
+    ahoj:claimPredicate pred:can_be_compared_to ;
+    ahoj:claimSubject ent:UniProt_AC_search ;
+    ahoj:claimText "The AHoJ-DB UniProt AC search result can be compared to information provided by PDBe-KB." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C091 a ahoj:ClaimTriplet ;
+    rdfs:label "C091: Glycogen_phosphorylase_Oryctolagus_cuniculus - has UniProt accession - UniProt_P00489" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:UniProt_P00489 ;
+    ahoj:claimPredicate pred:has_UniProt_accession ;
+    ahoj:claimSubject ent:Glycogen_phosphorylase_Oryctolagus_cuniculus ;
+    ahoj:claimText "Glycogen phosphorylase from Oryctolagus cuniculus is identified by UniProt AC P00489." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C092 a ahoj:ClaimTriplet ;
+    rdfs:label "C092: Glycogen_phosphorylase_Oryctolagus_cuniculus - has unique protein ligand interactions - Unique_protein_ligand_interactions_499" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Unique_protein_ligand_interactions_499 ;
+    ahoj:claimPredicate pred:has_unique_protein_ligand_interactions ;
+    ahoj:claimSubject ent:Glycogen_phosphorylase_Oryctolagus_cuniculus ;
+    ahoj:claimText "For glycogen phosphorylase from Oryctolagus cuniculus, the AHoJ-DB result shows 499 unique protein-ligand interactions." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C093 a ahoj:ClaimTriplet ;
+    rdfs:label "C093: Unique_protein_ligand_interactions_499 - represent - Unique_ligands_193" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Unique_ligands_193 ;
+    ahoj:claimPredicate pred:represent ;
+    ahoj:claimSubject ent:Unique_protein_ligand_interactions_499 ;
+    ahoj:claimText "The 499 unique protein-ligand interactions represent 193 unique ligands." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C094 a ahoj:ClaimTriplet ;
+    rdfs:label "C094: PDBe_KB - provides information about - PDBe_KB_known_ligands_198" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:PDBe_KB_known_ligands_198 ;
+    ahoj:claimPredicate pred:provides_information_about ;
+    ahoj:claimSubject ent:PDBe_KB ;
+    ahoj:claimText "PDBe-KB provides information about 198 known ligands for the same protein." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C095 a ahoj:ClaimTriplet ;
+    rdfs:label "C095: PDBe_KB_known_ligands_198 - include - Non_biologically_relevant_ligands_5" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Non_biologically_relevant_ligands_5 ;
+    ahoj:claimPredicate pred:include ;
+    ahoj:claimSubject ent:PDBe_KB_known_ligands_198 ;
+    ahoj:claimText "Five of the PDBe-KB known ligands are not biologically relevant according to BioLiP2." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C096 a ahoj:ClaimTriplet ;
+    rdfs:label "C096: Non_biologically_relevant_ligands_5 - are not biologically relevant according to - BioLiP2" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:BioLiP2 ;
+    ahoj:claimPredicate pred:are_not_biologically_relevant_according_to ;
+    ahoj:claimSubject ent:Non_biologically_relevant_ligands_5 ;
+    ahoj:claimText "Five known ligands from PDBe-KB are not biologically relevant according to the BioLiP2 database." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C097 a ahoj:ClaimTriplet ;
+    rdfs:label "C097: PLP - is most common ligand for - Glycogen_phosphorylase_Oryctolagus_cuniculus" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Glycogen_phosphorylase_Oryctolagus_cuniculus ;
+    ahoj:claimPredicate pred:is_most_common_ligand_for ;
+    ahoj:claimSubject ent:PLP ;
+    ahoj:claimText "The most common ligand in the result is PLP." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C098 a ahoj:ClaimTriplet ;
+    rdfs:label "C098: PLP - forms - PLP_unique_interactions_284" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:PLP_unique_interactions_284 ;
+    ahoj:claimPredicate pred:forms ;
+    ahoj:claimSubject ent:PLP ;
+    ahoj:claimText "PLP forms 284 unique interactions." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C099 a ahoj:ClaimTriplet ;
+    rdfs:label "C099: PLP_unique_interactions_284 - occur in - PLP_structures_130" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:PLP_structures_130 ;
+    ahoj:claimPredicate pred:occur_in ;
+    ahoj:claimSubject ent:PLP_unique_interactions_284 ;
+    ahoj:claimText "The 284 unique PLP interactions occur in 130 structures." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C100 a ahoj:ClaimTriplet ;
+    rdfs:label "C100: Apo_PLP_binding_sites_16 - correspond to - PLP_binding_site" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:PLP_binding_site ;
+    ahoj:claimPredicate pred:correspond_to ;
+    ahoj:claimSubject ent:Apo_PLP_binding_sites_16 ;
+    ahoj:claimText "There are 16 sites corresponding to PLP-binding sites in apo form." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C101 a ahoj:ClaimTriplet ;
+    rdfs:label "C101: Apo_PLP_binding_sites_16 - can be used to study - PLP_binding_variability" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:PLP_binding_variability ;
+    ahoj:claimPredicate pred:can_be_used_to_study ;
+    ahoj:claimSubject ent:Apo_PLP_binding_sites_16 ;
+    ahoj:claimText "The 16 apo PLP-binding sites can be used to study variability of PLP binding." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C102 a ahoj:ClaimTriplet ;
+    rdfs:label "C102: Apo_PLP_binding_sites_16 - can be used to detect - Apo_holo_conformational_changes" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_holo_conformational_changes ;
+    ahoj:claimPredicate pred:can_be_used_to_detect ;
+    ahoj:claimSubject ent:Apo_PLP_binding_sites_16 ;
+    ahoj:claimText "The 16 apo PLP-binding sites can be used to detect conformational changes between apo and holo structures." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C103 a ahoj:ClaimTriplet ;
+    rdfs:label "C103: UniProt_AC_search - reports - SASA" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:SASA ;
+    ahoj:claimPredicate pred:reports ;
+    ahoj:claimSubject ent:UniProt_AC_search ;
+    ahoj:claimText "The result shows solvent accessible surface area calculated for the binding site." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C104 a ahoj:ClaimTriplet ;
+    rdfs:label "C104: UniProt_AC_search - reports - Normalized_SASA" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Normalized_SASA ;
+    ahoj:claimPredicate pred:reports ;
+    ahoj:claimSubject ent:UniProt_AC_search ;
+    ahoj:claimText "The result shows SASA normalized by the number of amino acids in the binding site." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C105 a ahoj:ClaimTriplet ;
+    rdfs:label "C105: Normalized_SASA - supports - Binding_site_analysis" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Binding_site_analysis ;
+    ahoj:claimPredicate pred:supports ;
+    ahoj:claimSubject ent:Normalized_SASA ;
+    ahoj:claimText "SASA normalized by binding-site amino-acid count allows analysis of binding sites." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C106 a ahoj:ClaimTriplet ;
+    rdfs:label "C106: AHoJ_DB_web_server - provides - Apo_holo_pair_visualizations" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Apo_holo_pair_visualizations ;
+    ahoj:claimPredicate pred:provides ;
+    ahoj:claimSubject ent:AHoJ_DB_web_server ;
+    ahoj:claimText "More detailed information and visualizations of apo-holo pairs are available through the AHoJ-DB interface." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C107 a ahoj:ClaimTriplet ;
+    rdfs:label "C107: Apo_holo_pair_visualizations - are available through - View_button" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:View_button ;
+    ahoj:claimPredicate pred:are_available_through ;
+    ahoj:claimSubject ent:Apo_holo_pair_visualizations ;
+    ahoj:claimText "Detailed apo-holo pair visualizations are available through the View button." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+claim:C108 a ahoj:ClaimTriplet ;
+    rdfs:label "C108: Apo_holo_pair_visualizations - are available through - Download_button" ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:claimObject ent:Download_button ;
+    ahoj:claimPredicate pred:are_available_through ;
+    ahoj:claimSubject ent:Apo_holo_pair_visualizations ;
+    ahoj:claimText "Detailed apo-holo pair information is available through the Download button." ;
+    ahoj:sourceText "The search by UniProt AC provides an overview of known binding sites of the protein and a number of biologically relevant ligands found. It can be compared to the information provided by the PDBe-KB; if we look at glycogen phosphorylase from Oryctolagus cuniculus (UniProt AC: P00489 – see Figure 1) we can see 499 unique protein–ligand interactions – these represent 193 unique ligands, while PDBe-KB provides information about 198 known ligands – five of those are not biologically relevant according to BioLiP2 database. The result also shows us that the most common ligand is PLP that is forming 284 unique interactions in 130 structures. There are 16 sites corresponding to PLP-binding sites in APO form – it can be therefore used to study the variability of PLP binding and detect conformational changes between apo and holo structures. The results also show solvent accessible surface area calculated for the binding site (SASA), and the SASA normalized by the number of amino acids in the binding site that allows the analysis of the binding sites. More detailed information and visualizations of apo holo pairs are available through the 'View' or 'Download' buttons." .
+
+ent:Apo_structure_and_holo_structure a ahoj:Concept ;
+    rdfs:label "Apo structure and holo structure" ;
+    pred:are_essential_for ent:Protein_conformational_variability .
+
+ent:Bio2RDF a ahoj:ExternalResource ;
+    rdfs:label "Bio2RDF" ;
+    skos:exactMatch <https://bio2rdf.org/> ;
+    skos:scopeNote "Bio2RDF linked-data resource." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 .
+
+ent:Christos_P_Feidakis a ahoj:Concept ;
+    rdfs:label "Christos P. Feidakis" .
+
+ent:David_Hoksza a ahoj:Concept ;
+    rdfs:label "David Hoksza" .
+
+ent:IDSM a ahoj:ExternalResource ;
+    rdfs:label "Integrated Database of Small Molecules" ;
+    skos:exactMatch <https://idsm.elixir-czech.cz/> ;
+    skos:scopeNote "Integrated Database of Small Molecules." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 .
+
+ent:KG_Hub_KG_Registry a ahoj:ExternalResource ;
+    rdfs:label "KG-Hub / KG-Registry" ;
+    skos:exactMatch kgreg: ;
+    skos:scopeNote "KG-Hub / KG-Registry style resource." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 .
+
+ent:Marian_Novotny a ahoj:Concept ;
+    rdfs:label "Marian Novotny" .
+
+ent:Pocket_centric_view a ahoj:Concept ;
+    rdfs:label "Pocket centric view" ;
+    pred:clarifies ent:Apo_holo_classification .
+
+ent:Processed_binding_sites a ahoj:Concept ;
+    rdfs:label "Processed binding sites" ;
+    pred:often_lack ent:Apo_pocket .
+
+ent:Query_ligand a ahoj:Concept ;
+    rdfs:label "Query ligand" ;
+    pred:defines ent:Query_pocket .
+
+ent:Radoslav_Krivak a ahoj:Concept ;
+    rdfs:label "Radoslav Krivak" .
+
+pred:applies a rdf:Property ;
+    rdfs:label "applies" .
+
+pred:are_also_sorted_by a rdf:Property ;
+    rdfs:label "are also sorted by" .
+
+pred:are_essential_for a rdf:Property ;
+    rdfs:label "are essential for" .
+
+pred:are_excluded_from a rdf:Property ;
+    rdfs:label "are excluded from" .
+
+pred:are_mapped_through a rdf:Property ;
+    rdfs:label "are mapped through" .
+
+pred:are_needed_for a rdf:Property ;
+    rdfs:label "are needed for" .
+
+pred:are_not a rdf:Property ;
+    rdfs:label "are not" .
+
+pred:are_not_biologically_relevant_according_to a rdf:Property ;
+    rdfs:label "are not biologically relevant according to" .
+
+pred:are_often a rdf:Property ;
+    rdfs:label "are often" .
+
+pred:are_often_neglected_or_misrepresented_in a rdf:Property ;
+    rdfs:label "are often neglected or misrepresented in" .
+
+pred:are_restricted_to a rdf:Property ;
+    rdfs:label "are restricted to" .
+
+pred:are_sorted_by a rdf:Property ;
+    rdfs:label "are sorted by" .
+
+pred:can_be_compared_to a rdf:Property ;
+    rdfs:label "can be compared to" .
+
+pred:can_be_used_to_detect a rdf:Property ;
+    rdfs:label "can be used to detect" .
+
+pred:can_be_used_to_study a rdf:Property ;
+    rdfs:label "can be used to study" .
+
+pred:can_justify a rdf:Property ;
+    rdfs:label "can justify" .
+
+pred:can_occur_at a rdf:Property ;
+    rdfs:label "can occur at" .
+
+pred:can_reveal_binding_sites_for a rdf:Property ;
+    rdfs:label "can reveal binding sites for" .
+
+pred:clarifies a rdf:Property ;
+    rdfs:label "clarifies" .
+
+pred:contains_multiple_structures_for a rdf:Property ;
+    rdfs:label "contains multiple structures for" .
+
+pred:correspond_to a rdf:Property ;
+    rdfs:label "correspond to" .
+
+pred:corresponds_to a rdf:Property ;
+    rdfs:label "corresponds to" .
+
+pred:covers a rdf:Property ;
+    rdfs:label "covers" .
+
+pred:defines a rdf:Property ;
+    rdfs:label "defines" .
+
+pred:forms a rdf:Property ;
+    rdfs:label "forms" .
+
+pred:has a rdf:Property ;
+    rdfs:label "has" .
+
+pred:has_apo_result_for a rdf:Property ;
+    rdfs:label "has apo result for" .
+
+pred:has_known_binding_site a rdf:Property ;
+    rdfs:label "has known binding site" .
+
+pred:has_unique_protein_ligand_interactions a rdf:Property ;
+    rdfs:label "has unique protein ligand interactions" .
+
+pred:have_high a rdf:Property ;
+    rdfs:label "have high" .
+
+pred:have_low a rdf:Property ;
+    rdfs:label "have low" .
+
+pred:have_more a rdf:Property ;
+    rdfs:label "have more" .
+
+pred:have_smaller a rdf:Property ;
+    rdfs:label "have smaller" .
+
+pred:have_very_low a rdf:Property ;
+    rdfs:label "have very low" .
+
+pred:include a rdf:Property ;
+    rdfs:label "include" .
+
+pred:influences a rdf:Property ;
+    rdfs:label "influences" .
+
+pred:is_biased_toward a rdf:Property ;
+    rdfs:label "is biased toward" .
+
+pred:is_binding_site_of a rdf:Property ;
+    rdfs:label "is binding site of" .
+
+pred:is_claimed_to_be a rdf:Property ;
+    rdfs:label "is claimed to be" .
+
+pred:is_classified_by a rdf:Property ;
+    rdfs:label "is classified by" .
+
+pred:is_compatible_with a rdf:Property ;
+    rdfs:label "is compatible with" .
+
+pred:is_concrete_example_for a rdf:Property ;
+    rdfs:label "is concrete example for" .
+
+pred:is_most_common_ligand_for a rdf:Property ;
+    rdfs:label "is most common ligand for" .
+
+pred:is_not_readily_available_without a rdf:Property ;
+    rdfs:label "is not readily available without" .
+
+pred:lacks a rdf:Property ;
+    rdfs:label "lacks" .
+
+pred:limits a rdf:Property ;
+    rdfs:label "limits" .
+
+pred:may_differ_geometrically_from a rdf:Property ;
+    rdfs:label "may differ geometrically from" .
+
+pred:may_stabilize a rdf:Property ;
+    rdfs:label "may stabilize" .
+
+pred:occur_in a rdf:Property ;
+    rdfs:label "occur in" .
+
+pred:often_lack a rdf:Property ;
+    rdfs:label "often lack" .
+
+pred:often_rely_on a rdf:Property ;
+    rdfs:label "often rely on" .
+
+pred:often_use a rdf:Property ;
+    rdfs:label "often use" .
+
+pred:processed a rdf:Property ;
+    rdfs:label "processed" .
+
+pred:provides_information_about a rdf:Property ;
+    rdfs:label "provides information about" .
+
+pred:provides_number_of a rdf:Property ;
+    rdfs:label "provides number of" .
+
+pred:provides_overview_of a rdf:Property ;
+    rdfs:label "provides overview of" .
+
+pred:provides_reference_point_for a rdf:Property ;
+    rdfs:label "provides reference point for" .
+
+pred:rarely_captures a rdf:Property ;
+    rdfs:label "rarely captures" .
+
+pred:represent a rdf:Property ;
+    rdfs:label "represent" .
+
+pred:requires_maximum_resolution a rdf:Property ;
+    rdfs:label "requires maximum resolution" .
+
+pred:requires_minimum_mapped_binding_residues_on_SEQRES a rdf:Property ;
+    rdfs:label "requires minimum mapped binding residues on SEQRES" .
+
+pred:supports a rdf:Property ;
+    rdfs:label "supports" .
+
+pred:use_maximum_resolution a rdf:Property ;
+    rdfs:label "use maximum resolution" .
+
+pred:uses_distance_cutoff a rdf:Property ;
+    rdfs:label "uses distance cutoff" .
+
+pred:uses_input_interactions_from a rdf:Property ;
+    rdfs:label "uses input interactions from" .
+
+pred:uses_residue_mappings_from a rdf:Property ;
+    rdfs:label "uses residue mappings from" .
+
+pred:uses_structures_from a rdf:Property ;
+    rdfs:label "uses structures from" .
+
+pred:yielded a rdf:Property ;
+    rdfs:label "yielded" .
+
+ent:Apo_holo_conformational_changes rdfs:label "conformational changes between apo and holo structures" .
+
+ent:Binding_site_analysis rdfs:label "binding-site analysis" .
+
+ent:Biologically_relevant_ligands_found rdfs:label "biologically relevant ligands found" .
+
+ent:ChEMBL a ahoj:ExternalResource ;
+    rdfs:label "ChEMBL" ;
+    skos:relatedMatch bio2rdf:chembl ;
+    skos:scopeNote "Bio2RDF-style ChEMBL namespace alignment.",
+        "ChEMBL small-molecule bioactivity resource." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 .
+
+ent:Comprehensive_apo_holo_database_claim a ahoj:Concept ;
+    rdfs:label "Most comprehensive apo holo structure database to date",
+        "comprehensive apo-holo database claim" ;
+    skos:altLabel "Most comprehensive apo holo structure database to date" ;
+    ahoj:mergedEntityCount 1 .
+
+ent:Download_button rdfs:label "Download button" .
+
+ent:External_KB_mapping_correction_2026_06_11 a ahoj:MappingSet ;
+    rdfs:label "correction of external KB mappings: no empty-prefix targets and corrected ligand ChEBI mapping" ;
+    dcterms:source <file:///mnt/data/ahoj_paper_claims_knowledge_graph_reduced_entities_external_kb_enriched.ttl> .
+
+ent:Known_binding_sites_overview rdfs:label "overview of known binding sites" .
+
+ent:Less_ordered_pocket a ahoj:Concept ;
+    rdfs:label "Less ordered pockets",
+        "less ordered pocket" ;
+    skos:altLabel "Less ordered pockets" ;
+    ahoj:mergedEntityCount 1 .
+
+ent:Multi_pocket_structure a ahoj:Concept ;
+    rdfs:label "Multi pocket structures",
+        "multi-pocket structure" ;
+    skos:altLabel "Multi pocket structures" ;
+    ahoj:mergedEntityCount 1 .
+
+ent:PLP rdfs:label "pyridoxal 5'-phosphate / PLP" ;
+    skos:exactMatch chebi:18405 ;
+    pred:forms ent:PLP_unique_interactions_284 ;
+    pred:is_most_common_ligand_for ent:Glycogen_phosphorylase_Oryctolagus_cuniculus .
+
+ent:PLP_binding_variability rdfs:label "variability of PLP binding" .
+
+ent:PLP_structures_130 rdfs:label "130 structures with PLP interactions" ;
+    ahoj:reportedValue 130 ;
+    ahoj:unit "structures" .
+
+ent:Relevant_chain a ahoj:Concept ;
+    rdfs:label "Relevant chains",
+        "relevant chain" ;
+    skos:altLabel "Relevant chains" ;
+    ahoj:mergedEntityCount 1 .
+
+ent:SASA rdfs:label "solvent accessible surface area" .
+
+ent:Solvent_or_non_solvent_ligand a ahoj:Concept ;
+    rdfs:label "Solvent molecules",
+        "solvent or non-solvent ligand" ;
+    skos:altLabel "Solvent molecules" ;
+    skos:relatedMatch chebi:46787 ;
+    skos:scopeNote "Solvent concept; non-solvent ligand distinction remains local to AHoJ classification." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 1 ;
+    pred:are_excluded_from ent:Apo_holo_classification .
+
+ent:UniProt a ahoj:ExternalResource ;
+    rdfs:label "UniProt" ;
+    skos:exactMatch <https://www.uniprot.org/> ;
+    skos:relatedMatch bio2rdf:uniprot ;
+    skos:scopeNote "Bio2RDF-style UniProt namespace alignment.",
+        "UniProt protein knowledgebase." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 .
+
+ent:Unique_ligands_193 rdfs:label "193 unique ligands" ;
+    ahoj:reportedValue 193 ;
+    ahoj:unit "unique ligands" .
+
+ent:View_button rdfs:label "View button" .
+
+pred:account_for a rdf:Property ;
+    rdfs:label "account for" .
+
+pred:are_available_through a rdf:Property ;
+    rdfs:label "are available through" .
+
+pred:can_adopt a rdf:Property ;
+    rdfs:label "can adopt" .
+
+pred:can_be_ambiguous_for a rdf:Property ;
+    rdfs:label "can be ambiguous for" .
+
+pred:excludes a rdf:Property ;
+    rdfs:label "excludes" .
+
+pred:has_UniProt_accession a rdf:Property ;
+    rdfs:label "has UniProt accession" .
+
+pred:has_apo_form_for a rdf:Property ;
+    rdfs:label "has apo form for" .
+
+pred:occur_within a rdf:Property ;
+    rdfs:label "occur within" .
+
+pred:requires a rdf:Property ;
+    rdfs:label "requires" .
+
+<https://www.uniprot.org/help/uniprotkb> rdfs:label "UniProtKB" .
+
+biolip2: rdfs:label "BioLiP/BioLiP2" .
+
+chebi:52214 rdfs:label "ligand" ;
+    skos:notation "CHEBI:52214" .
+
+ent:Apo_PLP_binding_sites_16 rdfs:label "16 apo PLP-binding sites" ;
+    ahoj:reportedValue 16 ;
+    ahoj:unit "apo PLP-binding sites" ;
+    pred:can_be_used_to_detect ent:Apo_holo_conformational_changes ;
+    pred:can_be_used_to_study ent:PLP_binding_variability ;
+    pred:correspond_to ent:PLP_binding_site .
+
+ent:Dataset_size_statistic a ahoj:Concept,
+        ahoj:Statistic ;
+    rdfs:label "451408 entries",
+        "Processed protein ligand interactions",
+        "dataset size statistic" ;
+    skos:altLabel "451408 entries",
+        "Processed protein ligand interactions" ;
+    skos:relatedMatch sio:SIO_001018 ;
+    skos:scopeNote "Dataset size statistic is a quantity-like measurement." ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 ;
+    ahoj:reportedValue 468293 ;
+    ahoj:unit "count" .
+
+ent:Excluded_interaction_type a ahoj:Concept ;
+    rdfs:label "Protein nucleic acid interactions",
+        "Protein peptide interactions",
+        "excluded interaction type" ;
+    skos:altLabel "Protein nucleic acid interactions",
+        "Protein peptide interactions" ;
+    ahoj:mergedEntityCount 2 .
+
+ent:Existing_apo_holo_resource a ahoj:Concept ;
+    rdfs:label "Current apo holo resources",
+        "Existing apo holo datasets",
+        "Large curated apo holo datasets",
+        "existing apo-holo resource" ;
+    skos:altLabel "Current apo holo resources",
+        "Existing apo holo datasets",
+        "Large curated apo holo datasets" ;
+    ahoj:mergedEntityCount 3 ;
+    pred:are_needed_for ent:Structural_biology_use_case ;
+    pred:are_not ent:Manual_dataset_assembly ;
+    pred:are_often ent:Manual_dataset_assembly .
+
+ent:Ligand_search_use_case a ahoj:Concept ;
+    rdfs:label "Search by ligand ID",
+        "ligand search use case" ;
+    skos:altLabel "Search by ligand ID" ;
+    skos:relatedMatch <https://idsm.elixir-czech.cz/> ;
+    skos:scopeNote "Ligand search can be normalized through ChEMBL.",
+        "Ligand search can be normalized through IDSM." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 1 ;
+    pred:can_reveal ent:Ligand_apo_coverage .
+
+ent:Mapped_residue_coverage_threshold a ahoj:Concept ;
+    rdfs:label "30 percent",
+        "mapped residue coverage threshold" ;
+    skos:altLabel "30 percent" ;
+    skos:relatedMatch sio:SIO_001018 ;
+    skos:scopeNote "Mapped residue coverage threshold is a quantity-like value." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 1 .
+
+ent:Non_biologically_relevant_ligands_5 rdfs:label "5 non-biologically relevant ligands" ;
+    ahoj:reportedValue 5 ;
+    ahoj:unit "ligands" ;
+    pred:are_not_biologically_relevant_according_to ent:BioLiP2 .
+
+ent:Normalized_SASA rdfs:label "SASA normalized by number of amino acids in binding site" ;
+    pred:supports ent:Binding_site_analysis .
+
+ent:PDBe_KB rdfs:label "PDBe-KB" ;
+    skos:exactMatch pdbe-kb: ;
+    pred:provides_information_about ent:PDBe_KB_known_ligands_198 .
+
+ent:PDBe_KB_known_ligands_198 rdfs:label "198 known ligands in PDBe-KB" ;
+    ahoj:reportedValue 198 ;
+    ahoj:unit "known ligands" ;
+    pred:include ent:Non_biologically_relevant_ligands_5 .
+
+ent:PLP_unique_interactions_284 rdfs:label "284 unique PLP interactions" ;
+    ahoj:reportedValue 284 ;
+    ahoj:unit "unique PLP interactions" ;
+    pred:occur_in ent:PLP_structures_130 .
+
+ent:Structural_factor a ahoj:Concept ;
+    rdfs:label "Allosteric factors",
+        "Orthosteric factors",
+        "structural factor" ;
+    skos:altLabel "Allosteric factors",
+        "Orthosteric factors" ;
+    skos:relatedMatch biolink:ChemicalEntity ;
+    skos:scopeNote "Allosteric/orthosteric factors may include ligands and PTMs." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 ;
+    pred:occur_within ent:Mapped_candidate_pocket,
+        ent:Relevant_chain .
+
+ent:UniProt_P00489 rdfs:label "UniProt P00489" ;
+    skos:exactMatch uniprot:P00489 .
+
+ent:Unique_protein_ligand_interactions_499 rdfs:label "499 unique protein-ligand interactions" ;
+    ahoj:reportedValue 499 ;
+    ahoj:unit "unique protein-ligand interactions" ;
+    pred:represent ent:Unique_ligands_193 .
+
+pred:can_reveal a rdf:Property ;
+    rdfs:label "can reveal" .
+
+pred:have_higher a rdf:Property ;
+    rdfs:label "have higher" .
+
+pred:provides a rdf:Property ;
+    rdfs:label "provides" .
+
+uniprot:P00489 a biolink:Protein ;
+    rdfs:label "UniProtKB P00489" .
+
+ent:Apo_holo_pair_visualizations rdfs:label "apo-holo pair visualizations" ;
+    pred:are_available_through ent:Download_button,
+        ent:View_button .
+
+ent:Apo_pocket_in_filtered_subset a ahoj:Concept ;
+    rdfs:label "Apo pockets in Subset 1",
+        "Apo pockets in Subset 2",
+        "Apo relevant chains in Subset 2",
+        "apo pocket in filtered subset" ;
+    skos:altLabel "Apo pockets in Subset 1",
+        "Apo pockets in Subset 2",
+        "Apo relevant chains in Subset 2" ;
+    ahoj:mergedEntityCount 3 ;
+    pred:have_higher ent:Pocket_geometry_metric ;
+    pred:have_more ent:Mapped_binding_residue_metric ;
+    pred:have_smaller ent:Pocket_geometry_metric .
+
+ent:Binding_pocket a ahoj:Concept ;
+    rdfs:label "Binding pocket",
+        "Binding pockets" ;
+    skos:altLabel "Binding pockets" ;
+    skos:relatedMatch sio:SIO_010046,
+        ent:Glycogen_phosphorylase_Oryctolagus_cuniculus,
+        biolink:AnatomicalEntity ;
+    skos:scopeNote "Binding pocket represented broadly as a biological structural region.",
+        "Binding pockets are site-like structural regions." ;
+    ahoj:externalAlignment biolink:GrossAnatomicalStructure ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 ;
+    pred:can_occur_at ent:Interface_binding_pocket ;
+    pred:provides_reference_point_for ent:Apo_holo_classification .
+
+ent:Drug_design_and_docking a ahoj:Concept ;
+    rdfs:label "Docking and drug design studies",
+        "Drug design and docking" ;
+    skos:altLabel "Docking and drug design studies" ;
+    skos:relatedMatch edam:topic_3376 ;
+    skos:scopeNote "Drug design/docking mapped broadly to drug-discovery topic." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 ;
+    pred:often_rely_on ent:Protein_structure .
+
+ent:Filtered_subset a ahoj:Concept ;
+    rdfs:label "Subset 1",
+        "Subset 2",
+        "filtered subset" ;
+    skos:altLabel "Subset 1",
+        "Subset 2" ;
+    ahoj:mergedEntityCount 2 ;
+    pred:applies ent:Resolution_threshold ;
+    pred:has_apo_result_for ent:Apo_coverage_statistic ;
+    pred:requires ent:Mapped_binding_residue_metric ;
+    pred:yielded ent:Dataset_size_statistic .
+
+ent:Interface_site_statistic a ahoj:Concept,
+        ahoj:Statistic ;
+    rdfs:label "About 24 percent of known binding sites",
+        "About 9 percent of known binding sites",
+        "Multi UniProt binding site percentage",
+        "Multi chain binding site percentage",
+        "interface site statistic" ;
+    skos:altLabel "About 24 percent of known binding sites",
+        "About 9 percent of known binding sites",
+        "Multi UniProt binding site percentage",
+        "Multi chain binding site percentage" ;
+    skos:relatedMatch sio:SIO_001018 ;
+    skos:scopeNote "Interface-site statistic is a quantity-like measurement." ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 4 ;
+    ahoj:reportedValue 9,
+        24 ;
+    ahoj:unit "percent" .
+
+ent:PDB_search_use_case a ahoj:Concept ;
+    rdfs:label "Diversity of known bound ligands",
+        "PDB search use case",
+        "Search by PDB code" ;
+    skos:altLabel "Diversity of known bound ligands",
+        "Search by PDB code" ;
+    skos:relatedMatch <https://www.rcsb.org/> ;
+    skos:scopeNote "PDB-code search uses PDB identifiers." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 ;
+    pred:can_reveal ent:PDB_search_use_case .
+
+ent:Protein_ligand_interaction a ahoj:Concept ;
+    rdfs:label "468293 biologically relevant protein ligand interactions",
+        "Protein ligand interaction" ;
+    skos:altLabel "468293 biologically relevant protein ligand interactions" ;
+    skos:closeMatch biolink:ChemicalToGeneAssociation ;
+    skos:relatedMatch bio2rdf:bio2rdf.dataset ;
+    skos:scopeNote "Bio2RDF-style dataset/namespace alignment.",
+        "Protein-ligand interactions can be modeled as chemical-to-gene/protein associations." ;
+    ahoj:externalAlignment biolink:ChemicalToGeneAssociation ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 .
+
+ent:Apo_coverage_statistic a ahoj:Concept,
+        ahoj:Statistic ;
+    rdfs:label "175388 entries",
+        "230269 entries",
+        "Unfiltered UniProt accessions with apo form",
+        "Unfiltered UniProt accessions with apo form percentage",
+        "Unfiltered entries with apo form",
+        "Unfiltered entries with apo form percentage",
+        "apo coverage statistic" ;
+    skos:altLabel "175388 entries",
+        "230269 entries",
+        "Unfiltered UniProt accessions with apo form",
+        "Unfiltered UniProt accessions with apo form percentage",
+        "Unfiltered entries with apo form",
+        "Unfiltered entries with apo form percentage" ;
+    skos:relatedMatch sio:SIO_001018 ;
+    skos:scopeNote "Apo coverage statistic is a quantity-like measurement." ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 6 ;
+    ahoj:reportedValue 46.7,
+        49.2,
+        13068,
+        230269 ;
+    ahoj:unit "count",
+        "percent" .
+
+ent:Apo_pocket a ahoj:Concept ;
+    rdfs:label "Apo candidate pocket",
+        "Apo form in PDB",
+        "Apo pockets",
+        "apo pocket" ;
+    skos:altLabel "Apo candidate pocket",
+        "Apo form in PDB",
+        "Apo pockets" ;
+    skos:relatedMatch biolink:ChemicalEntity ;
+    skos:scopeNote "Apo/holo status is defined by absence/presence of ligand chemical entities." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 ;
+    pred:have_higher ent:Pocket_geometry_metric ;
+    pred:lacks ent:Detected_ligand_near_pocket .
+
+ent:Binding_site_analysis_use_case a ahoj:Concept ;
+    rdfs:label "Allosteric effect detection",
+        "Cryptic binding site validation",
+        "Folding dynamics investigation",
+        "Order to disorder transition analysis",
+        "binding-site analysis use case" ;
+    skos:altLabel "Allosteric effect detection",
+        "Cryptic binding site validation",
+        "Folding dynamics investigation",
+        "Order to disorder transition analysis" ;
+    ahoj:mergedEntityCount 4 .
+
+ent:BioLiP2 a ahoj:ExternalResource ;
+    rdfs:label "BioLiP2" ;
+    skos:exactMatch biolip2: ;
+    skos:scopeNote "BioLiP/BioLiP2 protein-ligand interaction resource." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 .
+
+ent:Candidate_structures a ahoj:Concept ;
+    rdfs:label "Candidate structures",
+        "Filtered candidate results",
+        "PDB structure",
+        "Soft filtered displayed results" ;
+    skos:altLabel "Filtered candidate results",
+        "PDB structure",
+        "Soft filtered displayed results" ;
+    skos:relatedMatch <https://www.rcsb.org/> ;
+    skos:scopeNote "Candidate structures are PDB-like structure records." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 4 ;
+    pred:are_also_sorted_by ent:Mapped_binding_residue_metric ;
+    pred:are_restricted_to ent:UniProt_accession ;
+    pred:are_sorted_by ent:Mapped_binding_residue_metric ;
+    pred:use_maximum_resolution ent:Distance_cutoff_4_5_angstrom .
+
+ent:Data_processing_workflow a ahoj:Concept ;
+    rdfs:label "Datasets",
+        "Extraction filtering grouping and analysis",
+        "data processing workflow" ;
+    skos:altLabel "Datasets",
+        "Extraction filtering grouping and analysis" ;
+    skos:relatedMatch edam:operation_2409 ;
+    skos:scopeNote "Extraction, filtering, grouping, and analysis are data-processing operations." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 .
+
+ent:Distance_cutoff_4_5_angstrom a ahoj:Concept ;
+    rdfs:label "4 5 angstrom",
+        "4.5 Å distance cutoff" ;
+    skos:altLabel "4 5 angstrom" ;
+    skos:relatedMatch edam:operation_2428 ;
+    skos:scopeNote "Distance cutoff participates in structural comparison/selection logic." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 1 .
+
+ent:Machine_learning_tool_development a ahoj:Concept ;
+    rdfs:label "Ligand binding site prediction benchmarks",
+        "Ligand binding site predictor training and testing",
+        "Machine learning tool development" ;
+    skos:altLabel "Ligand binding site prediction benchmarks",
+        "Ligand binding site predictor training and testing" ;
+    skos:relatedMatch biolink:ComputationalModel ;
+    skos:scopeNote "ML tool development is related to computational model construction." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 ;
+    pred:often_use ent:Protein_structure .
+
+ent:PLP_binding_site rdfs:label "PLP binding site" ;
+    pred:is_binding_site_of ent:Glycogen_phosphorylase_Oryctolagus_cuniculus .
+
+ent:Resolution_threshold a ahoj:Concept ;
+    rdfs:label "4 5 angstrom resolution threshold and diffraction method restriction",
+        "7 angstrom",
+        "resolution threshold" ;
+    skos:altLabel "4 5 angstrom resolution threshold and diffraction method restriction",
+        "7 angstrom" ;
+    skos:relatedMatch edam:data_2082 ;
+    skos:scopeNote "Resolution threshold is a structural data-quality criterion." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 .
+
+ent:SIFTS a ahoj:ExternalResource ;
+    rdfs:label "SIFTS" ;
+    skos:exactMatch sifts: ;
+    skos:scopeNote "SIFTS residue mapping resource." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 .
+
+ent:Same_protein a ahoj:Concept ;
+    rdfs:label "Same protein",
+        "Same protein PDB structures" ;
+    skos:altLabel "Same protein PDB structures" ;
+    skos:relatedMatch <https://www.uniprot.org/help/accession_numbers> ;
+    skos:scopeNote "Same-protein grouping can be grounded in UniProt accessions." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 ;
+    pred:can_adopt ent:Protein_conformational_variability .
+
+ent:Structural_biology_use_case a ahoj:Concept ;
+    rdfs:label "Machine learning based structural biology",
+        "Protein structure analysis",
+        "structural biology use case" ;
+    skos:altLabel "Machine learning based structural biology",
+        "Protein structure analysis" ;
+    skos:relatedMatch edam:topic_0081 ;
+    skos:scopeNote "Structural biology use case mapped broadly to structure analysis topic." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 .
+
+ent:Structure_metrics a ahoj:Concept ;
+    rdfs:label "Pocket level metrics",
+        "Relevant chain metrics",
+        "Whole structure metrics",
+        "structure metrics" ;
+    skos:altLabel "Pocket level metrics",
+        "Relevant chain metrics",
+        "Whole structure metrics" ;
+    skos:relatedMatch edam:data_2082 ;
+    skos:scopeNote "Structural metrics are data descriptors; EDAM mapping is broad." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 .
+
+ent:UniProt_AC_search rdfs:label "search by UniProt accession" ;
+    pred:can_be_compared_to ent:PDBe_KB ;
+    pred:provides_number_of ent:Biologically_relevant_ligands_found ;
+    pred:provides_overview_of ent:Known_binding_sites_overview ;
+    pred:reports ent:Normalized_SASA,
+        ent:SASA .
+
+pred:reports a rdf:Property ;
+    rdfs:label "reports" .
+
+<https://idsm.elixir-czech.cz/> rdfs:label "IDSM" .
+
+ent:AHoJ_DB_input_selection a ahoj:Concept ;
+    rdfs:label "AHoJ DB input selection",
+        "Candidate search",
+        "Candidate structure processing" ;
+    skos:altLabel "Candidate search",
+        "Candidate structure processing" ;
+    skos:relatedMatch edam:operation_2422 ;
+    skos:scopeNote "Input selection involves retrieval/filtering of external data." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 ;
+    pred:excludes ent:Excluded_interaction_type ;
+    pred:requires ent:UniProt_accession ;
+    pred:requires_maximum_resolution ent:Resolution_threshold ;
+    pred:requires_minimum_mapped_binding_residues_on_SEQRES ent:Mapped_residue_coverage_threshold .
+
+ent:Holo_pocket a ahoj:Concept ;
+    rdfs:label "Holo candidate pocket",
+        "Holo classification",
+        "Holo structures",
+        "holo pocket" ;
+    skos:altLabel "Holo candidate pocket",
+        "Holo classification",
+        "Holo structures" ;
+    skos:relatedMatch biolink:ChemicalEntity ;
+    skos:scopeNote "Holo pocket status is ligand-associated." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 ;
+    pred:has ent:Detected_ligand_near_pocket .
+
+ent:Mapped_candidate_pocket a ahoj:Concept ;
+    rdfs:label "Mapped candidate pocket",
+        "Mapped pocket residues" ;
+    skos:altLabel "Mapped pocket residues" ;
+    skos:relatedMatch sifts: ;
+    skos:scopeNote "Mapped pockets depend on SIFTS residue mapping." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 ;
+    pred:corresponds_to ent:Query_pocket ;
+    pred:is_classified_by ent:Detected_ligand_near_pocket ;
+    pred:may_differ_geometrically_from ent:Query_pocket .
+
+ent:Protein a ahoj:Concept,
+        ahoj:Statistic ;
+    rdfs:label "27983 proteins",
+        "Protein",
+        "Proteins covered",
+        "Proteins with multiple binding sites" ;
+    skos:altLabel "27983 proteins",
+        "Proteins covered",
+        "Proteins with multiple binding sites" ;
+    skos:closeMatch biolink:Protein ;
+    skos:narrowMatch ent:Glycogen_phosphorylase_Oryctolagus_cuniculus ;
+    skos:relatedMatch <https://www.uniprot.org/help/uniprotkb> ;
+    skos:scopeNote "Generic protein concept can be grounded by UniProt identifiers.",
+        "Generic protein concept mapped to Biolink protein class." ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 4 ;
+    ahoj:reportedValue 27983 ;
+    ahoj:unit "count" .
+
+<https://www.uniprot.org/help/accession_numbers> rdfs:label "UniProt accession numbers" .
+
+ent:AHoJ_DB_web_server a ahoj:Concept ;
+    rdfs:label "AHoJ DB web server",
+        "Search capabilities",
+        "Visualization capabilities" ;
+    skos:altLabel "Search capabilities",
+        "Visualization capabilities" ;
+    skos:exactMatch <https://www.apoholo.cz/db> ;
+    skos:scopeNote "Web server resolves to the AHoJ-DB application." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 ;
+    pred:provides ent:AHoJ_DB_web_server,
+        ent:Apo_holo_pair_visualizations .
+
+ent:Interface_binding_pocket a ahoj:Concept ;
+    rdfs:label "Interchain binding sites",
+        "Interface binding pockets",
+        "Interfaces of multiple chains",
+        "Multi UniProt binding pockets",
+        "Multi chain binding pockets",
+        "interface binding pocket" ;
+    skos:altLabel "Interchain binding sites",
+        "Interface binding pockets",
+        "Interfaces of multiple chains",
+        "Multi UniProt binding pockets",
+        "Multi chain binding pockets" ;
+    ahoj:mergedEntityCount 5 ;
+    pred:account_for ent:Interface_site_statistic ;
+    pred:are_often_neglected_or_misrepresented_in ent:Data_processing_workflow .
+
+ent:Ligand a ahoj:Concept ;
+    rdfs:label "Certain ligands",
+        "Ligand",
+        "Ligand identity" ;
+    skos:altLabel "Certain ligands",
+        "Ligand identity" ;
+    skos:closeMatch chebi:52214,
+        biolink:ChemicalEntity ;
+    skos:relatedMatch <https://idsm.elixir-czech.cz/> ;
+    skos:scopeNote "Generic ligand concept mapped to chemical entity class.",
+        "Generic ligand mapping.",
+        "Ligands may be normalized to ChEMBL where applicable.",
+        "Ligands may be normalized to IDSM where applicable." ;
+    ahoj:mappedBy ent:External_KB_mapping_correction_2026_06_11,
+        ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 ;
+    pred:influences ent:Ligand_apo_coverage ;
+    pred:may_stabilize ent:Less_ordered_pocket .
+
+ent:Manual_dataset_assembly a ahoj:Concept ;
+    rdfs:label "Dataset size and expandability",
+        "Exhaustive",
+        "Manual dataset assembly",
+        "Manually assembled" ;
+    skos:altLabel "Dataset size and expandability",
+        "Exhaustive",
+        "Manually assembled" ;
+    ahoj:mergedEntityCount 4 ;
+    pred:limits ent:Manual_dataset_assembly .
+
+ent:PDB a ahoj:ExternalResource ;
+    rdfs:label "Protein Data Bank" ;
+    skos:exactMatch <https://www.rcsb.org/> ;
+    skos:relatedMatch bio2rdf:pdb,
+        <https://www.ebi.ac.uk/pdbe/> ;
+    skos:scopeNote "Bio2RDF-style PDB namespace alignment.",
+        "PDBe is an alternative PDB access point.",
+        "Protein Data Bank resource." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    pred:contains_multiple_structures_for ent:Same_protein ;
+    pred:is_biased_toward ent:Holo_pocket .
+
+ent:Protein_structure a ahoj:Concept ;
+    rdfs:label "Protein structure",
+        "Single holo representative structures",
+        "Single protein structure",
+        "Single rigid holo structures" ;
+    skos:altLabel "Single holo representative structures",
+        "Single protein structure",
+        "Single rigid holo structures" ;
+    skos:closeMatch biolink:MacromolecularMachine ;
+    skos:relatedMatch <https://www.rcsb.org/> ;
+    skos:scopeNote "Protein structures can be grounded by PDB identifiers.",
+        "Protein structures can correspond to molecular assemblies; broad mapping." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 ;
+    pred:rarely_captures ent:Protein_conformational_variability .
+
+ent:UniProt_accession a ahoj:Concept ;
+    rdfs:label "13068 UniProt accessions",
+        "Same UniProt accession",
+        "UniProt accession",
+        "UniProt accession assignment" ;
+    skos:altLabel "13068 UniProt accessions",
+        "Same UniProt accession",
+        "UniProt accession assignment" ;
+    skos:exactMatch <https://www.uniprot.org/help/accession_numbers> ;
+    skos:scopeNote "UniProt accession identifier concept." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 .
+
+ent:UniProt_search_use_case a ahoj:Concept ;
+    rdfs:label "Known binding sites of a protein",
+        "Search by UniProt accession",
+        "UniProt search use case" ;
+    skos:altLabel "Known binding sites of a protein",
+        "Search by UniProt accession" ;
+    skos:relatedMatch ent:Glycogen_phosphorylase_Oryctolagus_cuniculus,
+        <https://www.uniprot.org/help/accession_numbers> ;
+    skos:scopeNote "UniProt search uses accession identifiers." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 2 ;
+    pred:can_reveal ent:UniProt_search_use_case ;
+    pred:can_reveal_binding_sites_for ent:Glycogen_phosphorylase_Oryctolagus_cuniculus .
+
+ent:Detected_ligand_near_pocket a ahoj:Concept ;
+    rdfs:label "Any detected ligand",
+        "Detected non solvent ligand nearby",
+        "Ligand presence nearby",
+        "detected ligand near pocket" ;
+    skos:altLabel "Any detected ligand",
+        "Detected non solvent ligand nearby",
+        "Ligand presence nearby" ;
+    skos:relatedMatch biolink:ChemicalEntity ;
+    skos:scopeNote "Detected ligands are chemical entities." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 ;
+    pred:can_justify ent:Holo_pocket .
+
+ent:Pocket_geometry_metric a ahoj:Concept ;
+    rdfs:label "Average b factor than holo pockets",
+        "Chain RMSD than holo relevant chains",
+        "Pocket RMSD than holo pockets",
+        "Pocket volume than holo pockets",
+        "pocket geometry metric" ;
+    skos:altLabel "Average b factor than holo pockets",
+        "Chain RMSD than holo relevant chains",
+        "Pocket RMSD than holo pockets",
+        "Pocket volume than holo pockets" ;
+    skos:relatedMatch edam:data_2082 ;
+    skos:scopeNote "Pocket RMSD/volume/b-factor are structural data values." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 4 .
+
+ent:Protein_conformational_variability a ahoj:Concept ;
+    rdfs:label "Different global geometries",
+        "Different local geometries",
+        "Protein conformational variability",
+        "Understanding protein geometry" ;
+    skos:altLabel "Different global geometries",
+        "Different local geometries",
+        "Understanding protein geometry" ;
+    ahoj:mergedEntityCount 4 ;
+    pred:is_not_readily_available_without ent:Data_processing_workflow .
+
+pred:can_support a rdf:Property ;
+    rdfs:label "can support" .
+
+<https://www.rcsb.org/> rdfs:label "RCSB Protein Data Bank" .
+
+ent:Apo_holo_classification a ahoj:Concept ;
+    rdfs:label "Apo holo classification",
+        "Apo holo ligand detection",
+        "Apo holo status",
+        "Whole chain apo holo classification",
+        "Whole structure apo holo classification" ;
+    skos:altLabel "Apo holo ligand detection",
+        "Apo holo status",
+        "Whole chain apo holo classification",
+        "Whole structure apo holo classification" ;
+    skos:relatedMatch edam:operation_2990 ;
+    skos:scopeNote "Apo/holo assignment is a classification operation." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 5 ;
+    pred:can_be_ambiguous_for ent:Multi_pocket_structure,
+        ent:Protein .
+
+ent:Mapped_binding_residue_metric a ahoj:Concept ;
+    rdfs:label "All mapped binding residues observed",
+        "Mapped binding residue percentage",
+        "Observed residues and resolution",
+        "Unobserved mapped binding residues than holo pockets",
+        "mapped binding residue metric" ;
+    skos:altLabel "All mapped binding residues observed",
+        "Mapped binding residue percentage",
+        "Observed residues and resolution",
+        "Unobserved mapped binding residues than holo pockets" ;
+    skos:relatedMatch edam:data_2082 ;
+    skos:scopeNote "Residue coverage and observed-residue counts are structural annotation data." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 4 .
+
+ent:Query_pocket a ahoj:Concept ;
+    rdfs:label "Query pocket",
+        "Query pocket definition",
+        "Query pocket residues" ;
+    skos:altLabel "Query pocket definition",
+        "Query pocket residues" ;
+    skos:relatedMatch sio:SIO_010046 ;
+    skos:scopeNote "Query pocket represented as a site-like structural region." ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 ;
+    pred:are_mapped_through ent:SIFTS ;
+    pred:uses_distance_cutoff ent:Distance_cutoff_4_5_angstrom .
+
+ent:Ligand_apo_coverage a ahoj:Concept ;
+    rdfs:label "Apo paired coverage",
+        "Chlorophyll A binding sites",
+        "Glucose binding sites",
+        "Iron sulfur cluster binding sites",
+        "Ligand specific apo holo coverage",
+        "ligand-specific apo coverage" ;
+    skos:altLabel "Apo paired coverage",
+        "Chlorophyll A binding sites",
+        "Glucose binding sites",
+        "Iron sulfur cluster binding sites",
+        "Ligand specific apo holo coverage" ;
+    ahoj:mergedEntityCount 5 ;
+    pred:have_high ent:Ligand_apo_coverage ;
+    pred:have_low ent:Ligand_apo_coverage ;
+    pred:have_very_low ent:Ligand_apo_coverage .
+
+ent:Glycogen_phosphorylase_Oryctolagus_cuniculus a ahoj:Concept,
+        biolink:Protein ;
+    rdfs:label "glycogen phosphorylase from Oryctolagus cuniculus" ;
+    skos:exactMatch uniprot:P00489 ;
+    skos:scopeNote "Concrete UniProt protein example from the AHoJ paper use-case section." ;
+    ahoj:externalAlignment uniprot:P00489 ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    pred:has_UniProt_accession ent:UniProt_P00489 ;
+    pred:has_known_binding_site ent:PLP_binding_site ;
+    pred:has_unique_protein_ligand_interactions ent:Unique_protein_ligand_interactions_499 ;
+    pred:is_concrete_example_for ent:UniProt_search_use_case .
+
+ent:AHoJ_DB a ahoj:Concept,
+        ahoj:Database ;
+    rdfs:label "AHoJ DB approach",
+        "AHoJ-DB",
+        "Unfiltered AHoJ DB" ;
+    skos:altLabel "AHoJ DB approach",
+        "Unfiltered AHoJ DB" ;
+    skos:exactMatch <https://www.apoholo.cz/db> ;
+    skos:relatedMatch <https://www.apoholo.cz> ;
+    skos:scopeNote "Canonical web resource for AHoJ-DB.",
+        "Related AHoJ/AHoJ-DB project website." ;
+    ahoj:externalAlignment kgreg: ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 ;
+    ahoj:mergedEntityCount 3 ;
+    pred:can_support ent:Binding_site_analysis_use_case,
+        ent:Drug_design_and_docking,
+        ent:Machine_learning_tool_development,
+        ent:Structural_biology_use_case ;
+    pred:covers ent:Protein ;
+    pred:has_apo_form_for ent:Apo_coverage_statistic,
+        ent:UniProt_accession ;
+    pred:is_claimed_to_be ent:Comprehensive_apo_holo_database_claim ;
+    pred:is_compatible_with ent:Interface_binding_pocket ;
+    pred:processed ent:Protein_ligand_interaction ;
+    pred:reports ent:Structure_metrics ;
+    pred:uses_input_interactions_from ent:BioLiP2 ;
+    pred:uses_residue_mappings_from ent:SIFTS ;
+    pred:uses_structures_from ent:PDB .
+
+ent:External_KB_mapping_enrichment_2026_06_11 a ahoj:MappingSet ;
+    rdfs:label "external KB mapping enrichment for reduced AHoJ paper KG" ;
+    dcterms:source <file:///mnt/data/ahoj_paper_claims_knowledge_graph_reduced_entities.ttl> ;
+    prov:wasDerivedFrom ent:Article_AHoJDB_2024 .
+
+ent:Article_AHoJDB_2024 a schema:ScholarlyArticle,
+        ahoj:Paper ;
+    rdfs:label "AHoJ-DB: A PDB-wide Assignment of apo & holo Relationships Based on Individual Protein–Ligand Interactions" ;
+    skos:scopeNote "Article DOI from source metadata." ;
+    schema:author ent:Christos_P_Feidakis,
+        ent:David_Hoksza,
+        ent:Marian_Novotny,
+        ent:Radoslav_Krivak ;
+    schema:datePublished "2024"^^xsd:gYear ;
+    schema:identifier <https://doi.org/10.1016/j.jmb.2024.168545> ;
+    schema:isPartOf "Journal of Molecular Biology 436 (2024) 168545" ;
+    schema:license <https://creativecommons.org/licenses/by-nc-nd/4.0/> ;
+    schema:name "AHoJ-DB: A PDB-wide Assignment of apo & holo Relationships Based on Individual Protein–Ligand Interactions" ;
+    ahoj:hasClaim claim:C001,
+        claim:C002,
+        claim:C003,
+        claim:C004,
+        claim:C005,
+        claim:C006,
+        claim:C007,
+        claim:C008,
+        claim:C009,
+        claim:C010,
+        claim:C011,
+        claim:C012,
+        claim:C013,
+        claim:C014,
+        claim:C015,
+        claim:C016,
+        claim:C017,
+        claim:C018,
+        claim:C019,
+        claim:C020,
+        claim:C021,
+        claim:C022,
+        claim:C023,
+        claim:C024,
+        claim:C025,
+        claim:C026,
+        claim:C027,
+        claim:C028,
+        claim:C029,
+        claim:C030,
+        claim:C031,
+        claim:C032,
+        claim:C033,
+        claim:C034,
+        claim:C035,
+        claim:C036,
+        claim:C037,
+        claim:C038,
+        claim:C039,
+        claim:C040,
+        claim:C041,
+        claim:C042,
+        claim:C043,
+        claim:C044,
+        claim:C045,
+        claim:C046,
+        claim:C047,
+        claim:C048,
+        claim:C049,
+        claim:C050,
+        claim:C051,
+        claim:C052,
+        claim:C053,
+        claim:C054,
+        claim:C055,
+        claim:C056,
+        claim:C057,
+        claim:C058,
+        claim:C059,
+        claim:C060,
+        claim:C061,
+        claim:C062,
+        claim:C063,
+        claim:C064,
+        claim:C065,
+        claim:C066,
+        claim:C067,
+        claim:C068,
+        claim:C069,
+        claim:C070,
+        claim:C071,
+        claim:C072,
+        claim:C073,
+        claim:C074,
+        claim:C075,
+        claim:C076,
+        claim:C077,
+        claim:C078,
+        claim:C079,
+        claim:C080,
+        claim:C081,
+        claim:C082,
+        claim:C083,
+        claim:C084,
+        claim:C085,
+        claim:C086,
+        claim:C087,
+        claim:C088,
+        claim:C089,
+        claim:C090,
+        claim:C091,
+        claim:C092,
+        claim:C093,
+        claim:C094,
+        claim:C095,
+        claim:C096,
+        claim:C097,
+        claim:C098,
+        claim:C099,
+        claim:C100,
+        claim:C101,
+        claim:C102,
+        claim:C103,
+        claim:C104,
+        claim:C105,
+        claim:C106,
+        claim:C107,
+        claim:C108 ;
+    ahoj:mappedBy ent:External_KB_mapping_enrichment_2026_06_11 .
+
