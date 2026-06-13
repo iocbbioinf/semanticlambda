@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import pyperclip
 import rdflib
@@ -17,10 +18,132 @@ from textual.screen import ModalScreen
 from textual.widgets import Footer, Header, Input, Label, ListItem, ListView, Static
 from textual.containers import VerticalScroll, ScrollableContainer, Horizontal, Vertical
 
-RDF_FILE = Path(__file__).parent / "data" / "ahoj_reduced_external_kb_fixed_with_glycogen_phosphorylase_enriched_claims.rdf"
-TTL_FILE = Path(__file__).parent / "data" / "ahoj_reduced_external_kb_fixed_with_glycogen_phosphorylase_enriched_claims.ttl"
+RDF_FILE = Path(__file__).parent / "data" / "ahojdb_paper_kg.rdf"
+TTL_FILE = Path(__file__).parent / "data" / "ahojdb_paper_kg.ttl"
+LAMBDA_DB = Path(__file__).parent / "data" / "lambda_terms.json"
 
 AHOJ = rdflib.Namespace("https://w3id.org/ahoj/ontology/")
+
+
+# ── Lambda term data model ────────────────────────────────────────────────────
+
+@dataclass
+class LamVar:
+    """A variable (leaf) identified by its IRI."""
+    iri: str
+    label: str
+
+    def to_dict(self) -> dict:
+        return {"type": "var", "iri": self.iri, "label": self.label}
+
+    @staticmethod
+    def from_dict(d: dict) -> "LamVar":
+        return LamVar(iri=d["iri"], label=d["label"])
+
+    def __str__(self) -> str:
+        return self.label
+
+
+@dataclass
+class LamApp:
+    """Application: (func arg)."""
+    func: "LamTerm"
+    arg: "LamTerm"
+
+    def to_dict(self) -> dict:
+        return {"type": "app", "func": lam_to_dict(self.func), "arg": lam_to_dict(self.arg)}
+
+    @staticmethod
+    def from_dict(d: dict) -> "LamApp":
+        return LamApp(func=lam_from_dict(d["func"]), arg=lam_from_dict(d["arg"]))
+
+    def __str__(self) -> str:
+        f = str(self.func)
+        a = str(self.arg)
+        # wrap in parens unless already atomic
+        f_s = f if isinstance(self.func, LamVar) else f"({f})"
+        a_s = a if isinstance(self.arg, LamVar) else f"({a})"
+        return f"{f_s}{a_s}"
+
+
+@dataclass
+class LamAbs:
+    """Abstraction: λvar.body"""
+    var: LamVar
+    body: "LamTerm"
+
+    def to_dict(self) -> dict:
+        return {"type": "abs", "var": self.var.to_dict(), "body": lam_to_dict(self.body)}
+
+    @staticmethod
+    def from_dict(d: dict) -> "LamAbs":
+        return LamAbs(var=LamVar.from_dict(d["var"]), body=lam_from_dict(d["body"]))
+
+    def __str__(self) -> str:
+        return f"λ{self.var}.({self.body})"
+
+
+LamTerm = Union[LamVar, LamApp, LamAbs]
+
+
+def lam_to_dict(t: LamTerm) -> dict:
+    return t.to_dict()
+
+
+def lam_from_dict(d: dict) -> LamTerm:
+    kind = d["type"]
+    if kind == "var":
+        return LamVar.from_dict(d)
+    if kind == "app":
+        return LamApp.from_dict(d)
+    if kind == "abs":
+        return LamAbs.from_dict(d)
+    raise ValueError(f"Unknown lambda term type: {kind}")
+
+
+def chain_to_lam(chain: "Chain") -> LamTerm:
+    """Convert a chain's binary tree into a lambda application term."""
+    def step_to_lam(step: "ChainStep") -> LamTerm:
+        subj = LamVar(iri=str(step.subject), label=step.subject_label)
+        obj = LamVar(iri=str(step.object_node), label=step.object_label)
+        if step.sub_chain:
+            # sub_chain replaces subject role — nest it
+            sub_term = chain_to_lam(step.sub_chain)
+            func = LamApp(func=sub_term, arg=obj)
+        else:
+            func = LamApp(func=subj, arg=obj)
+        return func
+
+    if not chain.steps:
+        raise ValueError("Cannot convert empty chain to lambda term")
+
+    # Build left-associative application across steps
+    term: LamTerm = step_to_lam(chain.steps[0])
+    for step in chain.steps[1:]:
+        obj = LamVar(iri=str(step.object_node), label=step.object_label)
+        term = LamApp(func=term, arg=obj)
+    return term
+
+
+def load_lambda_db() -> list[dict]:
+    if LAMBDA_DB.exists():
+        return json.loads(LAMBDA_DB.read_text())
+    return []
+
+
+def save_lambda_db(records: list[dict]) -> None:
+    LAMBDA_DB.parent.mkdir(parents=True, exist_ok=True)
+    LAMBDA_DB.write_text(json.dumps(records, indent=2))
+
+
+def append_lambda_term(chain_label: str, term: LamTerm) -> None:
+    records = load_lambda_db()
+    records.append({
+        "chain_label": chain_label,
+        "term": lam_to_dict(term),
+        "term_str": str(term),
+    })
+    save_lambda_db(records)
 
 
 def load_graph() -> rdflib.Graph:
@@ -313,6 +436,95 @@ class ChainDetailModal(ModalScreen):
             yield Static("\n".join(lines), id="modal-body", markup=True)
 
 
+LAMBDA_MODAL_CSS = """
+Screen {
+    align: center middle;
+}
+#lambda-container {
+    width: 80%;
+    max-height: 70%;
+    background: $surface;
+    border: thick $warning;
+    padding: 1 2;
+}
+#lambda-title {
+    text-style: bold;
+    color: $warning;
+    padding-bottom: 1;
+}
+#lambda-search {
+    height: 3;
+    border: tall $warning;
+    margin-bottom: 1;
+}
+#lambda-results {
+    height: 1fr;
+    border: tall $panel-lighten-2;
+}
+"""
+
+
+class LambdaAbstractionModal(ModalScreen):
+    CSS = LAMBDA_MODAL_CSS
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Cancel"),
+    ]
+
+    def __init__(self, g: rdflib.Graph, chain: "Chain") -> None:
+        super().__init__()
+        self._g = g
+        self._chain = chain
+        self._candidates: list[rdflib.URIRef] = []
+
+    def compose(self) -> ComposeResult:
+        chain_term = chain_to_lam(self._chain)
+        hint = "type to search  |  ↑↓ navigate  |  Enter select  |  Esc cancel"
+        with Vertical(id="lambda-container"):
+            yield Static(
+                f"λ-abstraction  [dim]({hint})[/dim]\n"
+                f"Chain term: [b]{esc(str(chain_term))}[/b]\n"
+                f"Select bound variable node:",
+                id="lambda-title", markup=True,
+            )
+            yield Input(placeholder="Search for a node…", id="lambda-search")
+            yield ListView(id="lambda-results")
+
+    def on_mount(self) -> None:
+        self.query_one("#lambda-search", Input).focus()
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        query = event.value.strip()
+        lv = self.query_one("#lambda-results", ListView)
+        lv.clear()
+        self._candidates = []
+        if not query:
+            return
+        results = search_nodes(self._g, query, limit=5)
+        self._candidates = results
+        for node in results:
+            lv.append(NodeItem(node, node_label(self._g, node)))
+        if results:
+            lv.index = 0
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        lv = self.query_one("#lambda-results", ListView)
+        if self._candidates:
+            # focus the list so user can pick with arrows / Enter
+            lv.focus()
+            if lv.index is None:
+                lv.index = 0
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        item = event.item
+        if not isinstance(item, NodeItem):
+            return
+        chain_term = chain_to_lam(self._chain)
+        var = LamVar(iri=str(item.node), label=node_label(self._g, item.node))
+        abs_term = LamAbs(var=var, body=chain_term)
+        self.dismiss(abs_term)
+
+
 class ClaimItem(ListItem):
     def __init__(self, claim_data: dict) -> None:
         iri = str(claim_data['claim']).rsplit("/", 1)[-1]
@@ -456,6 +668,8 @@ class KGBrowser(App):
         Binding("left", "go_back", "Back", show=True),
         Binding("c", "copy_item", "Copy IRI", show=True),
         Binding("tab", "focus_chains", "Chains panel", show=True),
+        Binding("s", "noop", "Save chain", show=True),
+        Binding("l", "noop", "λ-abstraction", show=True),
         Binding("q", "app.quit", "Quit"),
     ]
 
@@ -698,11 +912,15 @@ class KGBrowser(App):
             self.notify(f"Composed — continuing from: {item.chain.steps[-1].object_label}")
             self._show_node_and_claims(tail_node)
 
-    # ── Key: s = save current navigation path as a new chain ─────────────────
+    # ── Key handlers ─────────────────────────────────────────────────────────
 
     def on_key(self, event) -> None:
-        if event.key != "s":
-            return
+        if event.key == "s":
+            self._handle_save_chain()
+        elif event.key == "l":
+            self._handle_lambda_abstraction()
+
+    def _handle_save_chain(self) -> None:
         if self.state != "claims_list" or not self._current_steps:
             return
         steps = list(self._current_steps)
@@ -730,7 +948,30 @@ class KGBrowser(App):
         inp.value = ""
         inp.focus()
 
+    def _handle_lambda_abstraction(self) -> None:
+        if self.state != "claims_list" or not self._current_steps:
+            self.notify("Start building a chain first", severity="warning")
+            return
+        steps = list(self._current_steps)
+        if self._chain_prefix is not None:
+            steps[0].sub_chain = self._chain_prefix
+            if self._chain_prefix_subject is not None:
+                steps[0].subject = self._chain_prefix_subject
+                steps[0].subject_label = node_label(self.g, self._chain_prefix_subject)
+        chain = Chain(steps=steps)
+
+        def on_lambda_selected(abs_term: LamAbs | None) -> None:
+            if abs_term is None:
+                return
+            append_lambda_term(chain.label, abs_term)
+            self.notify(f"Saved: {abs_term}", timeout=6)
+
+        self.push_screen(LambdaAbstractionModal(self.g, chain), on_lambda_selected)
+
     # ── Actions ───────────────────────────────────────────────────────────────
+
+    def action_noop(self) -> None:
+        pass
 
     def action_focus_chains(self) -> None:
         lv = self.query_one("#chains-list", ListView)

@@ -1,0 +1,51 @@
+[
+  {
+    "chain_label": "AHoJ DB approach \u2192 (AHoJ DB approach \u2192 Docking and drug design studies \u2192 Protein structure) \u2192 Docking and drug design studies \u2192 Different global geometries",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://w3id.org/ahoj/entity/Drug_design_and_docking",
+        "label": "Docking and drug design studies"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "app",
+              "func": {
+                "type": "var",
+                "iri": "https://w3id.org/ahoj/entity/AHoJ_DB",
+                "label": "AHoJ DB approach"
+              },
+              "arg": {
+                "type": "var",
+                "iri": "https://w3id.org/ahoj/entity/Drug_design_and_docking",
+                "label": "Docking and drug design studies"
+              }
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://w3id.org/ahoj/entity/Protein_structure",
+              "label": "Protein structure"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://w3id.org/ahoj/entity/Drug_design_and_docking",
+            "label": "Docking and drug design studies"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://w3id.org/ahoj/entity/Protein_conformational_variability",
+          "label": "Different global geometries"
+        }
+      }
+    },
+    "term_str": "\u03bbDocking and drug design studies.((((AHoJ DB approachDocking and drug design studies)Protein structure)Docking and drug design studies)Different global geometries)"
+  }
+]

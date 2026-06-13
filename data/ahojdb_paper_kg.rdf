@@ -1,0 +1,1649 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+   xmlns:ahoj="https://w3id.org/ahoj/ontology/"
+   xmlns:dcterms="http://purl.org/dc/terms/"
+   xmlns:pred="https://w3id.org/ahoj/predicate/"
+   xmlns:prov="http://www.w3.org/ns/prov#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+   xmlns:schema="https://schema.org/"
+   xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PROVENANCE
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Article_AHoJDB_2024">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>AHoJ-DB paper 2024</rdfs:label>
+    <skos:altLabel>Feidakis et al. 2024</skos:altLabel>
+    <dcterms:identifier>https://doi.org/10.1016/j.jmb.2024.168545</dcterms:identifier>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       ENTITIES
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/AHoJ_DB">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>AHoJ-DB</rdfs:label>
+    <skos:altLabel>AHoJ database</skos:altLabel>
+    <skos:altLabel>apo holo database</skos:altLabel>
+    <skos:exactMatch rdf:resource="https://www.apoholo.cz/db"/>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/AHoJ_tool">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>AHoJ tool</rdfs:label>
+    <skos:altLabel>AHoJ application</skos:altLabel>
+    <skos:altLabel>apo holo search tool</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Apo_form">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>apo form</rdfs:label>
+    <skos:altLabel>apo state</skos:altLabel>
+    <skos:altLabel>ligand-free structure</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Holo_form">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>holo form</rdfs:label>
+    <skos:altLabel>holo state</skos:altLabel>
+    <skos:altLabel>ligand-bound structure</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Apo_holo_pair">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>apo-holo pair</rdfs:label>
+    <skos:altLabel>apo holo pair</skos:altLabel>
+    <skos:altLabel>paired apo and holo pocket</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Binding_pocket">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>binding pocket</rdfs:label>
+    <skos:altLabel>binding site</skos:altLabel>
+    <skos:altLabel>protein binding pocket</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Protein_ligand_interaction">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>protein-ligand interaction</rdfs:label>
+    <skos:altLabel>biologically relevant interaction</skos:altLabel>
+    <skos:altLabel>protein ligand binding</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/BioLiP2">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>BioLiP2</rdfs:label>
+    <skos:altLabel>BioLiP2 database</skos:altLabel>
+    <skos:altLabel>biologically relevant ligand database</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/PDB">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>PDB</rdfs:label>
+    <skos:altLabel>Protein Data Bank</skos:altLabel>
+    <skos:exactMatch rdf:resource="https://www.rcsb.org/"/>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/UniProt_accession">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>UniProt accession</rdfs:label>
+    <skos:altLabel>UniProt AC</skos:altLabel>
+    <skos:altLabel>UniProt identifier</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/SIFTS">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>SIFTS</rdfs:label>
+    <skos:altLabel>Structure Integration with Function, Taxonomy and Sequence</skos:altLabel>
+    <skos:altLabel>residue-level mapping resource</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Pocket_RMSD">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>pocket RMSD</rdfs:label>
+    <skos:altLabel>pocket-level RMSD</skos:altLabel>
+    <skos:altLabel>binding site RMSD</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Conformational_variability">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>conformational variability</rdfs:label>
+    <skos:altLabel>geometric variability</skos:altLabel>
+    <skos:altLabel>structural flexibility</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Cryptic_binding_site">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>cryptic binding site</rdfs:label>
+    <skos:altLabel>hidden binding site</skos:altLabel>
+    <skos:altLabel>occluded pocket</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Drug_design">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>drug design</rdfs:label>
+    <skos:altLabel>drug design and docking</skos:altLabel>
+    <skos:altLabel>ligand docking study</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/LBS_predictor">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>LBS predictor</rdfs:label>
+    <skos:altLabel>ligand binding site predictor</skos:altLabel>
+    <skos:altLabel>binding site prediction software</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Unobserved_residues">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>unobserved residues</rdfs:label>
+    <skos:altLabel>disordered residues</skos:altLabel>
+    <skos:altLabel>unobserved MBR</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Interface_pocket">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>interface binding pocket</rdfs:label>
+    <skos:altLabel>multi-chain binding site</skos:altLabel>
+    <skos:altLabel>chain-interface pocket</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Pocket_volume">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>pocket volume</rdfs:label>
+    <skos:altLabel>binding site volume</skos:altLabel>
+    <skos:altLabel>molecular volume of pocket</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/B_factor">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>b-factor</rdfs:label>
+    <skos:altLabel>temperature factor</skos:altLabel>
+    <skos:altLabel>atomic displacement parameter</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Subset1">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>Subset 1</rdfs:label>
+    <skos:altLabel>resolution-filtered subset</skos:altLabel>
+    <skos:altLabel>451408-entry subset</skos:altLabel>
+    <ahoj:reportedValue rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">451408</ahoj:reportedValue>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Subset2">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>Subset 2</rdfs:label>
+    <skos:altLabel>fully-observed residue subset</skos:altLabel>
+    <skos:altLabel>zero-unobserved-residue subset</skos:altLabel>
+    <ahoj:reportedValue rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">451408</ahoj:reportedValue>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Machine_learning">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>machine learning</rdfs:label>
+    <skos:altLabel>ML model training</skos:altLabel>
+    <skos:altLabel>machine learning tool development</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/AlphaFold">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>AlphaFold</rdfs:label>
+    <skos:altLabel>AlphaFold model</skos:altLabel>
+    <skos:altLabel>predicted protein structure</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Glucose_ligand">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>glucose ligand</rdfs:label>
+    <skos:altLabel>GLC</skos:altLabel>
+    <skos:altLabel>glucose binding interaction</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Zinc_ligand">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>zinc ligand</rdfs:label>
+    <skos:altLabel>ZN</skos:altLabel>
+    <skos:altLabel>zinc ion binding</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Pocket_centric_classification">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>pocket-centric apo/holo classification</rdfs:label>
+    <skos:altLabel>per-pocket apo holo assignment</skos:altLabel>
+    <skos:altLabel>pocket-level classification</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Residue_mapping">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>residue mapping</rdfs:label>
+    <skos:altLabel>binding residue mapping</skos:altLabel>
+    <skos:altLabel>pocket residue transfer</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PREDICATES
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/was_built_from">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>was built from</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/uses_input_interactions_from">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>uses input interactions from</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/uses_residue_mappings_from">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>uses residue mappings from</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/searches_within">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>searches within</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/groups_candidates_by">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>groups candidates by</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/classifies">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>classifies</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/reports">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>reports</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/can_support">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>can support</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/can_be_used_to_detect">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>can be used to detect</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_larger_in">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is larger in</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_smaller_in">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is smaller in</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_higher_in">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is higher in</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/indicates_disorder_in">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>indicates disorder in</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/can_occur_at">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>can occur at</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/requires">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>requires</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/often_relies_on">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>often relies on</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_biased_toward">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is biased toward</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/has_higher_apo_coverage_than">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>has higher apo coverage than</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/excludes">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>excludes</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/enables_comparison_of">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>enables comparison of</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_assigned_per">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is assigned per</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/resolves_ambiguity_in">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>resolves ambiguity in</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/has_apo_form_for">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>has apo form for</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/may_expose">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>may expose</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/provides_benchmark_for">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>provides benchmark for</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/varies_between">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>varies between</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_most_abundant_in">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is most abundant in</rdfs:label>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — AHoJ_DB as subject (most claims)
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P001">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P001: AHoJ_DB - was_built_from - Protein_ligand_interaction</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/was_built_from"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Protein_ligand_interaction"/>
+    <ahoj:claimText>AHoJ-DB was assembled by processing 468,293 biologically relevant protein-ligand interactions drawn from BioLiP2.</ahoj:claimText>
+    <ahoj:sourceText>We use a previously developed application (AHoJ) to perform a comprehensive search for apo-holo pairs for 468,293 biologically relevant protein-ligand interactions across 27,983 proteins.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P002">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P002: AHoJ_DB - uses_input_interactions_from - BioLiP2</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/uses_input_interactions_from"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/BioLiP2"/>
+    <ahoj:claimText>The biologically relevant protein-ligand interactions used as query input for building AHoJ-DB are taken from the redundant set of BioLiP2, excluding peptide and nucleic acid ligands.</ahoj:claimText>
+    <ahoj:sourceText>The biologically relevant interactions used as search input are taken from the redundant set of the BioLiP2 database, excluding interactions between proteins and peptides or nucleic acids, and also interactions where the protein structure is not assigned a UniProt AC.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P003">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P003: AHoJ_DB - uses_residue_mappings_from - SIFTS</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/uses_residue_mappings_from"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/SIFTS"/>
+    <ahoj:claimText>AHoJ-DB maps binding residues across candidate structures using SIFTS residue-level mappings.</ahoj:claimText>
+    <ahoj:sourceText>We then conducted separate searches for each of these interactions, by specifying the ligand in the query structure, detecting its binding residues (i.e., pocket) based on a cut-off distance threshold (4.5 Å), and then mapping these residues — through SIFTS — across other structures (candidates) that are assigned the same UniProt AC in the PDB.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P004">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P004: AHoJ_DB - searches_within - PDB</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/searches_within"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/PDB"/>
+    <ahoj:claimText>AHoJ-DB searches for apo and holo candidate structures within the PDB, restricted to structures sharing the same UniProt accession as the query.</ahoj:claimText>
+    <ahoj:sourceText>The mapped residues are grouped into a mapped candidate pocket and used to detect ligands within the same cut-off distance threshold used to determine binding residues for the ligand of the query structure, using an updated version of AHoJ.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P005">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P005: AHoJ_DB - groups_candidates_by - UniProt_accession</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/groups_candidates_by"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/UniProt_accession"/>
+    <ahoj:claimText>AHoJ-DB groups all candidate structures within the same UniProt accession, enabling comparison of apo and holo states for the same protein sequence.</ahoj:claimText>
+    <ahoj:sourceText>The database captures the variability of proteins with identical sequences, thereby exposing the agents responsible for the observed differences in geometry.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P006">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P006: AHoJ_DB - reports - Pocket_RMSD</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/reports"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Pocket_RMSD"/>
+    <ahoj:claimText>AHoJ-DB reports pocket RMSD as one of the geometric metrics computed for each mapped candidate pocket.</ahoj:claimText>
+    <ahoj:sourceText>AHoJ-DB reports general structure metrics, relevant-chain metrics such as TM-score, RMSD and allosteric factors, and pocket metrics such as mapped and observed residues, SASA, molecular surface, volume, b-factor, radius of gyration and pocket RMSD.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P007">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P007: AHoJ_DB - reports - B_factor</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/reports"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/B_factor"/>
+    <ahoj:claimText>AHoJ-DB reports per-atom b-factor values for pocket atoms, which reflect local atomic disorder and differ systematically between apo and holo pockets.</ahoj:claimText>
+    <ahoj:sourceText>Per-atom average b-factor values (b-factor per-atom) are also in support of the claim that apo pockets are less ordered overall (26% difference with holo pockets while resolution has an 8.6% difference).</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P008">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P008: AHoJ_DB - can_support - Machine_learning</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_support"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Machine_learning"/>
+    <ahoj:claimText>AHoJ-DB provides a large annotated dataset suitable for training and evaluating machine-learning models for binding site prediction and structural biology.</ahoj:claimText>
+    <ahoj:sourceText>The authors conclude that AHoJ-DB is, to their knowledge, the most comprehensive database for apo and holo structures to date. They state that it can support protein structure analysis, machine-learning tool development, drug design and docking, LBS predictor training and testing, validation of cryptic binding sites, detection of allosteric effects, order-to-disorder studies and folding dynamics.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P009">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P009: AHoJ_DB - can_support - Drug_design</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_support"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Drug_design"/>
+    <ahoj:claimText>AHoJ-DB can support drug design and docking studies by providing paired apo and holo structures with annotated pocket geometry.</ahoj:claimText>
+    <ahoj:sourceText>The authors conclude that AHoJ-DB can support protein structure analysis, machine-learning tool development, drug design and docking, LBS predictor training and testing, validation of cryptic binding sites, detection of allosteric effects, order-to-disorder studies and folding dynamics.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P010">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P010: AHoJ_DB - can_be_used_to_detect - Cryptic_binding_site</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_be_used_to_detect"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Cryptic_binding_site"/>
+    <ahoj:claimText>AHoJ-DB can be used to validate and detect cryptic binding sites that are normally obscured by conformational changes between apo and holo states.</ahoj:claimText>
+    <ahoj:sourceText>There are ongoing efforts to expand the druggable proteome by revealing binding sites that are normally obscured by conformational changes that occur between the apo and holo states. AHoJ-DB can support validation of cryptic binding sites.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P011">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P011: AHoJ_DB - can_support - LBS_predictor</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_support"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/LBS_predictor"/>
+    <ahoj:claimText>AHoJ-DB was partly motivated by the need for large annotated benchmarks on which LBS predictors can be trained and tested.</ahoj:claimText>
+    <ahoj:sourceText>Our initial motivation to assemble a dataset of apo-holo structures was indeed driven by the lack of sizable benchmarks on which we could test and improve our machine learning LBS predictor.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P012">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P012: AHoJ_DB - enables_comparison_of - Conformational_variability</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/enables_comparison_of"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Conformational_variability"/>
+    <ahoj:claimText>AHoJ-DB captures conformational variability across structures with identical sequences, exposing geometric differences not attributable to sequence change.</ahoj:claimText>
+    <ahoj:sourceText>The database captures the variability of proteins with identical sequences, thereby exposing the agents responsible for the observed differences in geometry. We report several metrics for each annotated pocket.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — Apo_form as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P013">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P013: Apo_form - is_larger_in - Pocket_RMSD</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Apo_form"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_larger_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Pocket_RMSD"/>
+    <ahoj:claimText>Apo pockets show a 40% higher pocket RMSD than holo pockets (1.47 Å vs 0.96 Å in Subset 1), indicating greater geometric deviation when aligned onto the query pocket.</ahoj:claimText>
+    <ahoj:sourceText>A difference of 40% is observed in pocket RMSD, showing that apo pockets have consistently higher RMSD compared to holo when aligned onto the query pocket, hinting towards the existence of cryptic sites.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P014">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P014: Apo_form - is_higher_in - B_factor</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Apo_form"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_higher_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/B_factor"/>
+    <ahoj:claimText>Apo pockets have 26% higher per-atom b-factor than holo pockets, indicating that ligand-free binding sites are less ordered at the atomic level.</ahoj:claimText>
+    <ahoj:sourceText>Per-atom average b-factor values (b-factor per-atom) are also in support of the claim that apo pockets are less ordered overall (26% difference with holo pockets while resolution has an 8.6% difference).</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P015">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P015: Apo_form - is_smaller_in - Pocket_volume</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Apo_form"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_smaller_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Pocket_volume"/>
+    <ahoj:claimText>Apo pockets appear 24% smaller in volume than holo pockets on average, consistent with ligand-induced pocket expansion.</ahoj:claimText>
+    <ahoj:sourceText>There is also a noticeable difference in measured pocket volume with apo pockets appearing smaller overall (24% difference), which is less pronounced in total SASA values.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P016">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P016: Apo_form - indicates_disorder_in - Unobserved_residues</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Apo_form"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/indicates_disorder_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Unobserved_residues"/>
+    <ahoj:claimText>Apo structures show 138% more unobserved binding residues than holo structures on average, indicating that apo pockets are substantially less ordered and harder to resolve crystallographically.</ahoj:claimText>
+    <ahoj:sourceText>Indeed, in Table 1, we see a 138% difference in the average number of unobserved residues (Unobserved MBR %) between apo and holo sites. This difference is further pronounced when considering the least disordered apo and holo pockets among an entry (see unobserved_rsd_min in Table S1), where the difference rises to 182%.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P017">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P017: Apo_form - is_smaller_in - Subset1</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Apo_form"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_smaller_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Subset1"/>
+    <ahoj:claimText>Only 41% of entries in Subset 1 have at least one apo result, reflecting an inherent PDB bias toward holo structures.</ahoj:claimText>
+    <ahoj:sourceText>Subset 1 yielded 451,408 entries across 27,162 UniProt ACs, out of which, 41% had at least one apo state as a result (185,193 paired entries).</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P018">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P018: Apo_form - may_expose - Cryptic_binding_site</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Apo_form"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/may_expose"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Cryptic_binding_site"/>
+    <ahoj:claimText>The higher pocket RMSD in apo structures hints at the existence of cryptic binding sites that are occluded in the holo state.</ahoj:claimText>
+    <ahoj:sourceText>A difference of 40% is observed in pocket RMSD, showing that apo pockets have consistently higher RMSD compared to holo when aligned onto the query pocket, hinting towards the existence of cryptic sites.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — Binding_pocket as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P019">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P019: Binding_pocket - can_occur_at - Interface_pocket</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Binding_pocket"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_occur_at"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Interface_pocket"/>
+    <ahoj:claimText>About 24% of binding sites in AHoJ-DB occur at the interface of two or more chains, forming multi-chain pockets. These interface pockets are explicitly included and annotated.</ahoj:claimText>
+    <ahoj:sourceText>Analysis of the database shows that about 24% of the binding sites occur at the interface of two or more chains and that less than 50% of the total binding sites processed have an apo form in the PDB.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P020">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P020: Binding_pocket - is_assigned_per - Pocket_centric_classification</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Binding_pocket"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_assigned_per"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Pocket_centric_classification"/>
+    <ahoj:claimText>The apo or holo classification is assigned per pocket rather than per chain or whole structure, because a single chain can contain multiple binding sites in different states.</ahoj:claimText>
+    <ahoj:sourceText>It became clear that assigning apo or holo status to an entire chain, let alone a structure, can be vague and potentially misleading, in the presence of multiple binding sites on the same chain. In this sense, an apo or holo classification should be assigned based on a reference point that must be established first: a pocket or group of residues in a protein structure. A pocket-centric view is therefore practical for clarifying the apo-holo status.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P021">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P021: Binding_pocket - enables_comparison_of - Conformational_variability</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Binding_pocket"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/enables_comparison_of"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Conformational_variability"/>
+    <ahoj:claimText>Having access to mapped candidate pockets that correspond to the same sequence region as the query enables geometric comparisons beyond the binary apo/holo classification, revealing conformational variability.</ahoj:claimText>
+    <ahoj:sourceText>Having access to the mapped candidate pockets which correspond to the same sequence part as the query pocket, enables comparisons beyond the apo/holo classification. For this reason, we collect an extensive number of metrics that can help discern observed differences in geometry between two states.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — Pocket_RMSD as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P022">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P022: Pocket_RMSD - varies_between - Apo_holo_pair</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Pocket_RMSD"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/varies_between"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_holo_pair"/>
+    <ahoj:claimText>Pocket RMSD systematically differs between apo and holo entries: apo pockets are 40% higher in RMSD than holo pockets when aligned onto the query, providing a quantitative measure of structural divergence.</ahoj:claimText>
+    <ahoj:sourceText>A difference of 40% is observed in pocket RMSD, showing that apo pockets have consistently higher RMSD compared to holo when aligned onto the query pocket, hinting towards the existence of cryptic sites.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P023">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P023: Pocket_RMSD - provides_benchmark_for - LBS_predictor</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Pocket_RMSD"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/provides_benchmark_for"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/LBS_predictor"/>
+    <ahoj:claimText>Pocket RMSD enables evaluation of LBS predictors beyond pass/fail classification by quantifying the geometric closeness between predicted and true pockets in paired apo-holo structures.</ahoj:claimText>
+    <ahoj:sourceText>The idea behind this is that testing and training on holo targets, while straightforward, is not a realistic scenario, as the holo pocket is an easy target for prediction – or docking – but often differs from the apo form of the same protein sequence.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — Protein_ligand_interaction as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P024">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P024: Protein_ligand_interaction - requires - UniProt_accession</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Protein_ligand_interaction"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/UniProt_accession"/>
+    <ahoj:claimText>Only protein-ligand interactions where the protein structure has an assigned UniProt accession are used as input, because the methodology searches for candidates within the same UniProt AC.</ahoj:claimText>
+    <ahoj:sourceText>We also discarded interactions where the protein structure is not assigned a UniProt AC, since our methodology searches for candidates within a UniProt AC.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P025">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P025: Protein_ligand_interaction - excludes - Holo_form</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Protein_ligand_interaction"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/excludes"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Holo_form"/>
+    <ahoj:claimText>Each protein-ligand interaction is itself a holo state by definition, and is not considered in the holo results of its own entry. It serves only as the reference query pocket.</ahoj:claimText>
+    <ahoj:sourceText>It is worth clarifying that while the entry itself is a holo interaction, it is not considered in the holo results of the given entry. The entries can be retrieved by searching through AHoJ-DB for a PDB code, ligand CCD name, UniProt AC, or a combination of these identifiers.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P026">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P026: Protein_ligand_interaction - is_most_abundant_in - Zinc_ligand</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Protein_ligand_interaction"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_most_abundant_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Zinc_ligand"/>
+    <ahoj:claimText>Zinc (ZN) is the most represented ligand in Subset 2 by total number of interaction sites, with 42,137 sites across 4,237 UniProt ACs.</ahoj:claimText>
+    <ahoj:sourceText>The top 15 ligands are displayed in Table 2. ZN leads with 4,237 UniProt ACs, 15,715 structures, 32,014 chains and 42,137 sites in total entries.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — BioLiP2 as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P027">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P027: BioLiP2 - excludes - Holo_form</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/BioLiP2"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/excludes"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Holo_form"/>
+    <ahoj:claimText>BioLiP2 interactions involving peptides or nucleic acids as ligands are excluded from the AHoJ-DB input, retaining only small-molecule protein-ligand interactions.</ahoj:claimText>
+    <ahoj:sourceText>We collected the biologically relevant protein-ligand interactions from BioLiP2 (redundant set, retrieved on 23.12.2023) and we discarded interactions between proteins and peptides or nucleic acids, and also interactions where the protein structure is not assigned a UniProt AC.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P028">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P028: BioLiP2 - provides_benchmark_for - AHoJ_DB</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/BioLiP2"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/provides_benchmark_for"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimText>BioLiP2 serves as the authoritative source of biologically relevant ligand interactions that define what counts as a valid holo query state in AHoJ-DB.</ahoj:claimText>
+    <ahoj:sourceText>We used biologically relevant interactions as starting points; we consider any detected ligand to be valid. The idea behind this is that even if these ligands are part of crystal packing contacts or crystallographic agents, they will affect the local geometry despite their questionable biological relevance.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — Residue_mapping as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P029">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P029: Residue_mapping - uses_residue_mappings_from - SIFTS</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Residue_mapping"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/uses_residue_mappings_from"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/SIFTS"/>
+    <ahoj:claimText>Binding residues identified in the query structure are transferred to candidate structures via SIFTS residue-level mappings, enabling pocket-level comparison across structures.</ahoj:claimText>
+    <ahoj:sourceText>We then conducted separate searches for each of these interactions, by specifying the ligand in the query structure, detecting its binding residues (i.e., pocket) based on a cut-off distance threshold (4.5 Å), and then mapping these residues — through SIFTS — across other structures (candidates) that are assigned the same UniProt AC in the PDB.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P030">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P030: Residue_mapping - requires - UniProt_accession</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Residue_mapping"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/UniProt_accession"/>
+    <ahoj:claimText>The residue mapping step requires that both query and candidate structures share the same UniProt accession, ensuring that mapped residues correspond to the same protein sequence region.</ahoj:claimText>
+    <ahoj:sourceText>The search logic groups candidates by UniProt AC. Only structures assigned the same UniProt AC as the query are considered as candidates for residue mapping and apo/holo classification.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — Pocket_centric_classification as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P031">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P031: Pocket_centric_classification - resolves_ambiguity_in - Holo_form</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Pocket_centric_classification"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/resolves_ambiguity_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Holo_form"/>
+    <ahoj:claimText>A pocket-centric view resolves the ambiguity in apo/holo assignment that arises when a single chain has multiple binding sites, some bound and some unbound.</ahoj:claimText>
+    <ahoj:sourceText>It became clear that assigning apo or holo status to an entire chain, let alone a structure, can be vague and potentially misleading, in the presence of multiple binding sites on the same chain. A pocket-centric view is therefore practical for clarifying the apo-holo status.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P032">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P032: Pocket_centric_classification - classifies - Apo_form</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Pocket_centric_classification"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/classifies"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_form"/>
+    <ahoj:claimText>A mapped candidate pocket is classified as apo if no ligands are detected in its vicinity, regardless of what other pockets on the same chain contain.</ahoj:claimText>
+    <ahoj:sourceText>The mapped candidate pockets are classified as apo or holo, depending on whether any ligands were detected in their vicinity, excluding solvent.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — Glucose_ligand as subject (high apo coverage example)
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P033">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P033: Glucose_ligand - has_higher_apo_coverage_than - Zinc_ligand</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Glucose_ligand"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/has_higher_apo_coverage_than"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Zinc_ligand"/>
+    <ahoj:claimText>Glucose (GLC) has 62-75% apo coverage across UniProt, structures and chains in Subset 2, far exceeding zinc (ZN) at 22-28%, illustrating strong ligand-specific variation in apo availability.</ahoj:claimText>
+    <ahoj:sourceText>The top 15 ligands are displayed in Table 2. Apo-paired coverage varies strongly between ligands. Glucose shows 62% UniProt coverage, while ZN shows only 22%, demonstrating that the likelihood of finding an apo form differs markedly by ligand type.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P034">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P034: Glucose_ligand - is_most_abundant_in - Apo_holo_pair</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Glucose_ligand"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_most_abundant_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_holo_pair"/>
+    <ahoj:claimText>Among the top 15 ligands, glucose has the highest apo-coverage percentage (73% of chains have at least one apo result), making it the best-represented ligand for apo-holo paired studies.</ahoj:claimText>
+    <ahoj:sourceText>The paper reports high coverage for glucose with 62% UniProt, 75% structures, 71% chains and 73% sites coverage in Subset 2.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — LBS_predictor as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P035">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P035: LBS_predictor - often_relies_on - Holo_form</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/LBS_predictor"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/often_relies_on"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Holo_form"/>
+    <ahoj:claimText>LBS prediction software is often trained and tested on single holo structures as representatives, not accounting for conformational diversity of the binding site or the rest of the protein.</ahoj:claimText>
+    <ahoj:sourceText>The testing and training of LBS prediction software is often performed on a single holo structure as a representative, not taking into account the conformational diversity of the binding site or the rest of the protein.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P036">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P036: LBS_predictor - requires - Apo_form</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/LBS_predictor"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_form"/>
+    <ahoj:claimText>Realistic LBS prediction should target apo forms, since holo pockets are easy targets and often differ geometrically from their apo counterparts, making holo-only training potentially misleading.</ahoj:claimText>
+    <ahoj:sourceText>The idea behind this is that testing and training on holo targets, while straightforward, is not a realistic scenario, as the holo pocket is an easy target for prediction – or docking – but often differs from the apo form of the same protein sequence.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — Conformational_variability as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P037">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P037: Conformational_variability - is_biased_toward - Holo_form</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Conformational_variability"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_biased_toward"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Holo_form"/>
+    <ahoj:claimText>The average number of pockets, structures, and chains per entry is consistently 95-100% higher for holo states than apo, indicating an inherent PDB bias toward holo structures.</ahoj:claimText>
+    <ahoj:sourceText>The average number of pockets, structures, and chains per entry is consistently higher for holo states – 95% to 100% difference – throughout all subsets compared to apo, indicating an inherent bias within the PDB towards holo structures.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P038">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P038: Conformational_variability - varies_between - Apo_holo_pair</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Conformational_variability"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/varies_between"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_holo_pair"/>
+    <ahoj:claimText>Conformational variability between apo and holo structures is not captured by a single protein structure, making paired datasets essential for understanding geometry differences.</ahoj:claimText>
+    <ahoj:sourceText>A single protein structure is rarely sufficient to capture the conformational variability of a protein. Both bound and unbound (holo and apo) forms of a protein are essential for understanding its geometry and making meaningful comparisons.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — AlphaFold as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P039">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P039: AlphaFold - is_biased_toward - Holo_form</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AlphaFold"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_biased_toward"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Holo_form"/>
+    <ahoj:claimText>Proteins with larger documented conformational variability in the PDB produce lower quality AlphaFold models, suggesting AlphaFold captures holo-like states more faithfully than apo states.</ahoj:claimText>
+    <ahoj:sourceText>Saldaño et al. compared AlphaFold models of 91 proteins with a curated set of apo-holo structure pairs and concluded that the models resemble the holo form 70% of the time, while proteins with larger documented conformational variability in the PDB produced lower quality AlphaFold models.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P040">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P040: AlphaFold - requires - Apo_holo_pair</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AlphaFold"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_holo_pair"/>
+    <ahoj:claimText>Evaluating AlphaFold model quality relative to experimental structures requires curated apo-holo pairs as the reference benchmark, since single-state comparisons are insufficient.</ahoj:claimText>
+    <ahoj:sourceText>Saldaño et al. compared AlphaFold models of 91 proteins with a curated set of apo-holo structure pairs and concluded that the models resemble the holo form 70% of the time.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — Subset1 / Subset2 as subjects
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P041">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P041: Subset2 - requires - Unobserved_residues</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Subset2"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Unobserved_residues"/>
+    <ahoj:claimText>Subset 2 applies zero tolerance for unobserved pocket residues: all mapped binding residues must be fully observed in the candidate structure, enabling more confident geometric comparisons.</ahoj:claimText>
+    <ahoj:sourceText>Subset 2 applies the same resolution and diffraction-method filters as Subset 1 but also requires all mapped binding residues to be observed (observed residues at 100% of MBR, zero tolerance for unobserved pocket residues).</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P042">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P042: Subset2 - enables_comparison_of - Pocket_RMSD</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Subset2"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/enables_comparison_of"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Pocket_RMSD"/>
+    <ahoj:claimText>Because Subset 2 requires all pocket residues to be observed, it enables more confident pocket-level geometric comparisons including pocket RMSD between apo and holo entries.</ahoj:claimText>
+    <ahoj:sourceText>Here the entire query pocket is mapped and observed fully in both apo and holo candidates which enables more confident pocket-related observations. A difference of 40% is observed in pocket RMSD.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P043">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P043: Subset1 - has_apo_form_for - UniProt_accession</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Subset1"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/has_apo_form_for"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/UniProt_accession"/>
+    <ahoj:claimText>In Subset 1, 39% of UniProt ACs (10,595 out of 27,162) have at least one apo state in the PDB, showing that apo structures are available for a substantial but minority share of represented proteins.</ahoj:claimText>
+    <ahoj:sourceText>In UniProt ACs this translated to 39% having at least one apo state in the PDB (10,595 UniProt ACs).</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLAIMS — Interface_pocket as subject
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P044">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P044: Interface_pocket - requires - Residue_mapping</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Interface_pocket"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Residue_mapping"/>
+    <ahoj:claimText>Interface pockets forming at two or more chain boundaries require residue mapping across all contributing chains and are explicitly included in AHoJ-DB, referred to as relevant chains.</ahoj:claimText>
+    <ahoj:sourceText>We also include binding pockets that form at the interface of multiple chains. Analysis of the database shows that about 24% of the binding sites occur at the interface of two or more chains.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P045">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P045: Interface_pocket - can_occur_at - Apo_form</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Interface_pocket"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_occur_at"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_form"/>
+    <ahoj:claimText>Interface binding pockets, which occur at the boundary of two or more chains, can also appear in apo form and are annotated as such in AHoJ-DB.</ahoj:claimText>
+    <ahoj:sourceText>Analysis of the database shows that about 24% of the binding sites occur at the interface of two or more chains and that less than 50% of the total binding sites processed have an apo form in the PDB.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       EXTERNAL MAPPINGS
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_AHoJ_DB_apoholo">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>AHoJ_DB mapping to apoholo.cz</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#exactMatch"/>
+    <ahoj:mappingObject rdf:resource="https://www.apoholo.cz/db"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_BioLiP2_external">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>BioLiP2 mapping to external resource</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/BioLiP2"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#exactMatch"/>
+    <ahoj:mappingObject rdf:resource="https://zhanggroup.org/BioLiP/"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_PDB_RCSB">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>PDB mapping to RCSB PDB</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/PDB"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#exactMatch"/>
+    <ahoj:mappingObject rdf:resource="https://www.rcsb.org/"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_SIFTS_EBI">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>SIFTS mapping to EBI resource</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/SIFTS"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#exactMatch"/>
+    <ahoj:mappingObject rdf:resource="https://www.ebi.ac.uk/pdbe/docs/sifts/"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_UniProt_accession_UniProt">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>UniProt accession mapping to UniProt</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/UniProt_accession"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#exactMatch"/>
+    <ahoj:mappingObject rdf:resource="https://www.uniprot.org/help/uniprotkb"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Cryptic_binding_site_edam">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>Cryptic_binding_site mapping to EDAM topic</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/Cryptic_binding_site"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#relatedMatch"/>
+    <ahoj:mappingObject rdf:resource="http://edamontology.org/topic_0081"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Drug_design_ChEMBL">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>Drug_design mapping to ChEMBL</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/Drug_design"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#relatedMatch"/>
+    <ahoj:mappingObject rdf:resource="https://www.ebi.ac.uk/chembl/"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Machine_learning_edam">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>Machine_learning mapping to EDAM topic</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/Machine_learning"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#relatedMatch"/>
+    <ahoj:mappingObject rdf:resource="http://edamontology.org/topic_3474"/>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       NEW ENTITIES (batch 2)
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/AHoJ_tool">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>AHoJ tool</rdfs:label>
+    <skos:altLabel>AHoJ application</skos:altLabel>
+    <skos:altLabel>apo holo search application</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Web_server">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>AHoJ-DB web server</rdfs:label>
+    <skos:altLabel>apoholo.cz web interface</skos:altLabel>
+    <skos:altLabel>online database portal</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Existing_apo_holo_resource">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>existing apo-holo resource</rdfs:label>
+    <skos:altLabel>prior apo holo dataset</skos:altLabel>
+    <skos:altLabel>LigAsite ComSin PSCDB dataset</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Distance_cutoff">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>distance cutoff</rdfs:label>
+    <skos:altLabel>4.5 angstrom cutoff</skos:altLabel>
+    <skos:altLabel>binding residue distance threshold</skos:altLabel>
+    <ahoj:reportedValue rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">4.5</ahoj:reportedValue>
+    <ahoj:unit>angstrom</ahoj:unit>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Resolution_threshold">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>resolution threshold</rdfs:label>
+    <skos:altLabel>4.5 angstrom resolution filter</skos:altLabel>
+    <skos:altLabel>7 angstrom broad cutoff</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/SASA">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>SASA</rdfs:label>
+    <skos:altLabel>solvent accessible surface area</skos:altLabel>
+    <skos:altLabel>pocket surface accessibility</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Chain_RMSD">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>chain RMSD</rdfs:label>
+    <skos:altLabel>relevant chain RMSD</skos:altLabel>
+    <skos:altLabel>chain-level structural deviation</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Allosteric_factor">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>allosteric factor</rdfs:label>
+    <skos:altLabel>PTM residue on relevant chain</skos:altLabel>
+    <skos:altLabel>ligand on relevant chain</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/MBR_threshold">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>mapped binding residue threshold</rdfs:label>
+    <skos:altLabel>MBR SEQRES filter</skos:altLabel>
+    <skos:altLabel>30 percent minimum mapping threshold</skos:altLabel>
+    <ahoj:reportedValue rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">30</ahoj:reportedValue>
+    <ahoj:unit>percent</ahoj:unit>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Calcium_ligand">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>calcium ligand</rdfs:label>
+    <skos:altLabel>CA</skos:altLabel>
+    <skos:altLabel>calcium ion binding</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Magnesium_ligand">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>magnesium ligand</rdfs:label>
+    <skos:altLabel>MG</skos:altLabel>
+    <skos:altLabel>magnesium ion binding</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/ATP_ligand">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>ATP ligand</rdfs:label>
+    <skos:altLabel>ATP</skos:altLabel>
+    <skos:altLabel>adenosine triphosphate binding</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Druggable_proteome">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>druggable proteome</rdfs:label>
+    <skos:altLabel>drug target proteome</skos:altLabel>
+    <skos:altLabel>potentially druggable proteins</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Holo_form">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>holo form</rdfs:label>
+    <skos:altLabel>holo state</skos:altLabel>
+    <skos:altLabel>ligand-bound structure</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Crystallographic_artifact">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/Concept"/>
+    <rdfs:label>crystallographic artifact</rdfs:label>
+    <skos:altLabel>crystal packing contact</skos:altLabel>
+    <skos:altLabel>crystallographic agent ligand</skos:altLabel>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+  </rdf:Description>
+
+  <!-- NEW PREDICATES -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/was_used_to_build">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>was used to build</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/provides">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>provides</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_limited_by">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is limited by</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/defines_pocket_by">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>defines pocket by</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/applies_broad_cutoff_of">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>applies broad cutoff of</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/applies_soft_filter_of">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>applies soft filter of</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_smaller_than_in">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is smaller than in</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/covers">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>covers</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/may_affect">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>may affect</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_superseded_by">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is superseded by</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/can_cancel_out_in">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>can cancel out in</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/extends_trend_to">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>extends trend to</rdfs:label>
+  </rdf:Description>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       NEW CLAIMS (batch 2) — P046 … P090
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <!-- AHoJ_tool -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P046">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P046: AHoJ_tool - was_used_to_build - AHoJ_DB</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_tool"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/was_used_to_build"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimText>AHoJ-DB was built using the previously developed AHoJ application, which performs comprehensive PDB-wide searches for apo-holo pairs given a specific protein-ligand interaction.</ahoj:claimText>
+    <ahoj:sourceText>Here, we use a previously developed application (AHoJ) to perform a comprehensive search for apo-holo pairs for 468,293 biologically relevant protein-ligand interactions across 27,983 proteins.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P047">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P047: AHoJ_tool - defines_pocket_by - Distance_cutoff</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_tool"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/defines_pocket_by"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Distance_cutoff"/>
+    <ahoj:claimText>The AHoJ tool defines the binding pocket as all residues within 4.5 Å of the query ligand. The same cutoff is used both to identify binding residues in the query and to detect ligands in mapped candidate pockets.</ahoj:claimText>
+    <ahoj:sourceText>We then conducted separate searches for each of these interactions, by specifying the ligand in the query structure, detecting its binding residues (i.e., pocket) based on a cut-off distance threshold (4.5 Å), and then mapping these residues — through SIFTS — across other structures (candidates).</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P048">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P048: AHoJ_tool - applies_broad_cutoff_of - Resolution_threshold</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_tool"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/applies_broad_cutoff_of"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Resolution_threshold"/>
+    <ahoj:claimText>The AHoJ tool applies a broad resolution cutoff of 7 Å and a minimum 30% MBR mapping on SEQRES during initial candidate screening, allowing post-filtering by users for specific use cases.</ahoj:claimText>
+    <ahoj:sourceText>The resolution cut-off threshold imposed on candidate structures was 7 Å, and the minimum percentage of query pocket residues mapped on the SEQRES of the candidate structure was set at 30%; otherwise, these structures were not processed at all.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P049">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P049: AHoJ_tool - applies_soft_filter_of - Resolution_threshold</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_tool"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/applies_soft_filter_of"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Resolution_threshold"/>
+    <ahoj:claimText>After broad processing, a soft 4.5 Å resolution filter is applied, and results are sorted by MBR percentage, number of observed residues, and resolution. Only these filtered results are displayed in AHoJ-DB.</ahoj:claimText>
+    <ahoj:sourceText>A soft filtration was applied upon all processed candidates, where the resolution threshold was 4.5 Å, and the results were sorted based on the following criteria: percentage of mapped binding residues (MBR) on the candidate SEQRES, number of observed residues, resolution.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Web_server -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P050">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P050: Web_server - provides - Apo_holo_pair</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Web_server"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/provides"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_holo_pair"/>
+    <ahoj:claimText>The AHoJ-DB web server provides visualization and search capabilities, and allows users to download results via the graphical interface or CSV download links for batches of entries.</ahoj:claimText>
+    <ahoj:sourceText>The web server provides visualization and search capabilities and makes it possible to download the results through the graphical interface, or, provide the download links for a group of entries acquired through the search function in a CSV file.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P051">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P051: Web_server - can_support - Drug_design</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Web_server"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_support"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Drug_design"/>
+    <ahoj:claimText>The web server can be searched by PDB code, ligand CCD name, UniProt AC, or combinations thereof, enabling drug designers to retrieve apo-holo pairs for a ligand of interest.</ahoj:claimText>
+    <ahoj:sourceText>The entries can be retrieved by searching through AHoJ-DB for a PDB code, ligand Chemical Component Dictionary (CCD) name, UniProt AC, or a combination of these identifiers.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Existing_apo_holo_resource -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P052">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P052: Existing_apo_holo_resource - is_limited_by - Machine_learning</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Existing_apo_holo_resource"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_limited_by"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Machine_learning"/>
+    <ahoj:claimText>Many existing apo-holo datasets are manually assembled, which limits their size and expandability. Major leaps in machine learning have often been bottlenecked by the lack of large curated datasets rather than by algorithmic limitations.</ahoj:claimText>
+    <ahoj:sourceText>Many of the existing datasets are manually assembled, a feature which indirectly limits their size and expandability. Current resources on the topic are by no means exhaustive and the need for large annotated datasets remains. Major leaps in machine learning have often been bottlenecked not by algorithmic logic, but by the size and availability of curated datasets.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P053">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P053: Existing_apo_holo_resource - is_superseded_by - AHoJ_DB</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Existing_apo_holo_resource"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_superseded_by"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimText>AHoJ-DB is claimed to be the most comprehensive apo-holo database to date, superseding prior resources such as LigAsite (816 proteins), ComSin (24,910 pairs) and PSCDB (890 pairs) in scale.</ahoj:claimText>
+    <ahoj:sourceText>The authors conclude that AHoJ-DB is, to their knowledge, the most comprehensive database for apo and holo structures to date.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Distance_cutoff -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P054">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P054: Distance_cutoff - defines_pocket_by - Binding_pocket</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Distance_cutoff"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/defines_pocket_by"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Binding_pocket"/>
+    <ahoj:claimText>The 4.5 Å distance cutoff is used consistently both to define binding residues from the query ligand and to detect ligands in candidate mapped pockets, ensuring a coherent pocket-level comparison.</ahoj:claimText>
+    <ahoj:sourceText>The mapped residues are grouped into a mapped candidate pocket and used to detect ligands within the same cut-off distance threshold used to determine binding residues for the ligand of the query structure.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Resolution_threshold -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P055">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P055: Resolution_threshold - requires - Subset1</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Resolution_threshold"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Subset1"/>
+    <ahoj:claimText>Subset 1 requires resolution of 4.5 Å or better and diffraction-only experimental methods, with 100% MBR on SEQRES but no threshold on observed residues.</ahoj:claimText>
+    <ahoj:sourceText>Subset 1: Resolution 4.5 Å or better, only diffraction methods. MBR (SEQRES) filtering at 100%, no threshold for number of observed residues.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- SASA -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P056">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P056: SASA - can_cancel_out_in - Apo_holo_pair</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/SASA"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_cancel_out_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_holo_pair"/>
+    <ahoj:claimText>Differences in SASA between apo and holo pockets tend to cancel out when averaged across all entries, making aggregate SASA comparisons less informative than per-entry pairwise comparisons.</ahoj:claimText>
+    <ahoj:sourceText>It is worth noting that differences in SASA measurements seem to cancel out (see sasa_min, sasa_max in Table S1), indicating that averaging over all apo and all holo pocket values is not ideal for discerning differences related to volume or geometry through solvent accessibility.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P057">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P057: SASA - varies_between - Apo_holo_pair</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/SASA"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/varies_between"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_holo_pair"/>
+    <ahoj:claimText>The SASA difference between apo and holo pockets is only 4.1% in Subset 1 and 4.37% in Subset 2, far smaller than the volume (24-29%) or RMSD (40%) differences, indicating SASA is a less discriminating metric.</ahoj:claimText>
+    <ahoj:sourceText>SASA shows only 4.1% (Subset 1) and 4.37% (Subset 2) difference between apo and holo averages, while volume shows 29.11% and 23.58% respectively.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Chain_RMSD -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P058">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P058: Chain_RMSD - extends_trend_to - Apo_form</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Chain_RMSD"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/extends_trend_to"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_form"/>
+    <ahoj:claimText>The higher structural deviation of apo pockets extends to chain-level RMSD: apo relevant chains show 30% higher chain RMSD than holo chains (1.14 Å vs 0.84 Å in Subset 1), confirming global structural divergence beyond the pocket.</ahoj:claimText>
+    <ahoj:sourceText>While less pronounced, this trend extends to chain RMSD — calculated by aligning the apo and holo relevant chains onto the respective query chains — (30% difference).</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P059">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P059: Chain_RMSD - is_smaller_than_in - Pocket_RMSD</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Chain_RMSD"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_smaller_than_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Pocket_RMSD"/>
+    <ahoj:claimText>The apo-holo difference in chain RMSD (30%) is less pronounced than the difference in pocket RMSD (40%), indicating that conformational changes are more localised and pronounced at the binding pocket level.</ahoj:claimText>
+    <ahoj:sourceText>While less pronounced, this trend extends to chain RMSD — (30% difference). A difference of 40% is observed in pocket RMSD, showing that apo pockets have consistently higher RMSD compared to holo when aligned onto the query pocket.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Allosteric_factor -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P060">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P060: Allosteric_factor - may_affect - Binding_pocket</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Allosteric_factor"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/may_affect"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Binding_pocket"/>
+    <ahoj:claimText>AHoJ-DB records allosteric factors — PTM residues and ligands occurring on relevant chains but outside the pocket — because they may affect local pocket geometry even without direct contact.</ahoj:claimText>
+    <ahoj:sourceText>Allosteric factors include PTM residues and ligands in relevant chains, while orthosteric factors include ligands, solvent molecules or PTMs within mapped pocket residues.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P061">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P061: Allosteric_factor - can_be_used_to_detect - Conformational_variability</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Allosteric_factor"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_be_used_to_detect"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Conformational_variability"/>
+    <ahoj:claimText>By annotating allosteric factors on relevant chains, AHoJ-DB enables detection of allosteric effects — distant ligands or PTMs that drive conformational variability at the query pocket.</ahoj:claimText>
+    <ahoj:sourceText>AHoJ-DB can support detection of allosteric effects, order-to-disorder studies and folding dynamics.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- MBR_threshold -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P062">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P062: MBR_threshold - requires - Residue_mapping</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/MBR_threshold"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Residue_mapping"/>
+    <ahoj:claimText>A minimum of 30% of query pocket residues must be successfully mapped onto a candidate structure's SEQRES for that candidate to be processed at all; candidates below this threshold are discarded without further analysis.</ahoj:claimText>
+    <ahoj:sourceText>The minimum percentage of query pocket residues mapped on the SEQRES of the candidate structure was set at 30%; otherwise, these structures were not processed at all.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P063">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P063: MBR_threshold - requires - Subset1</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/MBR_threshold"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Subset1"/>
+    <ahoj:claimText>Subset 1 requires 100% MBR mapping on SEQRES, meaning all query pocket residues must be present in the candidate sequence, without requiring them to be observed in the electron density.</ahoj:claimText>
+    <ahoj:sourceText>Subset 1: MBR (SEQRES) filtering at 100%, no threshold for number of observed residues.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Calcium_ligand -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P064">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P064: Calcium_ligand - has_higher_apo_coverage_than - Zinc_ligand</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Calcium_ligand"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/has_higher_apo_coverage_than"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Zinc_ligand"/>
+    <ahoj:claimText>Calcium (CA) has 35% UniProt apo coverage vs 22% for zinc (ZN) in Subset 2, showing that metal-ion ligands vary substantially in their availability of apo counterpart structures.</ahoj:claimText>
+    <ahoj:sourceText>Table 2 shows CA with 35% UniProt apo coverage (1220 out of 3474), 51% structures coverage, 44% chains and 38% sites, compared to ZN at 22% UniProt, 34% structures, 28% chains and 26% sites.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P065">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P065: Calcium_ligand - is_most_abundant_in - Subset2</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Calcium_ligand"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_most_abundant_in"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Subset2"/>
+    <ahoj:claimText>Calcium (CA) is the second most abundant ligand in Subset 2 with 3,474 UniProt ACs and 37,070 total interaction sites, making it a major contributor to the database after zinc.</ahoj:claimText>
+    <ahoj:sourceText>Table 2: CA has 3474 UniProt ACs, 11,499 structures, 22,685 chains and 37,070 sites in total entries of Subset 2.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Magnesium_ligand -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P066">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P066: Magnesium_ligand - has_higher_apo_coverage_than - Zinc_ligand</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Magnesium_ligand"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/has_higher_apo_coverage_than"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Zinc_ligand"/>
+    <ahoj:claimText>Magnesium (MG) shows 46% UniProt apo coverage in Subset 2, more than double the 22% seen for zinc, and also higher than calcium (35%), suggesting magnesium binding sites are easier to capture in apo form.</ahoj:claimText>
+    <ahoj:sourceText>Table 2: MG has 1760 apo-paired UniProt ACs out of 3852 total (46% coverage), compared to ZN at 22% and CA at 35%.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- ATP_ligand -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P067">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P067: ATP_ligand - has_higher_apo_coverage_than - Zinc_ligand</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/ATP_ligand"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/has_higher_apo_coverage_than"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Zinc_ligand"/>
+    <ahoj:claimText>ATP shows 47% UniProt apo coverage in Subset 2, more than double the 22% seen for zinc, reflecting the biological importance and structural availability of nucleotide-binding site apo forms.</ahoj:claimText>
+    <ahoj:sourceText>Table 2: ATP has 427 apo-paired UniProt ACs out of 916 total (47% coverage), structures 48%, chains 42%, sites 39%.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P068">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P068: ATP_ligand - can_support - Drug_design</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/ATP_ligand"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_support"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Drug_design"/>
+    <ahoj:claimText>ATP-binding pockets with 47% apo coverage in Subset 2 represent important drug design targets, as kinase inhibitors frequently compete with ATP; having paired apo structures supports docking studies.</ahoj:claimText>
+    <ahoj:sourceText>These results can be used to train and evaluate predictors, discover potentially druggable proteins, and reveal protein- and ligand-specific relationships that were previously obscured by intermittent or partial data.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Druggable_proteome -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P069">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P069: Druggable_proteome - can_be_used_to_detect - Cryptic_binding_site</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Druggable_proteome"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/can_be_used_to_detect"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Cryptic_binding_site"/>
+    <ahoj:claimText>Expanding the druggable proteome requires revealing binding sites normally obscured by conformational changes between apo and holo states; AHoJ-DB directly supports this goal.</ahoj:claimText>
+    <ahoj:sourceText>In the field of drug target identification, there are ongoing efforts to expand the druggable proteome by revealing binding sites that are normally obscured by conformational changes that occur between the apo and holo states.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P070">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P070: Druggable_proteome - requires - Apo_holo_pair</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Druggable_proteome"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_holo_pair"/>
+    <ahoj:claimText>Identifying druggable proteins that are not readily captured in their apo form requires systematic apo-holo pair data, since the apo state reveals pocket accessibility without the bias of a bound ligand.</ahoj:claimText>
+    <ahoj:sourceText>These results can be used to train and evaluate predictors, discover potentially druggable proteins, and reveal protein- and ligand-specific relationships that were previously obscured by intermittent or partial data.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Holo_form -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P071">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P071: Holo_form - is_biased_toward - PDB</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Holo_form"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_biased_toward"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/PDB"/>
+    <ahoj:claimText>The PDB is inherently biased toward holo structures: holo entries outnumber apo by 95-100% across all subsets, and holo structures dominate PDB codes, chains, and pocket counts.</ahoj:claimText>
+    <ahoj:sourceText>The average number of pockets, structures, and chains per entry is consistently higher for holo states — 95% to 100% difference — throughout all subsets compared to apo, indicating an inherent bias within the PDB towards holo structures.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P072">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P072: Holo_form - often_relies_on - Drug_design</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Holo_form"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/often_relies_on"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Drug_design"/>
+    <ahoj:claimText>Docking and drug design studies often consider only single holo structures, which are for the most part rigid, thereby ignoring conformational diversity of the binding site.</ahoj:claimText>
+    <ahoj:sourceText>Nevertheless, docking or drug design studies often still consider only single protein structures in their holo form, which are for the most part rigid.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Crystallographic_artifact -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P073">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P073: Crystallographic_artifact - may_affect - Binding_pocket</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Crystallographic_artifact"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/may_affect"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Binding_pocket"/>
+    <ahoj:claimText>Even crystallographic agents or crystal packing contacts detected near a pocket are treated as valid ligands in AHoJ-DB, because they affect local pocket geometry regardless of biological relevance.</ahoj:claimText>
+    <ahoj:sourceText>It is worth noting that while we used biologically relevant interactions as starting points, we consider any detected ligand to be valid. The idea behind this is that even if these ligands are part of crystal packing contacts or crystallographic agents, they will affect the local geometry despite their questionable biological relevance.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P074">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P074: Crystallographic_artifact - requires - Apo_holo_classification</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Crystallographic_artifact"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Pocket_centric_classification"/>
+    <ahoj:claimText>Filtering crystallographic artifacts from apo/holo classification can only be done by post-processing: parsing results and discarding ligands that appear in lists of known crystallographic agents, beyond the scope of the initial classification.</ahoj:claimText>
+    <ahoj:sourceText>Modifications and filtering on these detected ligands may only be done by parsing the results and discarding, for example, ligands that appear in lists of crystallographic artifacts.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- AHoJ_DB additional -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P075">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P075: AHoJ_DB - covers - Druggable_proteome</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/covers"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Druggable_proteome"/>
+    <ahoj:claimText>AHoJ-DB covers 27,983 proteins across 468,293 biologically relevant interactions, representing a large fraction of the PDB-accessible druggable proteome with paired apo-holo annotations.</ahoj:claimText>
+    <ahoj:sourceText>We use a previously developed application (AHoJ) to perform a comprehensive search for apo-holo pairs for 468,293 biologically relevant protein-ligand interactions across 27,983 proteins.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P076">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P076: AHoJ_DB - reports - Allosteric_factor</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/reports"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Allosteric_factor"/>
+    <ahoj:claimText>AHoJ-DB reports allosteric factors — PTM residues and ligands on relevant chains outside the query pocket — as part of its chain-level metric group, enabling allosteric effect studies.</ahoj:claimText>
+    <ahoj:sourceText>Metrics that pertain to the protein structure chains that are involved in the formation of the mapped pocket — referred to as relevant chains — (i.e., TM-score, RMSD and allosteric factors like post-translationally modified (PTM) residues and ligands that occur within these chains).</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P077">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P077: AHoJ_DB - reports - SASA</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/reports"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/SASA"/>
+    <ahoj:claimText>AHoJ-DB reports SASA (solvent accessible surface area) as a pocket-level metric, computed for both query and candidate mapped pockets to enable surface accessibility comparisons.</ahoj:claimText>
+    <ahoj:sourceText>Pocket metrics: number of residues successfully mapped on the SEQRES, number of residues that are observed in the structure, solvent accessible surface area, molecular surface, volume, b-factor, radius of gyration, pocket RMSD.</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P078">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P078: AHoJ_DB - reports - Chain_RMSD</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/reports"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Chain_RMSD"/>
+    <ahoj:claimText>AHoJ-DB reports chain RMSD for relevant chains, computed by aligning the candidate relevant chains onto the query chains, as a global structural deviation metric complementing pocket RMSD.</ahoj:claimText>
+    <ahoj:sourceText>Chain RMSD is calculated by aligning the apo and holo relevant chains onto the respective query chains — (30% difference between apo and holo).</ahoj:sourceText>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P079">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P079: AHoJ_DB - has_apo_form_for - Protein_ligand_interaction</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/has_apo_form_for"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Protein_ligand_interaction"/>
+    <ahoj:claimText>In the full unfiltered AHoJ-DB, 230,269 out of 468,293 entries (49.2%) have at least one apo form, spanning 13,068 of 27,983 UniProt ACs (46.7%).</ahoj:claimText>
+    <ahoj:sourceText>The number of entries that have at least one apo form in the entire unfiltered database is 230,269 out of 468,293 (49.2%), representing 13,068 out of 27,983 total UniProt ACs (46.7%).</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Unobserved_residues additional -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P080">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P080: Unobserved_residues - requires - Subset2</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Unobserved_residues"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Subset2"/>
+    <ahoj:claimText>Subset 2 was specifically designed to eliminate unobserved residues from the analysis by requiring zero unobserved MBR, making pocket geometry comparisons fully grounded in observed electron density.</ahoj:claimText>
+    <ahoj:sourceText>Subset 2: observed residues at 100% of MBR (zero tolerance for unobserved pocket residues), enabling more confident pocket-related observations.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- Pocket_volume additional -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P081">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P081: Pocket_volume - varies_between - Apo_holo_pair</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Pocket_volume"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/varies_between"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Apo_holo_pair"/>
+    <ahoj:claimText>Pocket volume is 29% smaller in apo vs holo in Subset 1 (111.32 vs 153.28 Å³) and 24% smaller in Subset 2, indicating consistent ligand-induced expansion of binding pockets.</ahoj:claimText>
+    <ahoj:sourceText>Volume shows 29.11% difference (Subset 1: Apo avg 111.32, Holo avg 153.28 Å³) and 23.58% difference in Subset 2.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- PDB additional -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/P082">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>P082: PDB - contains multiple structures for - Conformational_variability</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/PDB"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/covers"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Conformational_variability"/>
+    <ahoj:claimText>The PDB contains over 215,000 experimentally determined protein structures, many solved for the same protein under different conditions, encoding a rich source of conformational variability that AHoJ-DB systematically captures.</ahoj:claimText>
+    <ahoj:sourceText>The PDB is our most valuable structural data resource, containing over 215,000 experimentally determined protein structures. Many of these structures belong to the same protein but are solved under different conditions or bind different non-protein molecules.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- NEW EXTERNAL MAPPINGS -->
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_AHoJ_tool_apoholo">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>AHoJ_tool mapping to apoholo.cz</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_tool"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#exactMatch"/>
+    <ahoj:mappingObject rdf:resource="https://www.apoholo.cz"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Web_server_apoholo_db">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>Web_server mapping to apoholo.cz/db</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/Web_server"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#exactMatch"/>
+    <ahoj:mappingObject rdf:resource="https://www.apoholo.cz/db"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Allosteric_factor_SO">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>Allosteric_factor mapping to SIO measurement</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/Allosteric_factor"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#relatedMatch"/>
+    <ahoj:mappingObject rdf:resource="http://semanticscience.org/resource/SIO_001001"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_SASA_edam">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ExternalMapping"/>
+    <rdfs:label>SASA mapping to EDAM data topic</rdfs:label>
+    <ahoj:mappingSubject rdf:resource="https://w3id.org/ahoj/entity/SASA"/>
+    <ahoj:mappingPredicate rdf:resource="http://www.w3.org/2004/02/skos/core#relatedMatch"/>
+    <ahoj:mappingObject rdf:resource="http://edamontology.org/data_1520"/>
+  </rdf:Description>
+
+</rdf:RDF>
