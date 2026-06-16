@@ -1,12 +1,12 @@
 [
   {
-    "chain_label": "AHoJ DB approach \u2192 (AHoJ DB approach \u2192 Docking and drug design studies \u2192 Protein structure) \u2192 Docking and drug design studies \u2192 Different global geometries",
+    "chain_label": "Protein conformational variability \u2192 AHoJ DB \u2192 Machine learning tool development \u2192 Protein structure",
     "term": {
       "type": "abs",
       "var": {
         "type": "var",
-        "iri": "https://w3id.org/ahoj/entity/Drug_design_and_docking",
-        "label": "Docking and drug design studies"
+        "iri": "https://w3id.org/ahoj/entity/AHoJ_DB",
+        "label": "AHoJ DB"
       },
       "body": {
         "type": "app",
@@ -15,37 +15,135 @@
           "func": {
             "type": "app",
             "func": {
-              "type": "app",
-              "func": {
-                "type": "var",
-                "iri": "https://w3id.org/ahoj/entity/AHoJ_DB",
-                "label": "AHoJ DB approach"
-              },
-              "arg": {
-                "type": "var",
-                "iri": "https://w3id.org/ahoj/entity/Drug_design_and_docking",
-                "label": "Docking and drug design studies"
-              }
+              "type": "var",
+              "iri": "https://w3id.org/ahoj/entity/Protein_conformational_variability",
+              "label": "Protein conformational variability"
             },
             "arg": {
               "type": "var",
-              "iri": "https://w3id.org/ahoj/entity/Protein_structure",
-              "label": "Protein structure"
+              "iri": "https://w3id.org/ahoj/entity/AHoJ_DB",
+              "label": "AHoJ DB"
             }
           },
           "arg": {
             "type": "var",
-            "iri": "https://w3id.org/ahoj/entity/Drug_design_and_docking",
-            "label": "Docking and drug design studies"
+            "iri": "https://w3id.org/ahoj/entity/Machine_learning_tool_development",
+            "label": "Machine learning tool development"
           }
         },
         "arg": {
           "type": "var",
-          "iri": "https://w3id.org/ahoj/entity/Protein_conformational_variability",
-          "label": "Different global geometries"
+          "iri": "https://w3id.org/ahoj/entity/Protein_structure",
+          "label": "Protein structure"
         }
       }
     },
-    "term_str": "\u03bbDocking and drug design studies.((((AHoJ DB approachDocking and drug design studies)Protein structure)Docking and drug design studies)Different global geometries)"
+    "term_str": "\u03bbAHoJ DB.(((Protein conformational variability \u00b7 AHoJ DB) \u00b7 Machine learning tool development) \u00b7 Protein structure)",
+    "claims": [
+      {
+        "subj_iri": "https://w3id.org/ahoj/entity/Machine_learning_tool_development",
+        "obj_iri": "https://w3id.org/ahoj/entity/Protein_structure",
+        "claim_iri": "https://w3id.org/ahoj/claim/C004",
+        "claim_text": "Training and testing of ligand-binding-site predictors is often performed on one holo structure as a representative. The paper presents this as unrealistic because the apo form may differ from the holo binding-site geometry."
+      },
+      {
+        "subj_iri": "https://w3id.org/ahoj/entity/AHoJ_DB",
+        "obj_iri": "https://w3id.org/ahoj/entity/Machine_learning_tool_development",
+        "claim_iri": "https://w3id.org/ahoj/claim/C069",
+        "claim_text": "The database provides pocket-level apo/holo annotations that can be used to train or evaluate ligand-binding-site predictors. This is one of the motivating use cases behind the resource."
+      },
+      {
+        "subj_iri": "https://w3id.org/ahoj/entity/AHoJ_DB",
+        "obj_iri": "https://w3id.org/ahoj/entity/Machine_learning_tool_development",
+        "claim_iri": "https://w3id.org/ahoj/claim/C067",
+        "claim_text": "The database can be used to train and evaluate machine-learning tools. The paper specifically connects this to ligand-binding-site prediction and structural comparison."
+      },
+      {
+        "subj_iri": "https://w3id.org/ahoj/entity/Protein_conformational_variability",
+        "obj_iri": "https://w3id.org/ahoj/entity/AHoJ_DB",
+        "claim_iri": "https://w3id.org/ahoj/claim/C110",
+        "claim_text": "Protein conformational variability is captured by AHoJ-DB through its systematic pairing of apo and holo crystal structures for the same protein, making the variability explicitly queryable."
+      }
+    ]
+  },
+  {
+    "chain_label": "Drug design and docking \u2192 Protein structure",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://w3id.org/ahoj/entity/Drug_design_and_docking",
+        "label": "Drug design and docking"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://w3id.org/ahoj/entity/Drug_design_and_docking",
+          "label": "Drug design and docking"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://w3id.org/ahoj/entity/Protein_structure",
+          "label": "Protein structure"
+        }
+      }
+    },
+    "term_str": "\u03bbDrug design and docking.(Drug design and docking \u00b7 Protein structure)",
+    "claims": [
+      {
+        "subj_iri": "https://w3id.org/ahoj/entity/Drug_design_and_docking",
+        "obj_iri": "https://w3id.org/ahoj/entity/Protein_structure",
+        "claim_iri": "https://w3id.org/ahoj/claim/C003",
+        "claim_text": "The paper argues that docking and drug-design studies often still use mostly rigid holo structures. This can miss conformational diversity relevant to binding and prediction."
+      }
+    ]
+  },
+  {
+    "chain_label": "lam(a).(g(af))",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://w3id.org/ahoj/entity/Protein_conformational_variability",
+        "label": "Protein conformational variability"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://w3id.org/ahoj/entity/Ligand",
+          "label": "Ligand"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://w3id.org/ahoj/entity/Protein_conformational_variability",
+            "label": "Protein conformational variability"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://w3id.org/ahoj/entity/Binding_pocket",
+            "label": "Binding pocket"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bbProtein conformational variability.(Ligand \u00b7 (Protein conformational variability \u00b7 Binding pocket))",
+    "claims": [
+      {
+        "subj_iri": "https://w3id.org/ahoj/entity/Ligand",
+        "obj_iri": "https://w3id.org/ahoj/entity/Binding_pocket",
+        "claim_iri": "https://w3id.org/ahoj/claim/C113",
+        "claim_text": "A ligand defines the binding pocket in the holo structure: the set of protein residues within a distance cutoff of the bound ligand constitutes the pocket, making the ligand the operational reference for pocket identification."
+      },
+      {
+        "subj_iri": "https://w3id.org/ahoj/entity/Protein_conformational_variability",
+        "obj_iri": "https://w3id.org/ahoj/entity/Binding_pocket",
+        "claim_iri": "https://w3id.org/ahoj/claim/C111",
+        "claim_text": "Protein conformational variability shapes the binding pocket: differences in side-chain and backbone geometry between apo and holo states directly alter pocket volume, shape, and electrostatic environment."
+      }
+    ]
   }
 ]

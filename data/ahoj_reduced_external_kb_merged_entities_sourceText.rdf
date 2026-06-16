@@ -3092,4 +3092,554 @@
   <rdf:Description rdf:about="https://www.ebi.ac.uk/chembl/">
     <rdfs:label>ChEMBL</rdfs:label>
   </rdf:Description>
+
+  <!-- New predicates for enriched claims -->
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_critical_input_for">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is critical input for</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/is_captured_by">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>is captured by</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/shapes">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>shapes</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/requires_knowledge_of">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>requires knowledge of</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/predicate/defines">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>defines</rdfs:label>
+  </rdf:Description>
+
+  <!-- C109: Protein_conformational_variability -is_critical_input_for-> Drug_design_and_docking -->
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/C109">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>C109: Protein_conformational_variability - is critical input for - Drug_design_and_docking</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Protein_conformational_variability"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_critical_input_for"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Drug_design_and_docking"/>
+    <ahoj:claimText>Protein conformational variability is a critical input for drug design and docking: accounting for apo and holo pocket geometries allows docking workflows to score poses across the relevant conformational ensemble rather than a single rigid receptor.</ahoj:claimText>
+    <ahoj:sourceText>AHoJ-DB can support drug design and docking; understanding apo/holo structural variability is essential for realistic docking against flexible targets.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- C110: Protein_conformational_variability -is_captured_by-> AHoJ_DB -->
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/C110">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>C110: Protein_conformational_variability - is captured by - AHoJ_DB</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Protein_conformational_variability"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/is_captured_by"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/AHoJ_DB"/>
+    <ahoj:claimText>Protein conformational variability is captured by AHoJ-DB through its systematic pairing of apo and holo crystal structures for the same protein, making the variability explicitly queryable.</ahoj:claimText>
+    <ahoj:sourceText>AHoJ-DB was designed to expose the structural diversity between ligand-free and ligand-bound states, which together encode protein conformational variability.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- C111: Protein_conformational_variability -shapes-> Binding_pocket -->
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/C111">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>C111: Protein_conformational_variability - shapes - Binding_pocket</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Protein_conformational_variability"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/shapes"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Binding_pocket"/>
+    <ahoj:claimText>Protein conformational variability shapes the binding pocket: differences in side-chain and backbone geometry between apo and holo states directly alter pocket volume, shape, and electrostatic environment.</ahoj:claimText>
+    <ahoj:sourceText>Structural factors such as missing residues and alternate conformations occur within mapped candidate pockets, reflecting how conformational variability modifies the pocket accessible to a ligand.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- C112: Drug_design_and_docking -requires_knowledge_of-> Binding_pocket -->
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/C112">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>C112: Drug_design_and_docking - requires knowledge of - Binding_pocket</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Drug_design_and_docking"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/requires_knowledge_of"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Binding_pocket"/>
+    <ahoj:claimText>Drug design and docking requires knowledge of the binding pocket geometry to place and score ligand poses; without an accurate pocket definition, docking results are unreliable.</ahoj:claimText>
+    <ahoj:sourceText>AHoJ-DB provides apo and holo pocket information that is directly applicable to docking experiments; binding pocket geometry is the central input to any docking protocol.</ahoj:sourceText>
+  </rdf:Description>
+
+  <!-- C113: Ligand -defines-> Binding_pocket -->
+  <rdf:Description rdf:about="https://w3id.org/ahoj/claim/C113">
+    <rdf:type rdf:resource="https://w3id.org/ahoj/ontology/ClaimTriplet"/>
+    <rdfs:label>C113: Ligand - defines - Binding_pocket</rdfs:label>
+    <prov:wasDerivedFrom rdf:resource="https://w3id.org/ahoj/entity/Article_AHoJDB_2024"/>
+    <ahoj:claimSubject rdf:resource="https://w3id.org/ahoj/entity/Ligand"/>
+    <ahoj:claimPredicate rdf:resource="https://w3id.org/ahoj/predicate/defines"/>
+    <ahoj:claimObject rdf:resource="https://w3id.org/ahoj/entity/Binding_pocket"/>
+    <ahoj:claimText>A ligand defines the binding pocket in the holo structure: the set of protein residues within a distance cutoff of the bound ligand constitutes the pocket, making the ligand the operational reference for pocket identification.</ahoj:claimText>
+    <ahoj:sourceText>AHoJ-DB uses a query ligand to define the query pocket via a 4.5 Å distance cutoff; these residues are then mapped onto candidate structures to identify corresponding pockets.</ahoj:sourceText>
+  </rdf:Description>
+
+
+  <!-- primaryLabel property: one canonical label per entity, derived from IRI local name -->
+  <rdf:Description rdf:about="https://w3id.org/ahoj/ontology/primaryLabel">
+    <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+    <rdfs:label>primary label</rdfs:label>
+  </rdf:Description>
+
+  <!-- ahoj:primaryLabel triples — one per entity, IRI local name with underscores as spaces -->
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/AHoJ">
+    <ahoj:primaryLabel>AHoJ</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/AHoJ_DB">
+    <ahoj:primaryLabel>AHoJ DB</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/AHoJ_DB_input_selection">
+    <ahoj:primaryLabel>AHoJ DB input selection</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/AHoJ_DB_web_server">
+    <ahoj:primaryLabel>AHoJ DB web server</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Apo_PLP_binding_sites_16">
+    <ahoj:primaryLabel>Apo PLP binding sites 16</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Apo_coverage_statistic">
+    <ahoj:primaryLabel>Apo coverage statistic</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Apo_holo_classification">
+    <ahoj:primaryLabel>Apo holo classification</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Apo_holo_conformational_changes">
+    <ahoj:primaryLabel>Apo holo conformational changes</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Apo_holo_pair_visualizations">
+    <ahoj:primaryLabel>Apo holo pair visualizations</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Apo_pocket">
+    <ahoj:primaryLabel>Apo pocket</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Apo_pocket_in_filtered_subset">
+    <ahoj:primaryLabel>Apo pocket in filtered subset</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Apo_structure_and_holo_structure">
+    <ahoj:primaryLabel>Apo structure and holo structure</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Article_AHoJDB_2024">
+    <ahoj:primaryLabel>Article AHoJDB 2024</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Binding_pocket">
+    <ahoj:primaryLabel>Binding pocket</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Binding_site_analysis">
+    <ahoj:primaryLabel>Binding site analysis</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Binding_site_analysis_use_case">
+    <ahoj:primaryLabel>Binding site analysis use case</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Bio2RDF">
+    <ahoj:primaryLabel>Bio2RDF</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/BioLiP2">
+    <ahoj:primaryLabel>BioLiP2</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Biologically_relevant_ligands_found">
+    <ahoj:primaryLabel>Biologically relevant ligands found</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Candidate_structures">
+    <ahoj:primaryLabel>Candidate structures</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/ChEMBL">
+    <ahoj:primaryLabel>ChEMBL</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Chem2Bio2RDF">
+    <ahoj:primaryLabel>Chem2Bio2RDF</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Christos_P_Feidakis">
+    <ahoj:primaryLabel>Christos P Feidakis</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Comprehensive_apo_holo_database_claim">
+    <ahoj:primaryLabel>Comprehensive apo holo database claim</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Data_processing_workflow">
+    <ahoj:primaryLabel>Data processing workflow</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Dataset_size_statistic">
+    <ahoj:primaryLabel>Dataset size statistic</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/David_Hoksza">
+    <ahoj:primaryLabel>David Hoksza</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Detected_ligand_near_pocket">
+    <ahoj:primaryLabel>Detected ligand near pocket</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Distance_cutoff_4_5_angstrom">
+    <ahoj:primaryLabel>Distance cutoff 4 5 angstrom</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Download_button">
+    <ahoj:primaryLabel>Download button</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Drug_design_and_docking">
+    <ahoj:primaryLabel>Drug design and docking</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Entity_merge_and_sourceText_enrichment_2026_06_13">
+    <ahoj:primaryLabel>Entity merge and sourceText enrichment 2026 06 13</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Excluded_interaction_type">
+    <ahoj:primaryLabel>Excluded interaction type</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Existing_apo_holo_resource">
+    <ahoj:primaryLabel>Existing apo holo resource</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/External_KB_mapping_correction_2026_06_11">
+    <ahoj:primaryLabel>External KB mapping correction 2026 06 11</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/External_KB_mapping_enrichment_2026_06_11">
+    <ahoj:primaryLabel>External KB mapping enrichment 2026 06 11</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Filtered_subset">
+    <ahoj:primaryLabel>Filtered subset</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Glycogen_phosphorylase_Oryctolagus_cuniculus">
+    <ahoj:primaryLabel>Glycogen phosphorylase Oryctolagus cuniculus</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Holo_pocket">
+    <ahoj:primaryLabel>Holo pocket</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/IDSM">
+    <ahoj:primaryLabel>IDSM</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Interface_binding_pocket">
+    <ahoj:primaryLabel>Interface binding pocket</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Interface_site_statistic">
+    <ahoj:primaryLabel>Interface site statistic</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/KG_Hub_KG_Registry">
+    <ahoj:primaryLabel>KG Hub KG Registry</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Known_binding_sites_overview">
+    <ahoj:primaryLabel>Known binding sites overview</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Less_ordered_pocket">
+    <ahoj:primaryLabel>Less ordered pocket</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Ligand">
+    <ahoj:primaryLabel>Ligand</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Ligand_apo_coverage">
+    <ahoj:primaryLabel>Ligand apo coverage</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Ligand_search_use_case">
+    <ahoj:primaryLabel>Ligand search use case</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Machine_learning_tool_development">
+    <ahoj:primaryLabel>Machine learning tool development</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Manual_dataset_assembly">
+    <ahoj:primaryLabel>Manual dataset assembly</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapped_binding_residue_metric">
+    <ahoj:primaryLabel>Mapped binding residue metric</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapped_candidate_pocket">
+    <ahoj:primaryLabel>Mapped candidate pocket</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapped_residue_coverage_threshold">
+    <ahoj:primaryLabel>Mapped residue coverage threshold</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_AHoJ_DB_AHoJ-DB">
+    <ahoj:primaryLabel>Mapping AHoJ DB AHoJ-DB</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_AHoJ_DB_AHoJ_website">
+    <ahoj:primaryLabel>Mapping AHoJ DB AHoJ website</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_AHoJ_DB_input_selection_EDAM_data_retrieval">
+    <ahoj:primaryLabel>Mapping AHoJ DB input selection EDAM data retrieval</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_AHoJ_DB_web_server_AHoJ-DB">
+    <ahoj:primaryLabel>Mapping AHoJ DB web server AHoJ-DB</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Apo_coverage_statistic_SIO_quantity">
+    <ahoj:primaryLabel>Mapping Apo coverage statistic SIO quantity</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Apo_holo_classification_EDAM_classification">
+    <ahoj:primaryLabel>Mapping Apo holo classification EDAM classification</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Apo_pocket_Biolink_ChemicalEntity">
+    <ahoj:primaryLabel>Mapping Apo pocket Biolink ChemicalEntity</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Article_AHoJDB_2024_DOI">
+    <ahoj:primaryLabel>Mapping Article AHoJDB 2024 DOI</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Binding_pocket_Biolink_AnatomicalEntity">
+    <ahoj:primaryLabel>Mapping Binding pocket Biolink AnatomicalEntity</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Binding_pocket_SIO_site">
+    <ahoj:primaryLabel>Mapping Binding pocket SIO site</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Bio2RDF_Bio2RDF">
+    <ahoj:primaryLabel>Mapping Bio2RDF Bio2RDF</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_BioLiP2_BioLiP">
+    <ahoj:primaryLabel>Mapping BioLiP2 BioLiP</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Candidate_structures_PDB_identifier_namespace">
+    <ahoj:primaryLabel>Mapping Candidate structures PDB identifier namespace</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_ChEMBL_Bio2RDF">
+    <ahoj:primaryLabel>Mapping ChEMBL Bio2RDF</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_ChEMBL_ChEMBL">
+    <ahoj:primaryLabel>Mapping ChEMBL ChEMBL</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Data_processing_workflow_EDAM_data_handling">
+    <ahoj:primaryLabel>Mapping Data processing workflow EDAM data handling</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Dataset_size_statistic_SIO_quantity">
+    <ahoj:primaryLabel>Mapping Dataset size statistic SIO quantity</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Detected_ligand_near_pocket_Biolink_ChemicalEntity">
+    <ahoj:primaryLabel>Mapping Detected ligand near pocket Biolink ChemicalEntity</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Distance_cutoff_4_5_angstrom_EDAM_comparison">
+    <ahoj:primaryLabel>Mapping Distance cutoff 4 5 angstrom EDAM comparison</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Drug_design_and_docking_EDAM_drug_discovery">
+    <ahoj:primaryLabel>Mapping Drug design and docking EDAM drug discovery</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Glycogen_phosphorylase_Oryctolagus_cuniculus_UniProt_P00489">
+    <ahoj:primaryLabel>Mapping Glycogen phosphorylase Oryctolagus cuniculus UniProt P00489</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Holo_pocket_Biolink_ChemicalEntity">
+    <ahoj:primaryLabel>Mapping Holo pocket Biolink ChemicalEntity</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_IDSM_IDSM">
+    <ahoj:primaryLabel>Mapping IDSM IDSM</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Interface_site_statistic_SIO_quantity">
+    <ahoj:primaryLabel>Mapping Interface site statistic SIO quantity</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_KG_Hub_KG_Registry_KG-Hub">
+    <ahoj:primaryLabel>Mapping KG Hub KG Registry KG-Hub</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Ligand_Biolink_ChemicalEntity">
+    <ahoj:primaryLabel>Mapping Ligand Biolink ChemicalEntity</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Ligand_ChEBI_52214_corrected">
+    <ahoj:primaryLabel>Mapping Ligand ChEBI 52214 corrected</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Ligand_ChEBI_ligand">
+    <ahoj:primaryLabel>Mapping Ligand ChEBI ligand</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Ligand_ChEMBL">
+    <ahoj:primaryLabel>Mapping Ligand ChEMBL</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Ligand_IDSM">
+    <ahoj:primaryLabel>Mapping Ligand IDSM</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Ligand_search_use_case_ChEMBL">
+    <ahoj:primaryLabel>Mapping Ligand search use case ChEMBL</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Ligand_search_use_case_IDSM">
+    <ahoj:primaryLabel>Mapping Ligand search use case IDSM</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Machine_learning_tool_development_Biolink_ComputationalModel">
+    <ahoj:primaryLabel>Mapping Machine learning tool development Biolink ComputationalModel</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Mapped_binding_residue_metric_EDAM_data">
+    <ahoj:primaryLabel>Mapping Mapped binding residue metric EDAM data</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Mapped_candidate_pocket_SIFTS">
+    <ahoj:primaryLabel>Mapping Mapped candidate pocket SIFTS</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Mapped_residue_coverage_threshold_SIO_quantity">
+    <ahoj:primaryLabel>Mapping Mapped residue coverage threshold SIO quantity</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_PDB_Bio2RDF">
+    <ahoj:primaryLabel>Mapping PDB Bio2RDF</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_PDB_PDBe">
+    <ahoj:primaryLabel>Mapping PDB PDBe</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_PDB_RCSB_PDB">
+    <ahoj:primaryLabel>Mapping PDB RCSB PDB</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_PDB_search_use_case_PDB_identifiers">
+    <ahoj:primaryLabel>Mapping PDB search use case PDB identifiers</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Pocket_geometry_metric_EDAM_data">
+    <ahoj:primaryLabel>Mapping Pocket geometry metric EDAM data</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Protein_Biolink_Protein">
+    <ahoj:primaryLabel>Mapping Protein Biolink Protein</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Protein_UniProt_namespace">
+    <ahoj:primaryLabel>Mapping Protein UniProt namespace</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Protein_ligand_interaction_Bio2RDF">
+    <ahoj:primaryLabel>Mapping Protein ligand interaction Bio2RDF</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Protein_ligand_interaction_Biolink_ChemicalToGeneAssociation">
+    <ahoj:primaryLabel>Mapping Protein ligand interaction Biolink ChemicalToGeneAssociation</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Protein_structure_Biolink_MacromolecularMachine">
+    <ahoj:primaryLabel>Mapping Protein structure Biolink MacromolecularMachine</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Protein_structure_PDB_identifier_namespace">
+    <ahoj:primaryLabel>Mapping Protein structure PDB identifier namespace</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Query_pocket_SIO_site">
+    <ahoj:primaryLabel>Mapping Query pocket SIO site</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Resolution_threshold_EDAM_data">
+    <ahoj:primaryLabel>Mapping Resolution threshold EDAM data</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_SIFTS_SIFTS">
+    <ahoj:primaryLabel>Mapping SIFTS SIFTS</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Same_protein_UniProt_namespace">
+    <ahoj:primaryLabel>Mapping Same protein UniProt namespace</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Solvent_or_non_solvent_ligand_ChEBI_solvent">
+    <ahoj:primaryLabel>Mapping Solvent or non solvent ligand ChEBI solvent</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Structural_biology_use_case_EDAM_structure_analysis">
+    <ahoj:primaryLabel>Mapping Structural biology use case EDAM structure analysis</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Structural_factor_Biolink_ChemicalEntity">
+    <ahoj:primaryLabel>Mapping Structural factor Biolink ChemicalEntity</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_Structure_metrics_EDAM_data">
+    <ahoj:primaryLabel>Mapping Structure metrics EDAM data</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_UniProt_Bio2RDF">
+    <ahoj:primaryLabel>Mapping UniProt Bio2RDF</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_UniProt_UniProt">
+    <ahoj:primaryLabel>Mapping UniProt UniProt</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_UniProt_accession_UniProt_accession_help">
+    <ahoj:primaryLabel>Mapping UniProt accession UniProt accession help</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Mapping_UniProt_search_use_case_UniProt_accession">
+    <ahoj:primaryLabel>Mapping UniProt search use case UniProt accession</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Marian_Novotny">
+    <ahoj:primaryLabel>Marian Novotny</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Multi_pocket_structure">
+    <ahoj:primaryLabel>Multi pocket structure</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Non_biologically_relevant_ligands_5">
+    <ahoj:primaryLabel>Non biologically relevant ligands 5</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Normalized_SASA">
+    <ahoj:primaryLabel>Normalized SASA</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/PDB">
+    <ahoj:primaryLabel>PDB</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/PDB_search_use_case">
+    <ahoj:primaryLabel>PDB search use case</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/PDBe_KB">
+    <ahoj:primaryLabel>PDBe KB</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/PDBe_KB_known_ligands_198">
+    <ahoj:primaryLabel>PDBe KB known ligands 198</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/PLP">
+    <ahoj:primaryLabel>PLP</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/PLP_binding_site">
+    <ahoj:primaryLabel>PLP binding site</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/PLP_binding_variability">
+    <ahoj:primaryLabel>PLP binding variability</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/PLP_structures_130">
+    <ahoj:primaryLabel>PLP structures 130</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/PLP_unique_interactions_284">
+    <ahoj:primaryLabel>PLP unique interactions 284</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Pocket_centric_view">
+    <ahoj:primaryLabel>Pocket centric view</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Pocket_geometry_metric">
+    <ahoj:primaryLabel>Pocket geometry metric</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Processed_binding_sites">
+    <ahoj:primaryLabel>Processed binding sites</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Protein">
+    <ahoj:primaryLabel>Protein</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Protein_conformational_variability">
+    <ahoj:primaryLabel>Protein conformational variability</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Protein_ligand_interaction">
+    <ahoj:primaryLabel>Protein ligand interaction</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Protein_structure">
+    <ahoj:primaryLabel>Protein structure</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Pyridoxal_5_phosphate">
+    <ahoj:primaryLabel>Pyridoxal 5 phosphate</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Query_ligand">
+    <ahoj:primaryLabel>Query ligand</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Query_pocket">
+    <ahoj:primaryLabel>Query pocket</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Radoslav_Krivak">
+    <ahoj:primaryLabel>Radoslav Krivak</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Relevant_chain">
+    <ahoj:primaryLabel>Relevant chain</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Resolution_threshold">
+    <ahoj:primaryLabel>Resolution threshold</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/SASA">
+    <ahoj:primaryLabel>SASA</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/SIFTS">
+    <ahoj:primaryLabel>SIFTS</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Same_protein">
+    <ahoj:primaryLabel>Same protein</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Solvent_or_non_solvent_ligand">
+    <ahoj:primaryLabel>Solvent or non solvent ligand</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Structural_biology_use_case">
+    <ahoj:primaryLabel>Structural biology use case</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Structural_factor">
+    <ahoj:primaryLabel>Structural factor</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Structure_metrics">
+    <ahoj:primaryLabel>Structure metrics</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/UniProt">
+    <ahoj:primaryLabel>UniProt</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/UniProt_AC_search">
+    <ahoj:primaryLabel>UniProt AC search</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/UniProt_P00489">
+    <ahoj:primaryLabel>UniProt P00489</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/UniProt_accession">
+    <ahoj:primaryLabel>UniProt accession</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/UniProt_search_use_case">
+    <ahoj:primaryLabel>UniProt search use case</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Unique_ligands_193">
+    <ahoj:primaryLabel>Unique ligands 193</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/Unique_protein_ligand_interactions_499">
+    <ahoj:primaryLabel>Unique protein ligand interactions 499</ahoj:primaryLabel>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/ahoj/entity/View_button">
+    <ahoj:primaryLabel>View button</ahoj:primaryLabel>
+  </rdf:Description>
 </rdf:RDF>

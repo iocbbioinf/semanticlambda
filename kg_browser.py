@@ -18,7 +18,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Footer, Header, Input, Label, ListItem, ListView, Static
 from textual.containers import VerticalScroll, ScrollableContainer, Horizontal, Vertical
 
-RDF_FILE = Path(__file__).parent / "data" / "ahojdb_paper_kg.rdf"
+RDF_FILE = Path(__file__).parent / "data" / "ahoj_reduced_external_kb_merged_entities_sourceText.rdf"
 TTL_FILE = Path(__file__).parent / "data" / "ahojdb_paper_kg.ttl"
 LAMBDA_DB = Path(__file__).parent / "data" / "lambda_terms.json"
 
@@ -63,7 +63,7 @@ class LamApp:
         # wrap in parens unless already atomic
         f_s = f if isinstance(self.func, LamVar) else f"({f})"
         a_s = a if isinstance(self.arg, LamVar) else f"({a})"
-        return f"{f_s}{a_s}"
+        return f"{f_s} · {a_s}"
 
 
 @dataclass
@@ -101,6 +101,53 @@ def lam_from_dict(d: dict) -> LamTerm:
     raise ValueError(f"Unknown lambda term type: {kind}")
 
 
+def lam_subst(term: LamTerm, var: LamVar, value: LamTerm) -> LamTerm:
+    """Substitute value for var in term (capture-avoiding, no fresh names needed for ground terms)."""
+    if isinstance(term, LamVar):
+        return value if term.iri == var.iri else term
+    if isinstance(term, LamApp):
+        return LamApp(func=lam_subst(term.func, var, value),
+                      arg=lam_subst(term.arg, var, value))
+    if isinstance(term, LamAbs):
+        if term.var.iri == var.iri:
+            return term  # bound variable shadows substitution
+        return LamAbs(var=term.var, body=lam_subst(term.body, var, value))
+    return term
+
+
+def beta_step(term: LamTerm) -> Optional[LamTerm]:
+    """Perform one outermost-leftmost beta reduction step. Returns None if no redex."""
+    if isinstance(term, LamApp):
+        if isinstance(term.func, LamAbs):
+            # Redex found: (λv.body) arg → body[v := arg]
+            return lam_subst(term.func.body, term.func.var, term.arg)
+        # Try func first (leftmost), then arg
+        reduced_func = beta_step(term.func)
+        if reduced_func is not None:
+            return LamApp(func=reduced_func, arg=term.arg)
+        reduced_arg = beta_step(term.arg)
+        if reduced_arg is not None:
+            return LamApp(func=term.func, arg=reduced_arg)
+    if isinstance(term, LamAbs):
+        reduced_body = beta_step(term.body)
+        if reduced_body is not None:
+            return LamAbs(var=term.var, body=reduced_body)
+    return None
+
+
+def beta_reduce_sequence(term: LamTerm, max_steps: int = 32) -> list[LamTerm]:
+    """Return [term, step1, step2, ...] until normal form or max_steps reached."""
+    steps = [term]
+    current = term
+    for _ in range(max_steps):
+        nxt = beta_step(current)
+        if nxt is None:
+            break
+        steps.append(nxt)
+        current = nxt
+    return steps
+
+
 def chain_to_lam(chain: "Chain") -> LamTerm:
     """Convert a chain's binary tree into a lambda application term."""
     def step_to_lam(step: "ChainStep") -> LamTerm:
@@ -136,12 +183,60 @@ def save_lambda_db(records: list[dict]) -> None:
     LAMBDA_DB.write_text(json.dumps(records, indent=2))
 
 
-def append_lambda_term(chain_label: str, term: LamTerm) -> None:
+def _rightmost_var(t: LamTerm) -> Optional[LamVar]:
+    """Walk the right spine to find the rightmost VAR of a sub-term."""
+    while isinstance(t, LamApp):
+        t = t.arg
+    return t if isinstance(t, LamVar) else None
+
+
+def collect_app_edges(term: LamTerm) -> list[tuple[str, str]]:
+    """Return (subj_iri, obj_iri) pairs for every APP node in the term (pre-order).
+
+    Edge = rightmost-var(func) → rightmost-var(arg), which correctly resolves
+    both left-associative chains and right-nested trees like g·(a·f).
+    """
+    edges: list[tuple[str, str]] = []
+    def walk(t: LamTerm) -> None:
+        if isinstance(t, LamApp):
+            rf = _rightmost_var(t.func)
+            ra = _rightmost_var(t.arg)
+            if rf and ra:
+                edges.append((rf.iri, ra.iri))
+            walk(t.func)
+            walk(t.arg)
+        elif isinstance(t, LamAbs):
+            walk(t.body)
+    walk(term)
+    return edges
+
+
+def collect_edge_claims(g: rdflib.Graph, term: LamTerm) -> list[dict]:
+    """For each APP edge in term, collect all matching claims from the graph."""
+    result: list[dict] = []
+    for subj_iri, obj_iri in collect_app_edges(term):
+        subj = rdflib.URIRef(subj_iri)
+        obj  = rdflib.URIRef(obj_iri)
+        for claim in g.subjects(AHOJ.claimSubject, subj):
+            if g.value(claim, AHOJ.claimObject) != obj:
+                continue
+            text = str(g.value(claim, AHOJ.claimText) or "")
+            result.append({
+                "subj_iri": subj_iri,
+                "obj_iri": obj_iri,
+                "claim_iri": str(claim),
+                "claim_text": text,
+            })
+    return result
+
+
+def append_lambda_term(chain_label: str, term: LamTerm, g: rdflib.Graph) -> None:
     records = load_lambda_db()
     records.append({
         "chain_label": chain_label,
         "term": lam_to_dict(term),
         "term_str": str(term),
+        "claims": collect_edge_claims(g, term),
     })
     save_lambda_db(records)
 
@@ -156,6 +251,9 @@ def load_graph() -> rdflib.Graph:
 
 
 def node_label(g: rdflib.Graph, node: rdflib.URIRef) -> str:
+    primary = g.value(node, AHOJ.primaryLabel)
+    if primary:
+        return str(primary)
     label = g.value(node, RDFS.label)
     if label:
         return str(label)
@@ -428,7 +526,7 @@ class ChainDetailModal(ModalScreen):
     def compose(self) -> ComposeResult:
         with ScrollableContainer(id="modal-container"):
             yield Static(
-                f"Chain: [b]{esc(self._chain.label)}[/b]  [dim](type: {esc(self._chain.type_label)}  |  Esc close)[/dim]",
+                f"Term: [b]{esc(self._chain.label)}[/b]  [dim](type: {esc(self._chain.type_label)}  |  Esc close)[/dim]",
                 id="modal-title", markup=True,
             )
             lines: list[str] = []
@@ -483,7 +581,7 @@ class LambdaAbstractionModal(ModalScreen):
         with Vertical(id="lambda-container"):
             yield Static(
                 f"λ-abstraction  [dim]({hint})[/dim]\n"
-                f"Chain term: [b]{esc(str(chain_term))}[/b]\n"
+                f"Term: [b]{esc(str(chain_term))}[/b]\n"
                 f"Select bound variable node:",
                 id="lambda-title", markup=True,
             )
@@ -505,7 +603,7 @@ class LambdaAbstractionModal(ModalScreen):
         for node in results:
             lv.append(NodeItem(node, node_label(self._g, node)))
         if results:
-            lv.index = 0
+            lv.call_after_refresh(setattr, lv, "index", 0)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         lv = self.query_one("#lambda-results", ListView)
@@ -513,7 +611,7 @@ class LambdaAbstractionModal(ModalScreen):
             # focus the list so user can pick with arrows / Enter
             lv.focus()
             if lv.index is None:
-                lv.index = 0
+                lv.call_after_refresh(setattr, lv, "index", 0)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         item = event.item
@@ -523,6 +621,477 @@ class LambdaAbstractionModal(ModalScreen):
         var = LamVar(iri=str(item.node), label=node_label(self._g, item.node))
         abs_term = LamAbs(var=var, body=chain_term)
         self.dismiss(abs_term)
+
+
+def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
+                     prefix: str = "", is_last: bool = True) -> None:
+    """Render a lambda term as a box-drawing binary tree.
+
+    claims_by_edge: (subj_iri, obj_iri) -> [claim_text], shown on APP nodes.
+    prefix / is_last thread the │ connectors through siblings.
+    """
+    connector = "└── " if is_last else "├── "
+    child_prefix = prefix + ("    " if is_last else "│   ")
+
+    if isinstance(term, LamVar):
+        lines.append(f"{prefix}{connector}[b]{esc(term.label)}[/b]")
+    elif isinstance(term, LamAbs):
+        lines.append(f"{prefix}{connector}[yellow]λ[/yellow] [b]{esc(term.var.label)}[/b]")
+        _render_lam_body(term.body, lines, claims_by_edge, child_prefix, is_last=True)
+    elif isinstance(term, LamApp):
+        rf = _rightmost_var(term.func)
+        ra = _rightmost_var(term.arg)
+        edge_claims = claims_by_edge.get((rf.iri, ra.iri), []) if rf and ra else []
+
+        lines.append(f"{prefix}{connector}[yellow]·[/yellow]")
+        # func first, then claims, then arg
+        _render_lam_body(term.func, lines, claims_by_edge, child_prefix, is_last=False)
+        for ct in edge_claims:
+            lines.append(f"{child_prefix}[dim]{esc(ct)}[/dim]")
+        _render_lam_body(term.arg,  lines, claims_by_edge, child_prefix, is_last=True)
+
+
+def _collect_var_iris(term: LamTerm) -> list[str]:
+    """Return all variable IRIs appearing in a lambda term (depth-first, preserving order)."""
+    if isinstance(term, LamVar):
+        return [term.iri]
+    if isinstance(term, LamApp):
+        return _collect_var_iris(term.func) + _collect_var_iris(term.arg)
+    if isinstance(term, LamAbs):
+        return [term.var.iri] + _collect_var_iris(term.body)
+    return []
+
+
+
+
+def _make_ontology_term() -> LamTerm:
+    """Build the fixed ontology demo term: g·((f·h)·c)·d (left-assoc)."""
+    def v(local: str, label: str) -> LamVar:
+        return LamVar(iri=f"https://w3id.org/ahoj/entity/{local}", label=label)
+    g = v("Ligand",                           "Ligand")
+    f = v("Binding_pocket",                   "Binding pocket")
+    h = v("Protein_structure",                "Protein structure")
+    c = v("Machine_learning_tool_development","Machine learning tool development")
+    d = v("Protein_structure",                "Protein structure")
+    # g · ((f · h) · c) · d  =  ((g · ((f·h)·c)) · d)
+    inner = LamApp(func=LamApp(func=f, arg=h), arg=c)
+    return LamApp(func=LamApp(func=g, arg=inner), arg=d)
+
+
+def _make_beta_term() -> LamTerm:
+    """Build (λb.(((λa.g(af))·b)·c)·d) · (λe.(e·h)) for beta reduction demo."""
+    def v(local: str, label: str) -> LamVar:
+        return LamVar(iri=f"https://w3id.org/ahoj/entity/{local}", label=label)
+    a = v("Protein_conformational_variability", "Protein conformational variability")
+    b = v("AHoJ_DB",                            "AHoJ DB")
+    c = v("Machine_learning_tool_development",  "Machine learning tool development")
+    d = v("Protein_structure",                  "Protein structure")
+    e = v("Drug_design_and_docking",            "Drug design and docking")
+    g = v("Ligand",                             "Ligand")
+    f = v("Binding_pocket",                     "Binding pocket")
+    h = v("Protein_structure",                  "Protein structure")
+    # λa.(g·(a·f))
+    lam_a = LamAbs(var=a, body=LamApp(func=g, arg=LamApp(func=a, arg=f)))
+    # λb.(((λa.g(af))·b)·c)·d
+    lam_b = LamAbs(var=b, body=LamApp(
+        func=LamApp(func=LamApp(func=lam_a, arg=b), arg=c), arg=d))
+    # λe.(e·h)
+    lam_e = LamAbs(var=e, body=LamApp(func=e, arg=h))
+    return LamApp(func=lam_b, arg=lam_e)
+
+
+ONTOLOGY_CSS = """
+Screen {
+    align: center middle;
+}
+#ont-container {
+    width: 85%;
+    max-height: 80%;
+    background: $surface;
+    border: thick $accent;
+    padding: 1 2;
+}
+#ont-title {
+    text-style: bold;
+    color: $accent;
+    padding-bottom: 1;
+}
+#ont-body {
+    height: 1fr;
+}
+"""
+
+BETA_CSS = """
+Screen {
+    align: center middle;
+}
+#beta-container {
+    width: 85%;
+    max-height: 80%;
+    background: $surface;
+    border: thick $warning;
+    padding: 1 2;
+}
+#beta-title {
+    text-style: bold;
+    color: $warning;
+    padding-bottom: 1;
+}
+#beta-body {
+    height: 1fr;
+}
+"""
+
+
+class BetaReductionModal(ModalScreen):
+    CSS = BETA_CSS
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Close"),
+        Binding("q", "dismiss", "Close"),
+        Binding("right", "step_forward", "Next step"),
+        Binding("left", "step_back", "Prev step"),
+    ]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._steps = beta_reduce_sequence(_make_beta_term())
+        self._index = 0
+
+    def compose(self) -> ComposeResult:
+        with ScrollableContainer(id="beta-container"):
+            yield Static("", id="beta-title", markup=True)
+            yield Static("", id="beta-body", markup=True)
+
+    def on_mount(self) -> None:
+        self._refresh()
+
+    def _refresh(self) -> None:
+        total = len(self._steps)
+        step = self._index
+        is_normal = step == total - 1
+        status = "[green]normal form[/green]" if is_normal else f"step {step}/{total - 1}"
+        hint = "→ next  |  ← back  |  Esc close"
+        self.query_one("#beta-title", Static).update(
+            f"β-reduction  [dim]({hint})[/dim]  {status}"
+        )
+        term = self._steps[self._index]
+        lines: list[str] = []
+        self._render_term_tree(term, lines)
+        self.query_one("#beta-body", Static).update("\n".join(lines))
+
+    def _render_term_tree(self, term: LamTerm, lines: list,
+                          prefix: str = "", is_last: bool = True) -> None:
+        connector = "└── " if is_last else "├── "
+        child_prefix = prefix + ("    " if is_last else "│   ")
+        if isinstance(term, LamVar):
+            lines.append(f"{prefix}{connector}[b]{esc(term.label)}[/b]")
+        elif isinstance(term, LamAbs):
+            lines.append(f"{prefix}{connector}[yellow]λ[/yellow][b]{esc(term.var.label)}[/b]")
+            self._render_term_tree(term.body, lines, child_prefix, is_last=True)
+        elif isinstance(term, LamApp):
+            lines.append(f"{prefix}{connector}[cyan]·[/cyan]")
+            self._render_term_tree(term.func, lines, child_prefix, is_last=False)
+            self._render_term_tree(term.arg,  lines, child_prefix, is_last=True)
+
+    def action_step_forward(self) -> None:
+        if self._index < len(self._steps) - 1:
+            self._index += 1
+            self._refresh()
+        else:
+            self.notify("Already at normal form", severity="warning")
+
+    def action_step_back(self) -> None:
+        if self._index > 0:
+            self._index -= 1
+            self._refresh()
+        else:
+            self.notify("Already at initial term", severity="warning")
+
+
+class OntologyModal(ModalScreen):
+    CSS = ONTOLOGY_CSS
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Close"),
+        Binding("q", "dismiss", "Close"),
+        Binding("d", "beta_detail", "β-reduction detail"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        hint = "d: β-reduction  |  Esc close"
+        with ScrollableContainer(id="ont-container"):
+            yield Static(
+                f"Ontology term  [dim]({hint})[/dim]",
+                id="ont-title", markup=True,
+            )
+            lines: list[str] = []
+            self._render_root(lines)
+            yield Static("\n".join(lines), id="ont-body", markup=True)
+
+    def _render_node(self, term: LamTerm, lines: list,
+                     prefix: str = "", is_last: bool = True) -> None:
+        connector = "└── " if is_last else "├── "
+        child_prefix = prefix + ("    " if is_last else "│   ")
+        if isinstance(term, LamVar):
+            lines.append(f"{prefix}{connector}[b]{esc(term.label)}[/b]")
+        elif isinstance(term, LamAbs):
+            lines.append(f"{prefix}{connector}[yellow]λ[/yellow][b]{esc(term.var.label)}[/b]")
+            self._render_node(term.body, lines, child_prefix, is_last=True)
+        elif isinstance(term, LamApp):
+            lines.append(f"{prefix}{connector}[yellow]·[/yellow]")
+            self._render_node(term.func, lines, child_prefix, is_last=False)
+            self._render_node(term.arg,  lines, child_prefix, is_last=True)
+
+    def _render_root(self, lines: list) -> None:
+        term = _make_ontology_term()
+        if isinstance(term, LamApp):
+            lines.append("[yellow]·[/yellow]")
+            self._render_node(term.func, lines, prefix="", is_last=False)
+            self._render_node(term.arg,  lines, prefix="", is_last=True)
+        else:
+            self._render_node(term, lines, prefix="", is_last=True)
+
+    def action_beta_detail(self) -> None:
+        self.app.push_screen(BetaReductionModal())
+
+
+LAMBDA_BROWSER_CSS = """
+Screen {
+    align: center middle;
+}
+#lb-container {
+    width: 90%;
+    height: 80%;
+    background: $surface;
+    border: thick $success;
+    padding: 1 2;
+    layout: horizontal;
+}
+#lb-left {
+    width: 1fr;
+    layout: vertical;
+    border-right: tall $panel-lighten-2;
+    padding-right: 1;
+}
+#lb-title {
+    text-style: bold;
+    color: $success;
+    height: 1;
+    margin-bottom: 1;
+}
+#lb-search {
+    height: 3;
+    border: tall $success;
+    margin-bottom: 1;
+}
+#lb-node-list {
+    height: 1fr;
+    border: tall $panel-lighten-2;
+}
+#lb-right {
+    width: 1fr;
+    layout: vertical;
+    padding-left: 1;
+}
+#lb-right-label {
+    height: 1;
+    color: $success;
+    text-style: bold;
+    margin-bottom: 1;
+}
+#lb-lambda-list {
+    height: 1fr;
+    border: tall $panel-lighten-2;
+}
+"""
+
+LAMBDA_DETAIL_CSS = """
+Screen {
+    align: center middle;
+}
+#ld-container {
+    width: 85%;
+    max-height: 80%;
+    background: $surface;
+    border: thick $success;
+    padding: 1 2;
+}
+#ld-title {
+    text-style: bold;
+    color: $success;
+    padding-bottom: 1;
+}
+#ld-body {
+    height: 1fr;
+}
+"""
+
+
+class LambdaRecordItem(ListItem):
+    def __init__(self, record: dict, index: int) -> None:
+        try:
+            term = lam_from_dict(record["term"])
+            term_str = str(term)
+        except Exception:
+            term_str = record.get("term_str", "?")
+        display = f"[b]λ[/b]  {esc(term_str).replace(' · ', ' [yellow]·[/yellow] ')}"
+        super().__init__(Label(display, markup=True))
+        self.record = record
+        self.record_index = index
+
+
+class LambdaDetailModal(ModalScreen):
+    CSS = LAMBDA_DETAIL_CSS
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Close"),
+        Binding("q", "dismiss", "Close"),
+        Binding("left", "dismiss", "Close"),
+    ]
+
+    def __init__(self, g: rdflib.Graph, record: dict) -> None:
+        super().__init__()
+        self._g = g
+        self._record = record
+
+    def compose(self) -> ComposeResult:
+        chain_label = self._record.get("chain_label", "?")
+        hint = "Esc / ← close"
+        with ScrollableContainer(id="ld-container"):
+            yield Static(
+                f"λ-abstraction detail  [dim]({hint})[/dim]",
+                id="ld-title", markup=True,
+            )
+            lines: list[str] = []
+            lines.append(f"[b]Term:[/b]  {esc(chain_label)}")
+            lines.append("")
+            term = lam_from_dict(self._record["term"])
+            # Build edge -> [claim_text, ...] index from stored claims
+            claims_by_edge: dict[tuple[str, str], list[str]] = {}
+            for c in self._record.get("claims", []):
+                key = (c["subj_iri"], c["obj_iri"])
+                claims_by_edge.setdefault(key, []).append(c["claim_text"])
+            if isinstance(term, LamAbs):
+                lines.append(f"[b]Bound variable:[/b]  [b]{esc(term.var.label)}[/b]")
+                lines.append("[b]Body:[/b]")
+                body = term.body
+            else:
+                body = term
+            # Render root node without a connector, children with box-drawing
+            if isinstance(body, LamVar):
+                lines.append(f"[b]{esc(body.label)}[/b]")
+            elif isinstance(body, LamApp):
+                rf = _rightmost_var(body.func)
+                ra = _rightmost_var(body.arg)
+                lines.append("[yellow]·[/yellow]")
+                _render_lam_body(body.func, lines, claims_by_edge, prefix="", is_last=False)
+                for ct in claims_by_edge.get((rf.iri if rf else None, ra.iri if ra else None), []):
+                    lines.append(f"  [dim]{esc(ct)}[/dim]")
+                _render_lam_body(body.arg,  lines, claims_by_edge, prefix="", is_last=True)
+            else:
+                _render_lam_body(body, lines, claims_by_edge, prefix="", is_last=True)
+            yield Static("\n".join(lines), id="ld-body", markup=True)
+
+
+class LambdaBrowserModal(ModalScreen):
+    CSS = LAMBDA_BROWSER_CSS
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Close"),
+        Binding("q", "dismiss", "Close"),
+    ]
+
+    def __init__(self, g: rdflib.Graph) -> None:
+        super().__init__()
+        self._g = g
+        self._node_candidates: list[rdflib.URIRef] = []
+        self._all_records: list[dict] = load_lambda_db()
+
+    def compose(self) -> ComposeResult:
+        with Horizontal(id="lb-container"):
+            with Vertical(id="lb-left"):
+                yield Static(
+                    "λ-browser  [dim](search entity · ↑↓ · Enter)[/dim]",
+                    id="lb-title", markup=True,
+                )
+                yield Input(placeholder="Search entity…", id="lb-search")
+                yield ListView(id="lb-node-list")
+            with Vertical(id="lb-right"):
+                yield Static("Abstractions for selected entity:", id="lb-right-label")
+                yield ListView(id="lb-lambda-list")
+
+    def on_mount(self) -> None:
+        self.query_one("#lb-search", Input).focus()
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id != "lb-search":
+            return
+        query = event.value.strip()
+        lv = self.query_one("#lb-node-list", ListView)
+        lv.clear()
+        self._node_candidates = []
+        lv2 = self.query_one("#lb-lambda-list", ListView)
+        lv2.clear()
+        if not query:
+            return
+        results = search_nodes(self._g, query, limit=10)
+        self._node_candidates = results
+        for node in results:
+            lv.append(NodeItem(node, node_label(self._g, node)))
+        if results:
+            lv.call_after_refresh(setattr, lv, "index", 0)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        lv = self.query_one("#lb-node-list", ListView)
+        if self._node_candidates:
+            lv.focus()
+            if lv.index is None:
+                lv.call_after_refresh(setattr, lv, "index", 0)
+
+    def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
+        if event.list_view.id != "lb-node-list":
+            return
+        item = event.item
+        if not isinstance(item, NodeItem):
+            return
+        self._populate_lambda_list(str(item.node))
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        if event.list_view.id == "lb-node-list":
+            item = event.item
+            if isinstance(item, NodeItem):
+                self._populate_lambda_list(str(item.node))
+                self.query_one("#lb-lambda-list", ListView).focus()
+            return
+        if event.list_view.id == "lb-lambda-list":
+            item = event.item
+            if isinstance(item, LambdaRecordItem):
+                self.app.push_screen(LambdaDetailModal(self._g, item.record))
+
+    def _populate_lambda_list(self, iri: str) -> None:
+        lv = self.query_one("#lb-lambda-list", ListView)
+        lv.clear()
+        matches = [
+            (i, r) for i, r in enumerate(self._all_records)
+            if self._record_contains_iri(r, iri)
+        ]
+        label = self.query_one("#lb-right-label", Static)
+        if matches:
+            label.update(f"[b]{len(matches)}[/b] abstraction(s) for this entity:")
+            for i, rec in matches:
+                lv.append(LambdaRecordItem(rec, i))
+            lv.call_after_refresh(setattr, lv, "index", 0)
+        else:
+            label.update("No abstractions for this entity.")
+
+    @staticmethod
+    def _record_contains_iri(record: dict, iri: str) -> bool:
+        try:
+            term = lam_from_dict(record["term"])
+        except Exception:
+            return False
+        return isinstance(term, LamAbs) and term.var.iri == iri
 
 
 class ClaimItem(ListItem):
@@ -667,9 +1236,11 @@ class KGBrowser(App):
         Binding("right", "show_source", "Claim text / Chain detail", show=True),
         Binding("left", "go_back", "Back", show=True),
         Binding("c", "copy_item", "Copy IRI", show=True),
-        Binding("tab", "focus_chains", "Chains panel", show=True),
-        Binding("s", "noop", "Save chain", show=True),
-        Binding("l", "noop", "λ-abstraction", show=True),
+        Binding("tab", "focus_chains", "Terms panel", show=True),
+        Binding("s", "save_chain", "Save term", show=True),
+        Binding("l", "lambda_abstraction", "λ-abstraction", show=True),
+        Binding("o", "ontology_view", "Ontology", show=True),
+        Binding("a", "lambda_browser", "λ-browser", show=True),
         Binding("q", "app.quit", "Quit"),
     ]
 
@@ -704,7 +1275,7 @@ class KGBrowser(App):
                 yield Static("Type a query and press Enter to search.", id="list-label")
                 yield ListView(id="results-list")
             with Vertical(id="right-pane"):
-                yield Static("Chains", id="chains-label")
+                yield Static("Terms", id="chains-label")
                 yield ListView(id="chains-list")
         yield Footer()
 
@@ -754,7 +1325,8 @@ class KGBrowser(App):
         for i, chain in enumerate(self.chains):
             lv.append(ChainListItem(chain, i))
         if self.chains:
-            lv.index = min(prev_index or 0, len(self.chains) - 1)
+            target = min(prev_index or 0, len(self.chains) - 1)
+            lv.call_after_refresh(setattr, lv, "index", target)
 
     def _chains_matching_any(self, claims: list[dict], mappings: list[dict]) -> list[tuple[int, Chain]]:
         """Return saved chains whose tail node is the object of some claim/exactMatch in the current list."""
@@ -795,11 +1367,11 @@ class KGBrowser(App):
         matching = self._chains_matching_any(claims, mappings)
         if matching:
             self._list_label(
-                f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save chain  |  select ⛓ to compose:"
+                f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save term  |  select ⛓ to compose:"
             )
         else:
             self._list_label(
-                f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save chain:"
+                f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save term:"
             )
         for cd in claims:
             lv.append(ClaimItem(cd))
@@ -808,12 +1380,12 @@ class KGBrowser(App):
             for md in mappings:
                 lv.append(MappingItem(md))
         if matching:
-            lv.append(SeparatorItem("Compose with saved chain"))
+            lv.append(SeparatorItem("Compose with saved term"))
             for idx, chain in matching:
                 lv.append(ChainTargetItem(chain, idx))
         self.state = "claims_list"
         lv.focus()
-        lv.index = 0
+        lv.call_after_refresh(setattr, lv, "index", 0)
 
     # ── Step helpers ──────────────────────────────────────────────────────────
 
@@ -862,7 +1434,7 @@ class KGBrowser(App):
             lv.append(NodeItem(node, node_label(self.g, node)))
         self.state = "node_list"
         lv.focus()
-        lv.index = 0
+        lv.call_after_refresh(setattr, lv, "index", 0)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         item = event.item
@@ -914,11 +1486,17 @@ class KGBrowser(App):
 
     # ── Key handlers ─────────────────────────────────────────────────────────
 
-    def on_key(self, event) -> None:
-        if event.key == "s":
-            self._handle_save_chain()
-        elif event.key == "l":
-            self._handle_lambda_abstraction()
+    def action_save_chain(self) -> None:
+        self._handle_save_chain()
+
+    def action_lambda_abstraction(self) -> None:
+        self._handle_lambda_abstraction()
+
+    def action_ontology_view(self) -> None:
+        self.push_screen(OntologyModal())
+
+    def action_lambda_browser(self) -> None:
+        self.push_screen(LambdaBrowserModal(self.g))
 
     def _handle_save_chain(self) -> None:
         if self.state != "claims_list" or not self._current_steps:
@@ -932,7 +1510,7 @@ class KGBrowser(App):
         chain = Chain(steps=steps)
         self.chains.append(chain)
         self._refresh_chains_panel()
-        self.notify(f"Chain saved: {chain.label}")
+        self.notify(f"Term saved: {chain.label}")
         # reset navigation to start a new path
         self._current_steps.clear()
         self._nav_stack.clear()
@@ -940,7 +1518,7 @@ class KGBrowser(App):
         self._chain_prefix = None
         self._chain_prefix_subject = None
         self._clear_history()
-        self._list_label("Chain saved — start a new search:")
+        self._list_label("Term saved — start a new search:")
         lv = self.query_one("#results-list", ListView)
         lv.clear()
         self.state = "search"
@@ -963,21 +1541,18 @@ class KGBrowser(App):
         def on_lambda_selected(abs_term: LamAbs | None) -> None:
             if abs_term is None:
                 return
-            append_lambda_term(chain.label, abs_term)
+            append_lambda_term(chain.label, abs_term, self.g)
             self.notify(f"Saved: {abs_term}", timeout=6)
 
         self.push_screen(LambdaAbstractionModal(self.g, chain), on_lambda_selected)
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
-    def action_noop(self) -> None:
-        pass
-
     def action_focus_chains(self) -> None:
         lv = self.query_one("#chains-list", ListView)
         lv.focus()
         if self.chains and lv.index is None:
-            lv.index = 0
+            lv.call_after_refresh(setattr, lv, "index", 0)
 
     def action_go_back(self) -> None:
         if self.state != "claims_list" or len(self._nav_stack) < 2:
