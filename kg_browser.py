@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+import shutil
+import textwrap
+from dataclasses import dataclass, field, replace as dc_replace
 from pathlib import Path
 from typing import Optional, Union
 
@@ -154,9 +156,8 @@ def chain_to_lam(chain: "Chain") -> LamTerm:
         subj = LamVar(iri=str(step.subject), label=step.subject_label)
         obj = LamVar(iri=str(step.object_node), label=step.object_label)
         if step.sub_chain:
-            # sub_chain replaces subject role — nest it
             sub_term = chain_to_lam(step.sub_chain)
-            func = LamApp(func=sub_term, arg=obj)
+            func = LamApp(func=LamApp(func=subj, arg=sub_term), arg=obj)
         else:
             func = LamApp(func=subj, arg=obj)
         return func
@@ -190,17 +191,31 @@ def _rightmost_var(t: LamTerm) -> Optional[LamVar]:
     return t if isinstance(t, LamVar) else None
 
 
+def _rep_var(t: LamTerm) -> Optional[LamVar]:
+    """Representative variable for claim-edge matching.
+
+    LamVar  → itself
+    LamAbs  → bound variable (the abstracted entity)
+    LamApp  → rightmost var of the application
+    """
+    if isinstance(t, LamVar):
+        return t
+    if isinstance(t, LamAbs):
+        return t.var
+    return _rightmost_var(t)
+
+
 def collect_app_edges(term: LamTerm) -> list[tuple[str, str]]:
     """Return (subj_iri, obj_iri) pairs for every APP node in the term (pre-order).
 
-    Edge = rightmost-var(func) → rightmost-var(arg), which correctly resolves
-    both left-associative chains and right-nested trees like g·(a·f).
+    Uses _rep_var so that LamAbs nodes contribute their bound variable as the
+    representative entity, making edges involving abstractions visible.
     """
     edges: list[tuple[str, str]] = []
     def walk(t: LamTerm) -> None:
         if isinstance(t, LamApp):
-            rf = _rightmost_var(t.func)
-            ra = _rightmost_var(t.arg)
+            rf = _rep_var(t.func)
+            ra = _rep_var(t.arg)
             if rf and ra:
                 edges.append((rf.iri, ra.iri))
             walk(t.func)
@@ -519,18 +534,25 @@ class ChainDetailModal(ModalScreen):
         Binding("left", "dismiss", "Close"),
     ]
 
-    def __init__(self, chain: Chain) -> None:
+    def __init__(self, chain: Chain, g: rdflib.Graph) -> None:
         super().__init__()
         self._chain = chain
+        self._g = g
 
     def compose(self) -> ComposeResult:
+        term = chain_to_lam(self._chain)
+        claims = collect_edge_claims(self._g, term)
+        claims_by_edge: dict[tuple[str, str], list[str]] = {}
+        for c in claims:
+            key = (c["subj_iri"], c["obj_iri"])
+            claims_by_edge.setdefault(key, []).append(c["claim_text"])
         with ScrollableContainer(id="modal-container"):
             yield Static(
                 f"Term: [b]{esc(self._chain.label)}[/b]  [dim](type: {esc(self._chain.type_label)}  |  Esc close)[/dim]",
                 id="modal-title", markup=True,
             )
             lines: list[str] = []
-            _render_chain(self._chain, lines, indent=0)
+            _render_lam_root(term, claims_by_edge, lines)
             yield Static("\n".join(lines), id="modal-body", markup=True)
 
 
@@ -623,6 +645,15 @@ class LambdaAbstractionModal(ModalScreen):
         self.dismiss(abs_term)
 
 
+def _wrap_claim(text: str, prefix: str) -> list[str]:
+    """Return markup lines for one claim, every line starting at `prefix`."""
+    cols = shutil.get_terminal_size((80, 24)).columns
+    # 85% container, border(1)+padding(2) each side=6, scrollbar=1 → deduct 10
+    available = max(20, int(cols * 0.85) - 10 - len(prefix))
+    parts = textwrap.wrap(text, width=available) or [text]
+    return [f"{prefix}[dim]{esc(p)}[/dim]" for p in parts]
+
+
 def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
                      prefix: str = "", is_last: bool = True) -> None:
     """Render a lambda term as a box-drawing binary tree.
@@ -636,19 +667,34 @@ def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
     if isinstance(term, LamVar):
         lines.append(f"{prefix}{connector}[b]{esc(term.label)}[/b]")
     elif isinstance(term, LamAbs):
-        lines.append(f"{prefix}{connector}[yellow]λ[/yellow] [b]{esc(term.var.label)}[/b]")
+        lines.append(f"{prefix}{connector}[yellow]?[/yellow] [b]{esc(term.var.label)}[/b]")
         _render_lam_body(term.body, lines, claims_by_edge, child_prefix, is_last=True)
     elif isinstance(term, LamApp):
-        rf = _rightmost_var(term.func)
-        ra = _rightmost_var(term.arg)
+        rf = _rep_var(term.func)
+        ra = _rep_var(term.arg)
         edge_claims = claims_by_edge.get((rf.iri, ra.iri), []) if rf and ra else []
 
         lines.append(f"{prefix}{connector}[yellow]·[/yellow]")
         # func first, then claims, then arg
         _render_lam_body(term.func, lines, claims_by_edge, child_prefix, is_last=False)
         for ct in edge_claims:
-            lines.append(f"{child_prefix}[dim]{esc(ct)}[/dim]")
+            lines.extend(_wrap_claim(ct, child_prefix))
         _render_lam_body(term.arg,  lines, claims_by_edge, child_prefix, is_last=True)
+
+
+def _render_lam_root(term: LamTerm, claims_by_edge: dict, lines: list) -> None:
+    """Render a lambda term from the root node (no leading connector)."""
+    if isinstance(term, LamApp):
+        rf = _rep_var(term.func)
+        ra = _rep_var(term.arg)
+        edge_claims = claims_by_edge.get((rf.iri, ra.iri), []) if rf and ra else []
+        lines.append("[yellow]·[/yellow]")
+        _render_lam_body(term.func, lines, claims_by_edge, prefix="", is_last=False)
+        for ct in edge_claims:
+            lines.extend(_wrap_claim(ct, "  "))
+        _render_lam_body(term.arg, lines, claims_by_edge, prefix="", is_last=True)
+    else:
+        _render_lam_body(term, lines, claims_by_edge, prefix="", is_last=True)
 
 
 def _collect_var_iris(term: LamTerm) -> list[str]:
@@ -787,7 +833,7 @@ class BetaReductionModal(ModalScreen):
         if isinstance(term, LamVar):
             lines.append(f"{prefix}{connector}[b]{esc(term.label)}[/b]")
         elif isinstance(term, LamAbs):
-            lines.append(f"{prefix}{connector}[yellow]λ[/yellow][b]{esc(term.var.label)}[/b]")
+            lines.append(f"{prefix}{connector}[yellow]?[/yellow][b]{esc(term.var.label)}[/b]")
             self._render_term_tree(term.body, lines, child_prefix, is_last=True)
         elif isinstance(term, LamApp):
             lines.append(f"{prefix}{connector}[cyan]·[/cyan]")
@@ -818,39 +864,29 @@ class OntologyModal(ModalScreen):
         Binding("d", "beta_detail", "β-reduction detail"),
     ]
 
+    def __init__(self, g: rdflib.Graph) -> None:
+        super().__init__()
+        self._g = g
+
     def compose(self) -> ComposeResult:
         hint = "d: β-reduction  |  Esc close"
+        term = _make_beta_term()
+        claims = collect_edge_claims(self._g, term)
+        claims_by_edge: dict[tuple[str, str], list[str]] = {}
+        for c in claims:
+            key = (c["subj_iri"], c["obj_iri"])
+            claims_by_edge.setdefault(key, []).append(c["claim_text"])
         with ScrollableContainer(id="ont-container"):
             yield Static(
                 f"Ontology term  [dim]({hint})[/dim]",
                 id="ont-title", markup=True,
             )
             lines: list[str] = []
-            self._render_root(lines)
+            self._render_root(term, claims_by_edge, lines)
             yield Static("\n".join(lines), id="ont-body", markup=True)
 
-    def _render_node(self, term: LamTerm, lines: list,
-                     prefix: str = "", is_last: bool = True) -> None:
-        connector = "└── " if is_last else "├── "
-        child_prefix = prefix + ("    " if is_last else "│   ")
-        if isinstance(term, LamVar):
-            lines.append(f"{prefix}{connector}[b]{esc(term.label)}[/b]")
-        elif isinstance(term, LamAbs):
-            lines.append(f"{prefix}{connector}[yellow]λ[/yellow][b]{esc(term.var.label)}[/b]")
-            self._render_node(term.body, lines, child_prefix, is_last=True)
-        elif isinstance(term, LamApp):
-            lines.append(f"{prefix}{connector}[yellow]·[/yellow]")
-            self._render_node(term.func, lines, child_prefix, is_last=False)
-            self._render_node(term.arg,  lines, child_prefix, is_last=True)
-
-    def _render_root(self, lines: list) -> None:
-        term = _make_ontology_term()
-        if isinstance(term, LamApp):
-            lines.append("[yellow]·[/yellow]")
-            self._render_node(term.func, lines, prefix="", is_last=False)
-            self._render_node(term.arg,  lines, prefix="", is_last=True)
-        else:
-            self._render_node(term, lines, prefix="", is_last=True)
+    def _render_root(self, term: LamTerm, claims_by_edge: dict, lines: list) -> None:
+        _render_lam_root(term, claims_by_edge, lines)
 
     def action_beta_detail(self) -> None:
         self.app.push_screen(BetaReductionModal())
@@ -982,8 +1018,8 @@ class LambdaDetailModal(ModalScreen):
             if isinstance(body, LamVar):
                 lines.append(f"[b]{esc(body.label)}[/b]")
             elif isinstance(body, LamApp):
-                rf = _rightmost_var(body.func)
-                ra = _rightmost_var(body.arg)
+                rf = _rep_var(body.func)
+                ra = _rep_var(body.arg)
                 lines.append("[yellow]·[/yellow]")
                 _render_lam_body(body.func, lines, claims_by_edge, prefix="", is_last=False)
                 for ct in claims_by_edge.get((rf.iri if rf else None, ra.iri if ra else None), []):
@@ -1173,16 +1209,8 @@ class KGBrowser(App):
         background: $surface;
     }
 
-    .history-node {
+    #history-tree {
         padding: 0 1;
-        background: $surface;
-        color: $text;
-    }
-
-    .history-claim {
-        padding: 0 1 0 3;
-        background: $surface-darken-1;
-        color: $text-muted;
     }
 
     #main-area {
@@ -1250,7 +1278,7 @@ class KGBrowser(App):
         super().__init__()
         self.g = load_graph()
         self.current_node: Optional[rdflib.URIRef] = None
-        self._nav_stack: list[tuple[rdflib.URIRef, int]] = []
+        self._nav_stack: list[rdflib.URIRef] = []
         self.chains: list[Chain] = []
         self._current_steps: list[ChainStep] = []  # steps taken in current navigation path
         self._pending_step: Optional[ChainStep] = None
@@ -1269,7 +1297,8 @@ class KGBrowser(App):
             placeholder="Search for a node (e.g. 'protein', 'AHoJ', 'glycogen')…",
             id="search-box",
         )
-        yield VerticalScroll(id="history-scroll")
+        with VerticalScroll(id="history-scroll"):
+            yield Static("", id="history-tree", markup=True)
         with Horizontal(id="main-area"):
             with Vertical(id="left-pane"):
                 yield Static("Type a query and press Enter to search.", id="list-label")
@@ -1282,34 +1311,38 @@ class KGBrowser(App):
     def on_mount(self) -> None:
         self.query_one("#search-box", Input).focus()
 
-    # ── History helpers ───────────────────────────────────────────────────────
+    # ── History tree ──────────────────────────────────────────────────────────
 
-    def _append_history(self, markup: str, css_class: str) -> None:
-        scroll = self.query_one("#history-scroll", VerticalScroll)
-        scroll.mount(Static(markup, markup=True, classes=css_class))
-        scroll.scroll_end(animate=False)
-
-    def _clear_history(self) -> None:
-        scroll = self.query_one("#history-scroll", VerticalScroll)
-        for child in list(scroll.children):
-            child.remove()
-
-    def _push_node(self, node: rdflib.URIRef) -> None:
-        lbl = node_label(self.g, node)
-        iri = str(node)
-        self._append_history(
-            f"[b]▶ {esc(lbl)}[/b]  [dim]{esc(iri)}[/dim]",
-            "history-node",
-        )
-
-    def _push_claim(self, claim_data: dict) -> None:
-        obj_lbl = claim_data["object_label"]
-        claim_text = claim_data["claim_text"]
-        self._append_history(
-            f"  [dim]{esc(claim_text)}[/dim]\n"
-            f"  → [b]{esc(obj_lbl)}[/b]",
-            "history-claim",
-        )
+    def _refresh_history_tree(self) -> None:
+        widget = self.query_one("#history-tree", Static)
+        steps = list(self._current_steps)
+        if not steps and self._chain_prefix is None:
+            if self.current_node:
+                lbl = node_label(self.g, self.current_node)
+                widget.update(f"[b]{esc(lbl)}[/b]")
+            else:
+                widget.update("")
+            return
+        if self._chain_prefix is not None:
+            # Build c · prefix_term [· step1_obj · …] directly
+            c_var = LamVar(
+                iri=str(self._chain_prefix_subject),
+                label=node_label(self.g, self._chain_prefix_subject),
+            )
+            term: LamTerm = LamApp(func=c_var, arg=chain_to_lam(self._chain_prefix))
+            for step in steps:
+                term = LamApp(func=term, arg=LamVar(iri=str(step.object_node), label=step.object_label))
+        else:
+            term = chain_to_lam(Chain(steps=steps))
+        claims = collect_edge_claims(self.g, term)
+        claims_by_edge: dict[tuple[str, str], list[str]] = {}
+        for c in claims:
+            key = (c["subj_iri"], c["obj_iri"])
+            claims_by_edge.setdefault(key, []).append(c["claim_text"])
+        lines: list[str] = []
+        _render_lam_root(term, claims_by_edge, lines)
+        widget.update("\n".join(lines))
+        self.query_one("#history-scroll", VerticalScroll).scroll_end(animate=False)
 
     # ── List label helper ─────────────────────────────────────────────────────
 
@@ -1348,11 +1381,10 @@ class KGBrowser(App):
 
     def _show_node_and_claims(self, node: rdflib.URIRef, push_stack: bool = True) -> None:
         if push_stack:
-            scroll = self.query_one("#history-scroll", VerticalScroll)
-            self._nav_stack.append((node, len(scroll.children)))
+            self._nav_stack.append(node)
         self.current_node = node
         lbl = node_label(self.g, node)
-        self._push_node(node)
+        self._refresh_history_tree()
 
         claims = get_claims_for_subject(self.g, node)
         mappings = get_mappings_for_subject(self.g, node)
@@ -1442,7 +1474,7 @@ class KGBrowser(App):
 
         # ── Chains panel selection ─────────────────────────────────────────
         if lv_id == "chains-list" and isinstance(item, ChainListItem):
-            self.push_screen(ChainDetailModal(item.chain))
+            self.push_screen(ChainDetailModal(item.chain, self.g))
             return
 
         # ── Main list selections ───────────────────────────────────────────
@@ -1451,7 +1483,6 @@ class KGBrowser(App):
 
         elif self.state == "claims_list" and isinstance(item, ClaimItem):
             cd = item.claim_data
-            self._push_claim(cd)
             next_node = cd["object"]
             if not isinstance(next_node, rdflib.URIRef):
                 self._list_label("Claim object is a literal — cannot navigate. Ctrl+R to search again.")
@@ -1479,7 +1510,6 @@ class KGBrowser(App):
                 self._chain_prefix = item.chain
                 self._chain_prefix_subject = self.current_node
             self._nav_stack.clear()
-            self._clear_history()
             tail_node = item.chain.steps[-1].object_node
             self.notify(f"Composed — continuing from: {item.chain.steps[-1].object_label}")
             self._show_node_and_claims(tail_node)
@@ -1493,20 +1523,37 @@ class KGBrowser(App):
         self._handle_lambda_abstraction()
 
     def action_ontology_view(self) -> None:
-        self.push_screen(OntologyModal())
+        self.push_screen(OntologyModal(self.g))
 
     def action_lambda_browser(self) -> None:
         self.push_screen(LambdaBrowserModal(self.g))
 
     def _handle_save_chain(self) -> None:
-        if self.state != "claims_list" or not self._current_steps:
+        if self.state != "claims_list":
             return
         steps = list(self._current_steps)
+        if not steps and self._chain_prefix is None:
+            return
         if self._chain_prefix is not None:
-            steps[0].sub_chain = self._chain_prefix
-            if self._chain_prefix_subject is not None:
-                steps[0].subject = self._chain_prefix_subject
-                steps[0].subject_label = node_label(self.g, self._chain_prefix_subject)
+            subj = self._chain_prefix_subject or (steps[0].subject if steps else None)
+            subj_label = node_label(self.g, subj) if subj else ""
+            if steps:
+                steps[0] = dc_replace(
+                    steps[0],
+                    sub_chain=self._chain_prefix,
+                    subject=subj,
+                    subject_label=subj_label,
+                )
+            else:
+                # prefix only (no further steps): synthesise a step from c to the
+                # tail of the prefix chain so it can be stored as a Chain object
+                tail = self._chain_prefix.steps[-1]
+                steps = [dc_replace(
+                    tail,
+                    subject=subj,
+                    subject_label=subj_label,
+                    sub_chain=self._chain_prefix,
+                )]
         chain = Chain(steps=steps)
         self.chains.append(chain)
         self._refresh_chains_panel()
@@ -1517,7 +1564,7 @@ class KGBrowser(App):
         self._pending_step = None
         self._chain_prefix = None
         self._chain_prefix_subject = None
-        self._clear_history()
+        self._refresh_history_tree()
         self._list_label("Term saved — start a new search:")
         lv = self.query_one("#results-list", ListView)
         lv.clear()
@@ -1532,10 +1579,13 @@ class KGBrowser(App):
             return
         steps = list(self._current_steps)
         if self._chain_prefix is not None:
-            steps[0].sub_chain = self._chain_prefix
-            if self._chain_prefix_subject is not None:
-                steps[0].subject = self._chain_prefix_subject
-                steps[0].subject_label = node_label(self.g, self._chain_prefix_subject)
+            subj = self._chain_prefix_subject or steps[0].subject
+            steps[0] = dc_replace(
+                steps[0],
+                sub_chain=self._chain_prefix,
+                subject=subj,
+                subject_label=node_label(self.g, subj),
+            )
         chain = Chain(steps=steps)
 
         def on_lambda_selected(abs_term: LamAbs | None) -> None:
@@ -1563,10 +1613,7 @@ class KGBrowser(App):
         if self._current_steps:
             self._current_steps.pop()
         self._nav_stack.pop()
-        prev_node, history_count = self._nav_stack[-1]
-        scroll = self.query_one("#history-scroll", VerticalScroll)
-        for child in list(scroll.children)[history_count:]:
-            child.remove()
+        prev_node = self._nav_stack[-1]
         self._show_node_and_claims(prev_node, push_stack=False)
 
     def action_copy_item(self) -> None:
@@ -1588,7 +1635,7 @@ class KGBrowser(App):
         if chains_lv.has_focus:
             item = chains_lv.highlighted_child
             if isinstance(item, ChainListItem):
-                self.push_screen(ChainDetailModal(item.chain))
+                self.push_screen(ChainDetailModal(item.chain, self.g))
             return
 
         if self.state != "claims_list":
@@ -1596,7 +1643,7 @@ class KGBrowser(App):
         lv = self.query_one("#results-list", ListView)
         item = lv.highlighted_child
         if isinstance(item, ChainTargetItem):
-            self.push_screen(ChainDetailModal(item.chain))
+            self.push_screen(ChainDetailModal(item.chain, self.g))
             return
         if not isinstance(item, ClaimItem):
             return
@@ -1614,7 +1661,7 @@ class KGBrowser(App):
         self._pending_step = None
         self._chain_prefix = None
         self._chain_prefix_subject = None
-        self._clear_history()
+        self._refresh_history_tree()
         self._list_label("Type a query and press Enter to search.")
         lv = self.query_one("#results-list", ListView)
         lv.clear()
