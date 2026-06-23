@@ -602,9 +602,8 @@ class LambdaAbstractionModal(ModalScreen):
         hint = "type to search  |  ↑↓ navigate  |  Enter select  |  Esc cancel"
         with Vertical(id="lambda-container"):
             yield Static(
-                f"λ-abstraction  [dim]({hint})[/dim]\n"
-                f"Term: [b]{esc(str(chain_term))}[/b]\n"
-                f"Select bound variable node:",
+                f"Question  [dim]({hint})[/dim]\n"
+                f"Select queried entity:",
                 id="lambda-title", markup=True,
             )
             yield Input(placeholder="Search for a node…", id="lambda-search")
@@ -1266,9 +1265,9 @@ class KGBrowser(App):
         Binding("c", "copy_item", "Copy IRI", show=True),
         Binding("tab", "focus_chains", "Terms panel", show=True),
         Binding("s", "save_chain", "Save term", show=True),
-        Binding("l", "lambda_abstraction", "λ-abstraction", show=True),
+        Binding("a", "lambda_abstraction", "Ask question", show=True),
         Binding("o", "ontology_view", "Ontology", show=True),
-        Binding("a", "lambda_browser", "λ-browser", show=True),
+        Binding("b", "lambda_browser", "λ-browser", show=True),
         Binding("q", "app.quit", "Quit"),
     ]
 
