@@ -13,6 +13,7 @@ from typing import Optional, Union
 import pyperclip
 import rdflib
 from rdflib.namespace import RDFS, OWL, SKOS
+from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.reactive import reactive
@@ -367,6 +368,30 @@ def get_claims_for_subject(g: rdflib.Graph, subject: rdflib.URIRef) -> list[dict
             "predicate_label": pred_label,
             "object_label": obj_lbl,
             "object_types": obj_types,
+        })
+    return sorted(claims, key=lambda c: c["predicate_label"])
+
+
+def get_claims_for_object(g: rdflib.Graph, object_node: rdflib.URIRef) -> list[dict]:
+    claims = []
+    for claim in g.subjects(EX.object, object_node):
+        claim_text = str(g.value(claim, EX.claimText) or "")
+        source_text = str(g.value(claim, EX.citation) or "")
+        subj = g.value(claim, EX.subject)
+        subj_lbl = node_label(g, subj) if isinstance(subj, rdflib.URIRef) else str(subj or "?")
+        subj_types = node_types(g, subj) if isinstance(subj, rdflib.URIRef) else frozenset()
+        pred_label = (
+            _claim_predicate_label(g, subj, object_node)
+            if isinstance(subj, rdflib.URIRef) else "?"
+        )
+        claims.append({
+            "claim": claim,
+            "claim_text": claim_text,
+            "source_text": source_text,
+            "subject": subj,
+            "predicate_label": pred_label,
+            "subject_label": subj_lbl,
+            "subject_types": subj_types,
         })
     return sorted(claims, key=lambda c: c["predicate_label"])
 
@@ -1143,6 +1168,14 @@ class ClaimItem(ListItem):
         self.claim_data = claim_data
 
 
+class ReverseClaimItem(ListItem):
+    def __init__(self, claim_data: dict) -> None:
+        iri = local_name(str(claim_data['claim']))
+        display = f"[b]{esc(claim_data['subject_label'])}[/b]  →  [dim]{esc(iri)}[/dim]"
+        super().__init__(Label(display, markup=True))
+        self.claim_data = claim_data
+
+
 class SeparatorItem(ListItem):
     def __init__(self, label: str) -> None:
         super().__init__(Label(f"[dim]─── {esc(label)} ───[/dim]", markup=True))
@@ -1260,6 +1293,19 @@ class KGBrowser(App):
         border: tall $panel-lighten-2;
     }
 
+    #to-list-label {
+        background: $secondary;
+        color: $text;
+        padding: 0 1;
+        height: 1;
+        text-style: italic;
+    }
+
+    #to-list {
+        height: 1fr;
+        border: tall $panel-lighten-2;
+    }
+
     ListItem { padding: 0 1; }
     ListItem.--highlight { background: $accent 30%; }
     """
@@ -1308,6 +1354,8 @@ class KGBrowser(App):
             with Vertical(id="left-pane"):
                 yield Static("Type a query and press Enter to search.", id="list-label")
                 yield ListView(id="results-list")
+                yield Static("Claims to…", id="to-list-label")
+                yield ListView(id="to-list")
             with Vertical(id="right-pane"):
                 yield Static("Terms", id="chains-label")
                 yield ListView(id="chains-list")
@@ -1393,36 +1441,47 @@ class KGBrowser(App):
 
         claims = get_claims_for_subject(self.g, node)
         mappings = get_mappings_for_subject(self.g, node)
+        reverse_claims = get_claims_for_object(self.g, node)
         lv = self.query_one("#results-list", ListView)
         lv.clear()
         if not claims and not mappings:
             self._list_label(
                 f"No outgoing claims for [b]{esc(lbl)}[/b].  Ctrl+R to search again."
             )
-            self.state = "claims_list"
-            return
-        matching = self._chains_matching_any(claims, mappings)
-        if matching:
-            self._list_label(
-                f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save term  |  select ⛓ to compose:"
-            )
         else:
-            self._list_label(
-                f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save term:"
-            )
-        for cd in claims:
-            lv.append(ClaimItem(cd))
-        if mappings:
-            lv.append(SeparatorItem("External Mappings"))
-            for md in mappings:
-                lv.append(MappingItem(md))
-        if matching:
-            lv.append(SeparatorItem("Compose with saved term"))
-            for idx, chain in matching:
-                lv.append(ChainTargetItem(chain, idx))
+            matching = self._chains_matching_any(claims, mappings)
+            if matching:
+                self._list_label(
+                    f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save term  |  select ⛓ to compose:"
+                )
+            else:
+                self._list_label(
+                    f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save term:"
+                )
+            for cd in claims:
+                lv.append(ClaimItem(cd))
+            if mappings:
+                lv.append(SeparatorItem("External Mappings"))
+                for md in mappings:
+                    lv.append(MappingItem(md))
+            if matching:
+                lv.append(SeparatorItem("Compose with saved term"))
+                for idx, chain in matching:
+                    lv.append(ChainTargetItem(chain, idx))
+            lv.focus()
+            lv.call_after_refresh(setattr, lv, "index", 0)
+
+        to_lv = self.query_one("#to-list", ListView)
+        to_lv.clear()
+        to_label = self.query_one("#to-list-label", Static)
+        if reverse_claims:
+            to_label.update(f"Claims to [b]{esc(lbl)}[/b] — Enter: follow:")
+            for rc in reverse_claims:
+                to_lv.append(ReverseClaimItem(rc))
+        else:
+            to_label.update(f"Claims to [b]{esc(lbl)}[/b]:")
+
         self.state = "claims_list"
-        lv.focus()
-        lv.call_after_refresh(setattr, lv, "index", 0)
 
     # ── Step helpers ──────────────────────────────────────────────────────────
 
@@ -1505,6 +1564,46 @@ class KGBrowser(App):
             step = self._make_mapping_step(md)
             self._current_steps.append(step)
             self._show_node_and_claims(next_node)
+
+        elif lv_id == "to-list" and isinstance(item, ReverseClaimItem):
+            cd = item.claim_data
+            a_node = cd["subject"]
+            if not isinstance(a_node, rdflib.URIRef):
+                self._list_label("Claim subject is a literal — cannot navigate. Ctrl+R to search again.")
+                return
+            # Prepend a: new term = a · t, type(a · t) = type(t) = T (retained)
+            # Stay at current node T — claims from/to T remain correct.
+            stay_node = self.current_node
+            steps = list(self._current_steps)
+            if not steps and self._chain_prefix is None:
+                # Current term is a bare variable; build a · current_node as one ChainStep
+                self._current_steps = [ChainStep(
+                    subject=a_node,
+                    subject_label=cd["subject_label"],
+                    predicate_label=cd["predicate_label"],
+                    object_node=self.current_node,
+                    object_label=node_label(self.g, self.current_node),
+                    kind="claim",
+                    claim_iri=local_name(str(cd["claim"])),
+                    claim_text=cd.get("claim_text", ""),
+                    object_types=node_types(self.g, self.current_node),
+                )]
+            else:
+                # Fold current state into _chain_prefix; a becomes the new head
+                if self._chain_prefix is not None:
+                    subj = self._chain_prefix_subject or (steps[0].subject if steps else None)
+                    subj_label = node_label(self.g, subj) if subj else ""
+                    if steps:
+                        steps[0] = dc_replace(steps[0], sub_chain=self._chain_prefix,
+                                              subject=subj, subject_label=subj_label)
+                    else:
+                        tail = self._chain_prefix.steps[-1]
+                        steps = [dc_replace(tail, subject=subj, subject_label=subj_label,
+                                            sub_chain=self._chain_prefix)]
+                self._chain_prefix = Chain(steps=steps)
+                self._chain_prefix_subject = a_node
+                self._current_steps.clear()
+            self._show_node_and_claims(stay_node, push_stack=False)
 
         elif self.state == "claims_list" and isinstance(item, ChainTargetItem):
             # Attach selected chain as sub_chain of the last step (or store as prefix
@@ -1609,6 +1708,17 @@ class KGBrowser(App):
         if self.chains and lv.index is None:
             lv.call_after_refresh(setattr, lv, "index", 0)
 
+    def on_key(self, event: events.Key) -> None:
+        to_lv = self.query_one("#to-list", ListView)
+        if not to_lv.has_focus:
+            return
+        if event.key == "left":
+            event.stop()
+            self.action_go_back()
+        elif event.key == "right":
+            event.stop()
+            self.action_show_source()
+
     def action_go_back(self) -> None:
         if self.state != "claims_list" or len(self._nav_stack) < 2:
             return
@@ -1644,6 +1754,15 @@ class KGBrowser(App):
             return
 
         if self.state != "claims_list":
+            return
+        to_lv = self.query_one("#to-list", ListView)
+        if to_lv.has_focus:
+            item = to_lv.highlighted_child
+            if isinstance(item, ReverseClaimItem):
+                claim_text = item.claim_data.get("claim_text", "")
+                source_text = item.claim_data.get("source_text", "")
+                if claim_text:
+                    self.push_screen(ClaimTextModal(claim_text, source_text))
             return
         lv = self.query_one("#results-list", ListView)
         item = lv.highlighted_child
