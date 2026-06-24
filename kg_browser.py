@@ -12,7 +12,7 @@ from typing import Optional, Union
 
 import pyperclip
 import rdflib
-from rdflib.namespace import RDFS
+from rdflib.namespace import RDFS, OWL, SKOS
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.reactive import reactive
@@ -20,11 +20,11 @@ from textual.screen import ModalScreen
 from textual.widgets import Footer, Header, Input, Label, ListItem, ListView, Static
 from textual.containers import VerticalScroll, ScrollableContainer, Horizontal, Vertical
 
-RDF_FILE = Path(__file__).parent / "data" / "ahoj_reduced_external_kb_merged_entities_sourceText.rdf"
-TTL_FILE = Path(__file__).parent / "data" / "ahojdb_paper_kg.ttl"
+TTL_FILE = Path("/home/marek/uochb/ch/paperskg/ahoj-db.ttl")
 LAMBDA_DB = Path(__file__).parent / "data" / "lambda_terms.json"
 
-AHOJ = rdflib.Namespace("https://w3id.org/ahoj/ontology/")
+EX = rdflib.Namespace("https://ahoj-db.org/kg#")
+PROV_ACTIVITY = rdflib.URIRef("http://www.w3.org/ns/prov#Activity")
 
 
 # ── Lambda term data model ────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ def lam_from_dict(d: dict) -> LamTerm:
 
 
 def lam_subst(term: LamTerm, var: LamVar, value: LamTerm) -> LamTerm:
-    """Substitute value for var in term (capture-avoiding, no fresh names needed for ground terms)."""
+    """Substitute value for all free occurrences of var (matched by IRI) in term."""
     if isinstance(term, LamVar):
         return value if term.iri == var.iri else term
     if isinstance(term, LamApp):
@@ -123,7 +123,7 @@ def beta_step(term: LamTerm) -> Optional[LamTerm]:
         if isinstance(term.func, LamAbs):
             # Redex found: (λv.body) arg → body[v := arg]
             return lam_subst(term.func.body, term.func.var, term.arg)
-        # Try func first (leftmost), then arg
+        # Outermost-leftmost: try func first, then arg
         reduced_func = beta_step(term.func)
         if reduced_func is not None:
             return LamApp(func=reduced_func, arg=term.arg)
@@ -232,10 +232,10 @@ def collect_edge_claims(g: rdflib.Graph, term: LamTerm) -> list[dict]:
     for subj_iri, obj_iri in collect_app_edges(term):
         subj = rdflib.URIRef(subj_iri)
         obj  = rdflib.URIRef(obj_iri)
-        for claim in g.subjects(AHOJ.claimSubject, subj):
-            if g.value(claim, AHOJ.claimObject) != obj:
+        for claim in g.subjects(EX.subject, subj):
+            if g.value(claim, EX.object) != obj:
                 continue
-            text = str(g.value(claim, AHOJ.claimText) or "")
+            text = str(g.value(claim, EX.claimText) or "")
             result.append({
                 "subj_iri": subj_iri,
                 "obj_iri": obj_iri,
@@ -258,17 +258,18 @@ def append_lambda_term(chain_label: str, term: LamTerm, g: rdflib.Graph) -> None
 
 def load_graph() -> rdflib.Graph:
     g = rdflib.Graph()
-    if RDF_FILE.exists():
-        g.parse(str(RDF_FILE), format="xml")
-    else:
-        g.parse(str(TTL_FILE), format="turtle")
+    g.parse(str(TTL_FILE), format="turtle")
     return g
 
 
+def local_name(iri: str) -> str:
+    for sep in ("#", "/"):
+        if sep in iri:
+            return iri.rsplit(sep, 1)[-1]
+    return iri
+
+
 def node_label(g: rdflib.Graph, node: rdflib.URIRef) -> str:
-    primary = g.value(node, AHOJ.primaryLabel)
-    if primary:
-        return str(primary)
     label = g.value(node, RDFS.label)
     if label:
         return str(label)
@@ -295,10 +296,15 @@ def search_nodes(g: rdflib.Graph, query: str, limit: int = 20) -> list[rdflib.UR
     if not query_words:
         return []
 
-    ENT_NS = "https://w3id.org/ahoj/entity/"
-    CLAIM_NS = "https://w3id.org/ahoj/claim/"
+    EX_NS  = "https://ahoj-db.org/kg#"
+    PDB_NS = "https://www.rcsb.org/structure/"
 
-    mapping_nodes: set[rdflib.URIRef] = set(g.subjects(rdflib.RDF.type, AHOJ.ExternalMapping))
+    skip_types = (EX.Claim, PROV_ACTIVITY, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.Class)
+    skip_nodes: set[rdflib.URIRef] = set()
+    for typ in skip_types:
+        for node in g.subjects(rdflib.RDF.type, typ):
+            if isinstance(node, rdflib.URIRef):
+                skip_nodes.add(node)
 
     candidates: set[rdflib.URIRef] = set()
     for s, _p, o in g:
@@ -309,34 +315,50 @@ def search_nodes(g: rdflib.Graph, query: str, limit: int = 20) -> list[rdflib.UR
 
     scored: list[tuple[float, rdflib.URIRef]] = []
     for node in candidates:
-        if node in mapping_nodes:
+        if node in skip_nodes:
             continue
         iri = str(node)
-        if iri.startswith(CLAIM_NS):
-            continue
         lbl = node_label(g, node).lower()
-        local = iri.rsplit("/", 1)[-1].replace("_", " ").lower()
-        text = lbl + " " + local
+        loc = local_name(iri).replace("_", " ").lower()
+        text = lbl + " " + loc
         hits = sum(1 for w in query_words if w in text)
         if hits == 0:
             continue
-        boost = 2.0 if iri.startswith(ENT_NS) else 0.0
+        boost = 2.0 if (iri.startswith(EX_NS) or iri.startswith(PDB_NS)) else 0.0
         scored.append((hits + boost, node))
 
     scored.sort(key=lambda x: -x[0])
     return [n for _score, n in scored[:limit]]
 
 
+def _claim_predicate_label(g: rdflib.Graph, subject: rdflib.URIRef,
+                           obj: rdflib.URIRef) -> str:
+    """Find the rdfs:label of the direct predicate between subject and obj."""
+    skip = {rdflib.RDF.type, RDFS.label, RDFS.comment,
+            EX.subject, EX.object, EX.claimText, EX.citation,
+            OWL.sameAs, SKOS.exactMatch}
+    for pred in g.predicates(subject, obj):
+        if pred in skip:
+            continue
+        lbl = g.value(pred, RDFS.label)
+        if lbl:
+            return str(lbl)
+        return local_name(str(pred)).replace("_", " ")
+    return "related to"
+
+
 def get_claims_for_subject(g: rdflib.Graph, subject: rdflib.URIRef) -> list[dict]:
     claims = []
-    for claim in g.subjects(AHOJ.claimSubject, subject):
-        claim_text = str(g.value(claim, AHOJ.claimText) or "")
-        source_text = str(g.value(claim, AHOJ.sourceText) or "")
-        obj = g.value(claim, AHOJ.claimObject)
-        pred = g.value(claim, AHOJ.claimPredicate)
-        pred_label = str(pred).rsplit("/", 1)[-1].replace("_", " ") if pred else "?"
+    for claim in g.subjects(EX.subject, subject):
+        claim_text = str(g.value(claim, EX.claimText) or "")
+        source_text = str(g.value(claim, EX.citation) or "")
+        obj = g.value(claim, EX.object)
         obj_lbl = node_label(g, obj) if isinstance(obj, rdflib.URIRef) else str(obj or "?")
         obj_types = node_types(g, obj) if isinstance(obj, rdflib.URIRef) else frozenset()
+        pred_label = (
+            _claim_predicate_label(g, subject, obj)
+            if isinstance(obj, rdflib.URIRef) else "?"
+        )
         claims.append({
             "claim": claim,
             "claim_text": claim_text,
@@ -351,22 +373,20 @@ def get_claims_for_subject(g: rdflib.Graph, subject: rdflib.URIRef) -> list[dict
 
 def get_mappings_for_subject(g: rdflib.Graph, subject: rdflib.URIRef) -> list[dict]:
     mappings = []
-    for mapping in g.subjects(AHOJ.mappingSubject, subject):
-        obj = g.value(mapping, AHOJ.mappingObject)
-        pred = g.value(mapping, AHOJ.mappingPredicate)
-        pred_label = str(pred).rsplit("#", 1)[-1].rsplit("/", 1)[-1].replace("_", " ") if pred else "?"
-        obj_lbl = node_label(g, obj) if isinstance(obj, rdflib.URIRef) else str(obj or "?")
-        obj_types = node_types(g, obj) if isinstance(obj, rdflib.URIRef) else frozenset()
-        if pred is None or "exactMatch" not in str(pred):
-            continue
-        mappings.append({
-            "mapping": mapping,
-            "object": obj,
-            "predicate_label": pred_label,
-            "object_label": obj_lbl,
-            "object_types": obj_types,
-            "is_exact": True,
-        })
+    for pred_uri, pred_label in ((OWL.sameAs, "sameAs"), (SKOS.exactMatch, "exactMatch")):
+        for obj in g.objects(subject, pred_uri):
+            if not isinstance(obj, rdflib.URIRef):
+                continue
+            obj_lbl = node_label(g, obj)
+            obj_types = node_types(g, obj)
+            mappings.append({
+                "mapping": obj,
+                "object": obj,
+                "predicate_label": pred_label,
+                "object_label": obj_lbl,
+                "object_types": obj_types,
+                "is_exact": True,
+            })
     return sorted(mappings, key=lambda m: m["predicate_label"])
 
 
@@ -454,7 +474,7 @@ class ClaimTextModal(ModalScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Close"),
         Binding("q", "dismiss", "Close"),
-        Binding("right", "to_source", "Source text"),
+        Binding("right", "to_source", "Citation"),
         Binding("left", "dismiss", "Back to claims"),
         Binding("c", "copy", "Copy"),
     ]
@@ -465,7 +485,7 @@ class ClaimTextModal(ModalScreen):
         self._source_text = source_text
 
     def compose(self) -> ComposeResult:
-        hint = "→ source  |  ← back  |  c copy  |  Esc close"
+        hint = "→ citation  |  ← back  |  c copy  |  Esc close"
         with ScrollableContainer(id="modal-container"):
             yield Static(f"Claim Text  [dim]({hint})[/dim]", id="modal-title", markup=True)
             yield Static(esc(self._claim_text), id="modal-body")
@@ -497,7 +517,7 @@ class SourceTextModal(ModalScreen):
     def compose(self) -> ComposeResult:
         hint = "← back  |  c copy  |  Esc close"
         with ScrollableContainer(id="modal-container"):
-            yield Static(f"Source Text  [dim]({hint})[/dim]", id="modal-title", markup=True)
+            yield Static(f"Citation  [dim]({hint})[/dim]", id="modal-title", markup=True)
             yield Static(esc(self._source_text), id="modal-body")
 
     def action_copy(self) -> None:
@@ -674,7 +694,6 @@ def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
         edge_claims = claims_by_edge.get((rf.iri, ra.iri), []) if rf and ra else []
 
         lines.append(f"{prefix}{connector}[yellow]·[/yellow]")
-        # func first, then claims, then arg
         _render_lam_body(term.func, lines, claims_by_edge, child_prefix, is_last=False)
         for ct in edge_claims:
             lines.extend(_wrap_claim(ct, child_prefix))
@@ -710,39 +729,38 @@ def _collect_var_iris(term: LamTerm) -> list[str]:
 
 
 def _make_ontology_term() -> LamTerm:
-    """Build the fixed ontology demo term: g·((f·h)·c)·d (left-assoc)."""
-    def v(local: str, label: str) -> LamVar:
-        return LamVar(iri=f"https://w3id.org/ahoj/entity/{local}", label=label)
-    g = v("Ligand",                           "Ligand")
-    f = v("Binding_pocket",                   "Binding pocket")
-    h = v("Protein_structure",                "Protein structure")
-    c = v("Machine_learning_tool_development","Machine learning tool development")
-    d = v("Protein_structure",                "Protein structure")
-    # g · ((f · h) · c) · d  =  ((g · ((f·h)·c)) · d)
-    inner = LamApp(func=LamApp(func=f, arg=h), arg=c)
-    return LamApp(func=LamApp(func=g, arg=inner), arg=d)
+    """Build: (λb.(((λa.g(a·f))·b)·c)·d) · (λe.(e·h)).
+
+    Every application node has a matching claim (7 total, all distinct):
+      (a, f)  AHoJ  → BindingPocket    C04
+      (g, f)  1FNP  → BindingPocket    C17
+      (a, b)  AHoJ  → AHoJDB           C02  [λa redex]
+      (b, c)  AHoJDB→ BindingPocket    C12+C13
+      (c, d)  BindingPocket → AHoJDB   C05
+      (b, e)  AHoJDB→ ApoForm          C06  [λb redex]
+      (e, h)  ApoForm → CrypticSite    C08
+    """
+    EX  = "https://ahoj-db.org/kg#"
+    PDB = "https://www.rcsb.org/structure/"
+    def v(iri: str, label: str) -> LamVar:
+        return LamVar(iri=iri, label=label)
+    a = v(EX+"AHoJ",         "AHoJ")
+    b = v(EX+"AHoJDB",       "AHoJ-DB")        # bound in λb
+    c = v(EX+"BindingPocket","binding pocket")
+    d = v(EX+"AHoJDB",       "AHoJ-DB")        # free; same IRI as b
+    e = v(EX+"ApoForm",      "apo form")        # bound in λe
+    f = v(EX+"BindingPocket","binding pocket")  # free; same IRI as c
+    g = v(PDB+"1FNP",        "1FNP")
+    h = v(EX+"CrypticSite",  "cryptic site")
+    lam_a = LamAbs(var=a, body=LamApp(func=g, arg=LamApp(func=a, arg=f)))
+    lam_b = LamAbs(var=b, body=LamApp(
+        func=LamApp(func=LamApp(func=lam_a, arg=b), arg=c), arg=d))
+    lam_e = LamAbs(var=e, body=LamApp(func=e, arg=h))
+    return LamApp(func=lam_b, arg=lam_e)
 
 
 def _make_beta_term() -> LamTerm:
-    """Build (λb.(((λa.g(af))·b)·c)·d) · (λe.(e·h)) for beta reduction demo."""
-    def v(local: str, label: str) -> LamVar:
-        return LamVar(iri=f"https://w3id.org/ahoj/entity/{local}", label=label)
-    a = v("Protein_conformational_variability", "Protein conformational variability")
-    b = v("AHoJ_DB",                            "AHoJ DB")
-    c = v("Machine_learning_tool_development",  "Machine learning tool development")
-    d = v("Protein_structure",                  "Protein structure")
-    e = v("Drug_design_and_docking",            "Drug design and docking")
-    g = v("Ligand",                             "Ligand")
-    f = v("Binding_pocket",                     "Binding pocket")
-    h = v("Protein_structure",                  "Protein structure")
-    # λa.(g·(a·f))
-    lam_a = LamAbs(var=a, body=LamApp(func=g, arg=LamApp(func=a, arg=f)))
-    # λb.(((λa.g(af))·b)·c)·d
-    lam_b = LamAbs(var=b, body=LamApp(
-        func=LamApp(func=LamApp(func=lam_a, arg=b), arg=c), arg=d))
-    # λe.(e·h)
-    lam_e = LamAbs(var=e, body=LamApp(func=e, arg=h))
-    return LamApp(func=lam_b, arg=lam_e)
+    return _make_ontology_term()
 
 
 ONTOLOGY_CSS = """
@@ -869,7 +887,7 @@ class OntologyModal(ModalScreen):
 
     def compose(self) -> ComposeResult:
         hint = "d: β-reduction  |  Esc close"
-        term = _make_beta_term()
+        term = _make_ontology_term()
         claims = collect_edge_claims(self._g, term)
         claims_by_edge: dict[tuple[str, str], list[str]] = {}
         for c in claims:
@@ -1013,19 +1031,7 @@ class LambdaDetailModal(ModalScreen):
                 body = term.body
             else:
                 body = term
-            # Render root node without a connector, children with box-drawing
-            if isinstance(body, LamVar):
-                lines.append(f"[b]{esc(body.label)}[/b]")
-            elif isinstance(body, LamApp):
-                rf = _rep_var(body.func)
-                ra = _rep_var(body.arg)
-                lines.append("[yellow]·[/yellow]")
-                _render_lam_body(body.func, lines, claims_by_edge, prefix="", is_last=False)
-                for ct in claims_by_edge.get((rf.iri if rf else None, ra.iri if ra else None), []):
-                    lines.append(f"  [dim]{esc(ct)}[/dim]")
-                _render_lam_body(body.arg,  lines, claims_by_edge, prefix="", is_last=True)
-            else:
-                _render_lam_body(body, lines, claims_by_edge, prefix="", is_last=True)
+            _render_lam_root(body, claims_by_edge, lines)
             yield Static("\n".join(lines), id="ld-body", markup=True)
 
 
@@ -1131,7 +1137,7 @@ class LambdaBrowserModal(ModalScreen):
 
 class ClaimItem(ListItem):
     def __init__(self, claim_data: dict) -> None:
-        iri = str(claim_data['claim']).rsplit("/", 1)[-1]
+        iri = local_name(str(claim_data['claim']))
         display = f"[b]{esc(claim_data['predicate_label'])}[/b]  →  {esc(claim_data['object_label'])}  [dim]{esc(iri)}[/dim]"
         super().__init__(Label(display, markup=True))
         self.claim_data = claim_data
@@ -1145,7 +1151,7 @@ class SeparatorItem(ListItem):
 
 class MappingItem(ListItem):
     def __init__(self, mapping_data: dict) -> None:
-        iri = str(mapping_data['mapping']).rsplit("/", 1)[-1]
+        iri = local_name(str(mapping_data['object']))
         display = (
             f"[b]{esc(mapping_data['predicate_label'])}[/b]"
             f"  →  {esc(mapping_data['object_label'])}"
@@ -1428,7 +1434,7 @@ class KGBrowser(App):
             object_node=cd["object"],
             object_label=cd["object_label"],
             kind="claim",
-            claim_iri=str(cd["claim"]).rsplit("/", 1)[-1],
+            claim_iri=local_name(str(cd["claim"])),
             claim_text=cd.get("claim_text", ""),
             object_types=cd["object_types"],
         )
@@ -1441,7 +1447,7 @@ class KGBrowser(App):
             object_node=md["object"],
             object_label=md["object_label"],
             kind="mapping",
-            claim_iri=str(md["mapping"]).rsplit("/", 1)[-1],
+            claim_iri=local_name(str(md["object"])),
             object_types=md["object_types"],
         )
 

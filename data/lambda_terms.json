@@ -145,5 +145,38 @@
         "claim_text": "Protein conformational variability shapes the binding pocket: differences in side-chain and backbone geometry between apo and holo states directly alter pocket volume, shape, and electrostatic environment."
       }
     ]
+  },
+  {
+    "chain_label": "apo form \u2192 cryptic binding site",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#ApoForm",
+        "label": "apo form"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#ApoForm",
+          "label": "apo form"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#CrypticSite",
+          "label": "cryptic binding site"
+        }
+      }
+    },
+    "term_str": "\u03bbapo form.(apo form \u00b7 cryptic binding site)",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#ApoForm",
+        "obj_iri": "https://ahoj-db.org/kg#CrypticSite",
+        "claim_iri": "https://ahoj-db.org/kg#C08",
+        "claim_text": "The 40% higher pocket RMSD of apo pockets compared to holo pockets hints at the existence of cryptic binding sites \u2014 pockets that are hidden in the apo state and open upon ligand binding."
+      }
+    ]
   }
 ]
