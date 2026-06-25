@@ -6,13 +6,13 @@ from __future__ import annotations
 import json
 import shutil
 import textwrap
-from dataclasses import dataclass, field, replace as dc_replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
 
 import pyperclip
 import rdflib
-from rdflib.namespace import RDFS, OWL, SKOS
+from rdflib.namespace import RDFS, OWL, SKOS, DCTERMS
 from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -23,6 +23,7 @@ from textual.containers import VerticalScroll, ScrollableContainer, Horizontal, 
 
 TTL_FILE = Path("/home/marek/uochb/ch/paperskg/ahoj-db.ttl")
 LAMBDA_DB = Path(__file__).parent / "data" / "lambda_terms.json"
+READINGS_DB = Path(__file__).parent / "data" / "readings.json"
 
 EX = rdflib.Namespace("https://ahoj-db.org/kg#")
 PROV_ACTIVITY = rdflib.URIRef("http://www.w3.org/ns/prov#Activity")
@@ -151,29 +152,6 @@ def beta_reduce_sequence(term: LamTerm, max_steps: int = 32) -> list[LamTerm]:
     return steps
 
 
-def chain_to_lam(chain: "Chain") -> LamTerm:
-    """Convert a chain's binary tree into a lambda application term."""
-    def step_to_lam(step: "ChainStep") -> LamTerm:
-        subj = LamVar(iri=str(step.subject), label=step.subject_label)
-        obj = LamVar(iri=str(step.object_node), label=step.object_label)
-        if step.sub_chain:
-            sub_term = chain_to_lam(step.sub_chain)
-            func = LamApp(func=LamApp(func=subj, arg=sub_term), arg=obj)
-        else:
-            func = LamApp(func=subj, arg=obj)
-        return func
-
-    if not chain.steps:
-        raise ValueError("Cannot convert empty chain to lambda term")
-
-    # Build left-associative application across steps
-    term: LamTerm = step_to_lam(chain.steps[0])
-    for step in chain.steps[1:]:
-        obj = LamVar(iri=str(step.object_node), label=step.object_label)
-        term = LamApp(func=term, arg=obj)
-    return term
-
-
 def load_lambda_db() -> list[dict]:
     if LAMBDA_DB.exists():
         return json.loads(LAMBDA_DB.read_text())
@@ -183,6 +161,19 @@ def load_lambda_db() -> list[dict]:
 def save_lambda_db(records: list[dict]) -> None:
     LAMBDA_DB.parent.mkdir(parents=True, exist_ok=True)
     LAMBDA_DB.write_text(json.dumps(records, indent=2))
+
+
+def load_readings_db() -> list[tuple[str, LamTerm]]:
+    if READINGS_DB.exists():
+        data = json.loads(READINGS_DB.read_text())
+        return [(r["name"], lam_from_dict(r["term"])) for r in data]
+    return []
+
+
+def save_readings_db(readings: list[tuple[str, LamTerm]]) -> None:
+    READINGS_DB.parent.mkdir(parents=True, exist_ok=True)
+    data = [{"name": name, "term": lam_to_dict(term)} for name, term in readings]
+    READINGS_DB.write_text(json.dumps(data, indent=2))
 
 
 def _rightmost_var(t: LamTerm) -> Optional[LamVar]:
@@ -229,6 +220,7 @@ def collect_app_edges(term: LamTerm) -> list[tuple[str, str]]:
 
 def collect_edge_claims(g: rdflib.Graph, term: LamTerm) -> list[dict]:
     """For each APP edge in term, collect all matching claims from the graph."""
+    seen_claims: set[str] = set()
     result: list[dict] = []
     for subj_iri, obj_iri in collect_app_edges(term):
         subj = rdflib.URIRef(subj_iri)
@@ -236,20 +228,24 @@ def collect_edge_claims(g: rdflib.Graph, term: LamTerm) -> list[dict]:
         for claim in g.subjects(EX.subject, subj):
             if g.value(claim, EX.object) != obj:
                 continue
+            claim_iri = str(claim)
+            if claim_iri in seen_claims:
+                continue
+            seen_claims.add(claim_iri)
             text = str(g.value(claim, EX.claimText) or "")
             result.append({
                 "subj_iri": subj_iri,
                 "obj_iri": obj_iri,
-                "claim_iri": str(claim),
+                "claim_iri": claim_iri,
                 "claim_text": text,
             })
     return result
 
 
-def append_lambda_term(chain_label: str, term: LamTerm, g: rdflib.Graph) -> None:
+def append_lambda_term(name: str, term: LamTerm, g: rdflib.Graph) -> None:
     records = load_lambda_db()
     records.append({
-        "chain_label": chain_label,
+        "chain_label": name,
         "term": lam_to_dict(term),
         "term_str": str(term),
         "claims": collect_edge_claims(g, term),
@@ -281,6 +277,11 @@ def node_label(g: rdflib.Graph, node: rdflib.URIRef) -> str:
     return iri
 
 
+def node_description(g: rdflib.Graph, node: rdflib.URIRef) -> str:
+    desc = g.value(node, DCTERMS.description)
+    return str(desc) if desc else ""
+
+
 def node_types(g: rdflib.Graph, node: rdflib.URIRef) -> frozenset[str]:
     return frozenset(
         str(t).rsplit("/", 1)[-1].rsplit("#", 1)[-1]
@@ -300,7 +301,7 @@ def search_nodes(g: rdflib.Graph, query: str, limit: int = 20) -> list[rdflib.UR
     EX_NS  = "https://ahoj-db.org/kg#"
     PDB_NS = "https://www.rcsb.org/structure/"
 
-    skip_types = (EX.Claim, PROV_ACTIVITY, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.Class)
+    skip_types = (EX.Claim, PROV_ACTIVITY, OWL.ObjectProperty, OWL.DatatypeProperty)
     skip_nodes: set[rdflib.URIRef] = set()
     for typ in skip_types:
         for node in g.subjects(rdflib.RDF.type, typ):
@@ -415,59 +416,55 @@ def get_mappings_for_subject(g: rdflib.Graph, subject: rdflib.URIRef) -> list[di
     return sorted(mappings, key=lambda m: m["predicate_label"])
 
 
-# ── Chain data model ──────────────────────────────────────────────────────────
-
-@dataclass
-class ChainStep:
-    subject: rdflib.URIRef
-    subject_label: str
-    predicate_label: str
-    object_node: rdflib.URIRef
-    object_label: str
-    kind: str  # "claim" or "mapping"
-    claim_iri: str = ""
-    claim_text: str = ""
-    object_types: frozenset = field(default_factory=frozenset)
-    # sub-chain attached at this node (composited saved chain)
-    sub_chain: Optional["Chain"] = None
+def _term_type(t: LamTerm) -> Optional[str]:
+    """Return the type IRI of term t under the rules:
+      [var]       = var.iri
+      [(a b)]     = [b]
+      [(lam a) t] = a.iri   (beta-head: abstraction applied — type is bound var)
+    """
+    while isinstance(t, LamApp):
+        if isinstance(t.func, LamAbs):
+            return t.func.var.iri
+        t = t.arg
+    if isinstance(t, LamVar):
+        return t.iri
+    return None
 
 
-@dataclass
-class Chain:
-    steps: list[ChainStep] = field(default_factory=list)
-
-    @property
-    def tail_types(self) -> frozenset[str]:
-        return self.steps[-1].object_types if self.steps else frozenset()
-
-    @property
-    def label(self) -> str:
-        return _chain_label(self)
-
-    @property
-    def type_label(self) -> str:
-        types = self.steps[-1].object_types if self.steps else frozenset()
-        return ", ".join(sorted(types)) if types else "?"
+def _leftmost_var(t: LamTerm) -> Optional[LamVar]:
+    """Walk the left spine to find the leftmost VAR."""
+    while isinstance(t, LamApp):
+        t = t.func
+    return t if isinstance(t, LamVar) else None
 
 
-def _chain_label(chain: "Chain") -> str:
-    if not chain.steps:
-        return "(empty)"
-    parts = []
-    for i, step in enumerate(chain.steps):
-        if i == 0:
-            parts.append(step.subject_label)
-        if step.sub_chain:
-            parts.append(f"({_chain_label(step.sub_chain)})")
-        parts.append(step.object_label)
-    return " → ".join(parts)
+def _top_claim_name(g: rdflib.Graph, term: LamTerm) -> str:
+    """Return a predefined reading name from the top-level APP of term.
+
+    Subject = leftmost var of the whole term (head entity).
+    Object   = direct arg of the top APP (tail entity).
+    Predicate = claim predicate between subject and object.
+    """
+    if not isinstance(term, LamApp):
+        rv = _rep_var(term)
+        return rv.label if rv else ""
+    subj = _leftmost_var(term)
+    obj = _rep_var(term.arg)
+    if not subj or not obj:
+        return ""
+    pred = _claim_predicate_label(g, rdflib.URIRef(subj.iri), rdflib.URIRef(obj.iri))
+    return f"'{subj.label}' '{pred}' '{obj.label}'"
 
 
 # ── Widgets ───────────────────────────────────────────────────────────────────
 
 class NodeItem(ListItem):
-    def __init__(self, node: rdflib.URIRef, label: str) -> None:
-        super().__init__(Label(esc(label)))
+    def __init__(self, node: rdflib.URIRef, label: str, description: str = "") -> None:
+        if description:
+            content = f"{esc(label)}\n[dim]{esc(description)}[/dim]"
+        else:
+            content = esc(label)
+        super().__init__(Label(content, markup=True))
         self.node = node
 
 
@@ -550,27 +547,7 @@ class SourceTextModal(ModalScreen):
         self.notify("Source text copied")
 
 
-def _render_chain(chain: Chain, lines: list, indent: int) -> None:
-    pad = "  " * indent
-    for i, step in enumerate(chain.steps):
-        kind_tag = "[dim]claim[/dim]" if step.kind == "claim" else "[dim]exactMatch[/dim]"
-        # Show subject only for first step (subsequent steps share subject with prev object)
-        if i == 0:
-            lines.append(f"{pad}[b]{esc(step.subject_label)}[/b]")
-        iri_tag = f"  [dim]{esc(step.claim_iri)}[/dim]" if step.claim_iri else ""
-        if step.sub_chain:
-            lines.append(f"{pad}  [yellow]╠═ branch:[/yellow]")
-            _render_chain(step.sub_chain, lines, indent + 2)
-            lines.append(f"{pad}  [yellow]╚═[/yellow]  [i]{esc(step.predicate_label)}[/i]  →  [b]{esc(step.object_label)}[/b]  {kind_tag}{iri_tag}")
-        else:
-            lines.append(f"{pad}  [i]{esc(step.predicate_label)}[/i]  →  [b]{esc(step.object_label)}[/b]  {kind_tag}{iri_tag}")
-        if step.claim_text:
-            lines.append(f"{pad}    [dim]{esc(step.claim_text)}[/dim]")
-        if i + 1 < len(chain.steps):
-            lines.append(f"{pad}[b]{esc(step.object_label)}[/b]")
-
-
-class ChainDetailModal(ModalScreen):
+class ReadingDetailModal(ModalScreen):
     CSS = MODAL_CSS
 
     BINDINGS = [
@@ -579,25 +556,27 @@ class ChainDetailModal(ModalScreen):
         Binding("left", "dismiss", "Close"),
     ]
 
-    def __init__(self, chain: Chain, g: rdflib.Graph) -> None:
+    def __init__(self, name: str, term: LamTerm, g: rdflib.Graph) -> None:
         super().__init__()
-        self._chain = chain
+        self._name = name
+        self._term = term
         self._g = g
 
     def compose(self) -> ComposeResult:
-        term = chain_to_lam(self._chain)
-        claims = collect_edge_claims(self._g, term)
+        type_iri = _term_type(self._term)
+        type_lbl = local_name(type_iri) if type_iri else "?"
+        claims = collect_edge_claims(self._g, self._term)
         claims_by_edge: dict[tuple[str, str], list[str]] = {}
         for c in claims:
             key = (c["subj_iri"], c["obj_iri"])
             claims_by_edge.setdefault(key, []).append(c["claim_text"])
         with ScrollableContainer(id="modal-container"):
             yield Static(
-                f"Term: [b]{esc(self._chain.label)}[/b]  [dim](type: {esc(self._chain.type_label)}  |  Esc close)[/dim]",
+                f"Reading: [b]{esc(self._name)}[/b]  [dim](type: {esc(type_lbl)}  |  Esc close)[/dim]",
                 id="modal-title", markup=True,
             )
             lines: list[str] = []
-            _render_lam_root(term, claims_by_edge, lines)
+            _render_lam_root(self._term, claims_by_edge, lines)
             yield Static("\n".join(lines), id="modal-body", markup=True)
 
 
@@ -636,14 +615,13 @@ class LambdaAbstractionModal(ModalScreen):
         Binding("escape", "dismiss", "Cancel"),
     ]
 
-    def __init__(self, g: rdflib.Graph, chain: "Chain") -> None:
+    def __init__(self, g: rdflib.Graph, term: LamTerm) -> None:
         super().__init__()
         self._g = g
-        self._chain = chain
+        self._term = term
         self._candidates: list[rdflib.URIRef] = []
 
     def compose(self) -> ComposeResult:
-        chain_term = chain_to_lam(self._chain)
         hint = "type to search  |  ↑↓ navigate  |  Enter select  |  Esc cancel"
         with Vertical(id="lambda-container"):
             yield Static(
@@ -683,7 +661,7 @@ class LambdaAbstractionModal(ModalScreen):
         item = event.item
         if not isinstance(item, NodeItem):
             return
-        chain_term = chain_to_lam(self._chain)
+        chain_term = self._term
         var = LamVar(iri=str(item.node), label=node_label(self._g, item.node))
         abs_term = LamAbs(var=var, body=chain_term)
         self.dismiss(abs_term)
@@ -749,8 +727,6 @@ def _collect_var_iris(term: LamTerm) -> list[str]:
     if isinstance(term, LamAbs):
         return [term.var.iri] + _collect_var_iris(term.body)
     return []
-
-
 
 
 def _make_ontology_term() -> LamTerm:
@@ -1171,7 +1147,11 @@ class ClaimItem(ListItem):
 class ReverseClaimItem(ListItem):
     def __init__(self, claim_data: dict) -> None:
         iri = local_name(str(claim_data['claim']))
-        display = f"[b]{esc(claim_data['subject_label'])}[/b]  →  [dim]{esc(iri)}[/dim]"
+        display = (
+            f"[b]{esc(claim_data['subject_label'])}[/b]"
+            f"  →  {esc(claim_data['predicate_label'])}"
+            f"  [dim]{esc(iri)}[/dim]"
+        )
         super().__init__(Label(display, markup=True))
         self.claim_data = claim_data
 
@@ -1195,27 +1175,96 @@ class MappingItem(ListItem):
 
 
 class ChainTargetItem(ListItem):
-    """Represents an existing chain that can receive the current step."""
-    def __init__(self, chain: Chain, chain_index: int) -> None:
-        display = (
-            f"[yellow]⛓[/yellow]  [b]{esc(chain.label)}[/b]"
-            f"  [dim]({esc(chain.type_label)})[/dim]"
-        )
+    """Represents an existing reading that can be composed with the current term."""
+    def __init__(self, name: str, term: LamTerm, chain_index: int,
+                 predicate_label: str = "", claim_iri: str = "",
+                 reverse: bool = False) -> None:
+        iri_part = f"  [dim]{esc(claim_iri)}[/dim]" if claim_iri else ""
+        if reverse:
+            display = (
+                f"[yellow]⛓[/yellow] [b]{esc(name)}[/b]"
+                f"  →  {esc(predicate_label)}{iri_part}"
+            )
+        else:
+            display = (
+                f"[b]{esc(predicate_label)}[/b]"
+                f"  →  [yellow]⛓[/yellow] {esc(name)}{iri_part}"
+            )
         super().__init__(Label(display, markup=True))
-        self.chain = chain
-        self.chain_index = chain_index
+        self.reading_name = name
+        self.reading_term = term
+        self.reading_index = chain_index
 
 
-class ChainListItem(ListItem):
-    """Represents a chain in the chains panel."""
-    def __init__(self, chain: Chain, chain_index: int) -> None:
-        display = (
-            f"[yellow]⛓[/yellow] [b]{esc(chain.label)}[/b]"
-            f"  [dim]{esc(chain.type_label)}[/dim]"
-        )
+class ReadingItem(ListItem):
+    def __init__(self, name: str, term: LamTerm, index: int) -> None:
+        type_iri = _term_type(term)
+        type_lbl = local_name(type_iri) if type_iri else "?"
+        display = f"[yellow]⛓[/yellow] [b]{esc(name)}[/b]  [dim]{esc(str(term))}  {esc(type_lbl)}[/dim]"
         super().__init__(Label(display, markup=True))
-        self.chain = chain
-        self.chain_index = chain_index
+        self.reading_name = name
+        self.reading_term = term
+        self.reading_index = index
+
+
+NAME_READING_CSS = """
+Screen {
+    align: center middle;
+}
+#nr-container {
+    width: 60%;
+    height: auto;
+    background: $surface;
+    border: thick $success;
+    padding: 1 2;
+}
+#nr-title {
+    text-style: bold;
+    color: $success;
+    padding-bottom: 1;
+}
+#nr-input {
+    height: 3;
+    border: tall $success;
+}
+#nr-term {
+    color: $text-muted;
+    padding-top: 1;
+}
+"""
+
+
+class NameReadingModal(ModalScreen):
+    CSS = NAME_READING_CSS
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Cancel"),
+    ]
+
+    def __init__(self, default_name: str, term_str: str = "") -> None:
+        super().__init__()
+        self._default_name = default_name
+        self._term_str = term_str
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="nr-container"):
+            yield Static(
+                "Save reading  [dim](Enter to confirm · Esc to cancel)[/dim]",
+                id="nr-title", markup=True,
+            )
+            yield Input(value=self._default_name, id="nr-input")
+            if self._term_str:
+                yield Static(esc(self._term_str), id="nr-term", markup=True)
+
+    def on_mount(self) -> None:
+        inp = self.query_one("#nr-input", Input)
+        inp.focus()
+        inp.cursor_position = len(self._default_name)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        name = event.value.strip()
+        if name:
+            self.dismiss(name)
 
 
 # ── Application ───────────────────────────────────────────────────────────────
@@ -1268,7 +1317,7 @@ class KGBrowser(App):
         background: $surface;
     }
 
-    #chains-label {
+    #readings-label {
         background: $secondary;
         color: $text;
         padding: 0 1;
@@ -1276,7 +1325,7 @@ class KGBrowser(App):
         text-style: bold;
     }
 
-    #chains-list {
+    #readings-list {
         height: 1fr;
     }
 
@@ -1312,11 +1361,11 @@ class KGBrowser(App):
 
     BINDINGS = [
         Binding("ctrl+r", "reset", "New search"),
-        Binding("right", "show_source", "Claim text / Chain detail", show=True),
+        Binding("right", "show_source", "Claim text / Reading detail", show=True),
         Binding("left", "go_back", "Back", show=True),
         Binding("c", "copy_item", "Copy IRI", show=True),
-        Binding("tab", "focus_chains", "Terms panel", show=True),
-        Binding("s", "save_chain", "Save term", show=True),
+        Binding("tab", "focus_readings", "Readings panel", show=True),
+        Binding("s", "save_reading", "Save reading", show=True),
         Binding("a", "lambda_abstraction", "Ask question", show=True),
         Binding("o", "ontology_view", "Ontology", show=True),
         Binding("b", "lambda_browser", "λ-browser", show=True),
@@ -1330,18 +1379,16 @@ class KGBrowser(App):
         self.g = load_graph()
         self.current_node: Optional[rdflib.URIRef] = None
         self._nav_stack: list[rdflib.URIRef] = []
-        self.chains: list[Chain] = []
-        self._current_steps: list[ChainStep] = []  # steps taken in current navigation path
-        self._pending_step: Optional[ChainStep] = None
-        self._chain_prefix: Optional[Chain] = None  # chain selected before any steps taken
-        self._chain_prefix_subject: Optional[rdflib.URIRef] = None  # node where prefix was selected
+        self.readings: list[tuple[str, LamTerm]] = load_readings_db()
+        self._current_term: Optional[LamTerm] = None    # term being built; None = bare current_node
+        self._term_history: list[tuple[Optional[LamTerm], rdflib.URIRef]] = []
 
     # ── Layout ────────────────────────────────────────────────────────────────
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
         yield Static(
-            "AHoJ Knowledge Graph Browser  |  Ctrl+R: new search  |  Tab: chains panel  |  Q: quit",
+            "AHoJ Knowledge Graph Browser  |  Ctrl+R: new search  |  Tab: readings panel  |  Q: quit",
             id="title-bar",
         )
         yield Input(
@@ -1357,36 +1404,50 @@ class KGBrowser(App):
                 yield Static("Claims to…", id="to-list-label")
                 yield ListView(id="to-list")
             with Vertical(id="right-pane"):
-                yield Static("Terms", id="chains-label")
-                yield ListView(id="chains-list")
+                yield Static("Readings", id="readings-label")
+                yield ListView(id="readings-list")
         yield Footer()
 
     def on_mount(self) -> None:
+        self._refresh_readings_panel()
         self.query_one("#search-box", Input).focus()
+
+    # ── Search panel visibility ───────────────────────────────────────────────
+
+    def _show_search(self) -> None:
+        inp = self.query_one("#search-box", Input)
+        inp.display = True
+        inp.disabled = False
+        inp.focus()
+
+    def _hide_search(self) -> None:
+        inp = self.query_one("#search-box", Input)
+        inp.display = False
+        inp.disabled = True
+
+    # ── Helper: current term ──────────────────────────────────────────────────
+
+    def _current_term_as_lam(self) -> LamTerm:
+        """Return _current_term if set, else LamVar for the current node."""
+        if self._current_term is not None:
+            return self._current_term
+        return LamVar(
+            iri=str(self.current_node),
+            label=node_label(self.g, self.current_node),
+        )
 
     # ── History tree ──────────────────────────────────────────────────────────
 
     def _refresh_history_tree(self) -> None:
         widget = self.query_one("#history-tree", Static)
-        steps = list(self._current_steps)
-        if not steps and self._chain_prefix is None:
-            if self.current_node:
-                lbl = node_label(self.g, self.current_node)
-                widget.update(f"[b]{esc(lbl)}[/b]")
-            else:
-                widget.update("")
+        if not self.current_node:
+            widget.update("")
             return
-        if self._chain_prefix is not None:
-            # Build c · prefix_term [· step1_obj · …] directly
-            c_var = LamVar(
-                iri=str(self._chain_prefix_subject),
-                label=node_label(self.g, self._chain_prefix_subject),
-            )
-            term: LamTerm = LamApp(func=c_var, arg=chain_to_lam(self._chain_prefix))
-            for step in steps:
-                term = LamApp(func=term, arg=LamVar(iri=str(step.object_node), label=step.object_label))
-        else:
-            term = chain_to_lam(Chain(steps=steps))
+        if self._current_term is None:
+            lbl = node_label(self.g, self.current_node)
+            widget.update(f"[b]{esc(lbl)}[/b]")
+            return
+        term = self._current_term
         claims = collect_edge_claims(self.g, term)
         claims_by_edge: dict[tuple[str, str], list[str]] = {}
         for c in claims:
@@ -1402,33 +1463,57 @@ class KGBrowser(App):
     def _list_label(self, markup: str) -> None:
         self.query_one("#list-label", Static).update(markup)
 
-    # ── Chains panel helpers ──────────────────────────────────────────────────
+    # ── Readings panel helpers ────────────────────────────────────────────────
 
-    def _refresh_chains_panel(self) -> None:
-        lv = self.query_one("#chains-list", ListView)
+    def _refresh_readings_panel(self) -> None:
+        lv = self.query_one("#readings-list", ListView)
         prev_index = lv.index
         lv.clear()
-        for i, chain in enumerate(self.chains):
-            lv.append(ChainListItem(chain, i))
-        if self.chains:
-            target = min(prev_index or 0, len(self.chains) - 1)
+        for i, (name, term) in enumerate(self.readings):
+            lv.append(ReadingItem(name, term, i))
+        if self.readings:
+            target = min(prev_index or 0, len(self.readings) - 1)
             lv.call_after_refresh(setattr, lv, "index", target)
 
-    def _chains_matching_any(self, claims: list[dict], mappings: list[dict]) -> list[tuple[int, Chain]]:
-        """Return saved chains whose tail node is the object of some claim/exactMatch in the current list."""
-        obj_nodes: set[rdflib.URIRef] = set()
-        for cd in claims:
-            if isinstance(cd["object"], rdflib.URIRef):
-                obj_nodes.add(cd["object"])
-        for md in mappings:
-            if md.get("is_exact") and isinstance(md["object"], rdflib.URIRef):
-                obj_nodes.add(md["object"])
-        if not obj_nodes:
+    def _readings_matching_reverse(self, node: rdflib.URIRef) -> list[tuple[int, str, LamTerm, str, str]]:
+        """Return (index, name, term, predicate_label, claim_iri) for readings r where claim (type(r), node) exists."""
+        subj_to_claim: dict[str, tuple[str, str]] = {}
+        for cd in get_claims_for_object(self.g, node):
+            subj = cd["subject"]
+            if isinstance(subj, rdflib.URIRef):
+                subj_to_claim.setdefault(str(subj), (
+                    cd["predicate_label"],
+                    local_name(str(cd["claim"])),
+                ))
+        if not subj_to_claim:
             return []
-        return [
-            (i, c) for i, c in enumerate(self.chains)
-            if c.steps and c.steps[-1].object_node in obj_nodes
-        ]
+        result = []
+        for i, (name, term) in enumerate(self.readings):
+            type_iri = _term_type(term)
+            if type_iri and type_iri in subj_to_claim:
+                pred, ciri = subj_to_claim[type_iri]
+                result.append((i, name, term, pred, ciri))
+        return result
+
+    def _readings_matching_any(self, node: rdflib.URIRef) -> list[tuple[int, str, LamTerm, str, str]]:
+        """Return (index, name, term, predicate_label, claim_iri) for readings r where claim (node, type(r)) exists."""
+        obj_to_claim: dict[str, tuple[str, str]] = {}
+        for cd in get_claims_for_subject(self.g, node):
+            obj = cd["object"]
+            if isinstance(obj, rdflib.URIRef):
+                obj_to_claim.setdefault(str(obj), (
+                    cd["predicate_label"],
+                    local_name(str(cd["claim"])),
+                ))
+        if not obj_to_claim:
+            return []
+        result = []
+        for i, (name, term) in enumerate(self.readings):
+            type_iri = _term_type(term)
+            if type_iri and type_iri in obj_to_claim:
+                pred, ciri = obj_to_claim[type_iri]
+                result.append((i, name, term, pred, ciri))
+        return result
 
     # ── Node display ──────────────────────────────────────────────────────────
 
@@ -1449,14 +1534,14 @@ class KGBrowser(App):
                 f"No outgoing claims for [b]{esc(lbl)}[/b].  Ctrl+R to search again."
             )
         else:
-            matching = self._chains_matching_any(claims, mappings)
+            matching = self._readings_matching_any(node)
             if matching:
                 self._list_label(
-                    f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save term  |  select ⛓ to compose:"
+                    f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save reading  |  select ⛓ to compose:"
                 )
             else:
                 self._list_label(
-                    f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save term:"
+                    f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save reading:"
                 )
             for cd in claims:
                 lv.append(ClaimItem(cd))
@@ -1465,51 +1550,39 @@ class KGBrowser(App):
                 for md in mappings:
                     lv.append(MappingItem(md))
             if matching:
-                lv.append(SeparatorItem("Compose with saved term"))
-                for idx, chain in matching:
-                    lv.append(ChainTargetItem(chain, idx))
+                lv.append(SeparatorItem("Compose with saved reading"))
+                for idx, name, term, pred, ciri in matching:
+                    lv.append(ChainTargetItem(name, term, idx, pred, ciri))
             lv.focus()
             lv.call_after_refresh(setattr, lv, "index", 0)
 
         to_lv = self.query_one("#to-list", ListView)
         to_lv.clear()
         to_label = self.query_one("#to-list-label", Static)
-        if reverse_claims:
-            to_label.update(f"Claims to [b]{esc(lbl)}[/b] — Enter: follow:")
+        matching_rev = self._readings_matching_reverse(node)
+        if reverse_claims or matching_rev:
+            hint = "s: save reading"
+            if reverse_claims:
+                hint = "Enter: follow  |  " + hint
+            if matching_rev:
+                hint += "  |  select ⛓ to compose"
+            to_label.update(f"Claims to [b]{esc(lbl)}[/b] — {hint}:")
             for rc in reverse_claims:
                 to_lv.append(ReverseClaimItem(rc))
+            if matching_rev:
+                to_lv.append(SeparatorItem("Compose with saved reading"))
+                for idx, name, term, pred, ciri in matching_rev:
+                    to_lv.append(ChainTargetItem(name, term, idx, pred, ciri, reverse=True))
+            to_lv.call_after_refresh(setattr, to_lv, "index", 0)
         else:
             to_label.update(f"Claims to [b]{esc(lbl)}[/b]:")
 
         self.state = "claims_list"
 
-    # ── Step helpers ──────────────────────────────────────────────────────────
+    # ── Term snapshot ─────────────────────────────────────────────────────────
 
-    def _make_claim_step(self, cd: dict) -> ChainStep:
-        return ChainStep(
-            subject=self.current_node,
-            subject_label=node_label(self.g, self.current_node),
-            predicate_label=cd["predicate_label"],
-            object_node=cd["object"],
-            object_label=cd["object_label"],
-            kind="claim",
-            claim_iri=local_name(str(cd["claim"])),
-            claim_text=cd.get("claim_text", ""),
-            object_types=cd["object_types"],
-        )
-
-    def _make_mapping_step(self, md: dict) -> ChainStep:
-        return ChainStep(
-            subject=self.current_node,
-            subject_label=node_label(self.g, self.current_node),
-            predicate_label=md["predicate_label"],
-            object_node=md["object"],
-            object_label=md["object_label"],
-            kind="mapping",
-            claim_iri=local_name(str(md["object"])),
-            object_types=md["object_types"],
-        )
-
+    def _push_term_snapshot(self) -> None:
+        self._term_history.append((self._current_term, self.current_node))
 
     # ── Events ────────────────────────────────────────────────────────────────
 
@@ -1518,16 +1591,27 @@ class KGBrowser(App):
         if not query:
             return
         results = search_nodes(self.g, query)
+        matching_readings = [
+            (name, term) for name, term in self.readings
+            if query.lower() in name.lower()
+        ]
         lv = self.query_one("#results-list", ListView)
         lv.clear()
-        if not results:
+        if not results and not matching_readings:
             self._list_label(f"No nodes found for [i]{esc(query)}[/i].")
             return
         self._list_label(
             f"Results for [i]{esc(query)}[/i] — select a node (↑↓ + Enter):"
         )
-        for node in results:
-            lv.append(NodeItem(node, node_label(self.g, node)))
+        if results:
+            lv.append(SeparatorItem("Entities"))
+            for node in results:
+                lv.append(NodeItem(node, node_label(self.g, node), node_description(self.g, node)))
+        if matching_readings:
+            lv.append(SeparatorItem("Readings"))
+            for i, (name, term) in enumerate(matching_readings):
+                idx = next(j for j, (n, _) in enumerate(self.readings) if n == name)
+                lv.append(ReadingItem(name, term, idx))
         self.state = "node_list"
         lv.focus()
         lv.call_after_refresh(setattr, lv, "index", 0)
@@ -1536,13 +1620,23 @@ class KGBrowser(App):
         item = event.item
         lv_id = event.list_view.id
 
-        # ── Chains panel selection ─────────────────────────────────────────
-        if lv_id == "chains-list" and isinstance(item, ChainListItem):
-            self.push_screen(ChainDetailModal(item.chain, self.g))
+        # ── Readings panel selection ───────────────────────────────────────
+        if lv_id == "readings-list" and isinstance(item, ReadingItem):
+            self.push_screen(ReadingDetailModal(item.reading_name, item.reading_term, self.g))
             return
 
         # ── Main list selections ───────────────────────────────────────────
+        if self.state == "node_list" and isinstance(item, ReadingItem):
+            type_iri = _term_type(item.reading_term)
+            if not type_iri:
+                return
+            self._current_term = item.reading_term
+            self._hide_search()
+            self._show_node_and_claims(rdflib.URIRef(type_iri))
+            return
+
         if self.state == "node_list" and isinstance(item, NodeItem):
+            self._hide_search()
             self._show_node_and_claims(item.node)
 
         elif self.state == "claims_list" and isinstance(item, ClaimItem):
@@ -1551,8 +1645,9 @@ class KGBrowser(App):
             if not isinstance(next_node, rdflib.URIRef):
                 self._list_label("Claim object is a literal — cannot navigate. Ctrl+R to search again.")
                 return
-            step = self._make_claim_step(cd)
-            self._current_steps.append(step)
+            self._push_term_snapshot()
+            new_term = LamApp(self._current_term_as_lam(), LamVar(iri=str(next_node), label=cd["object_label"]))
+            self._current_term = new_term
             self._show_node_and_claims(next_node)
 
         elif self.state == "claims_list" and isinstance(item, MappingItem):
@@ -1561,8 +1656,9 @@ class KGBrowser(App):
             if not isinstance(next_node, rdflib.URIRef):
                 self._list_label("Mapping object is a literal — cannot navigate. Ctrl+R to search again.")
                 return
-            step = self._make_mapping_step(md)
-            self._current_steps.append(step)
+            self._push_term_snapshot()
+            new_term = LamApp(self._current_term_as_lam(), LamVar(iri=str(next_node), label=md["object_label"]))
+            self._current_term = new_term
             self._show_node_and_claims(next_node)
 
         elif lv_id == "to-list" and isinstance(item, ReverseClaimItem):
@@ -1571,57 +1667,36 @@ class KGBrowser(App):
             if not isinstance(a_node, rdflib.URIRef):
                 self._list_label("Claim subject is a literal — cannot navigate. Ctrl+R to search again.")
                 return
-            # Prepend a: new term = a · t, type(a · t) = type(t) = T (retained)
-            # Stay at current node T — claims from/to T remain correct.
+            self._push_term_snapshot()
             stay_node = self.current_node
-            steps = list(self._current_steps)
-            if not steps and self._chain_prefix is None:
-                # Current term is a bare variable; build a · current_node as one ChainStep
-                self._current_steps = [ChainStep(
-                    subject=a_node,
-                    subject_label=cd["subject_label"],
-                    predicate_label=cd["predicate_label"],
-                    object_node=self.current_node,
-                    object_label=node_label(self.g, self.current_node),
-                    kind="claim",
-                    claim_iri=local_name(str(cd["claim"])),
-                    claim_text=cd.get("claim_text", ""),
-                    object_types=node_types(self.g, self.current_node),
-                )]
-            else:
-                # Fold current state into _chain_prefix; a becomes the new head
-                if self._chain_prefix is not None:
-                    subj = self._chain_prefix_subject or (steps[0].subject if steps else None)
-                    subj_label = node_label(self.g, subj) if subj else ""
-                    if steps:
-                        steps[0] = dc_replace(steps[0], sub_chain=self._chain_prefix,
-                                              subject=subj, subject_label=subj_label)
-                    else:
-                        tail = self._chain_prefix.steps[-1]
-                        steps = [dc_replace(tail, subject=subj, subject_label=subj_label,
-                                            sub_chain=self._chain_prefix)]
-                self._chain_prefix = Chain(steps=steps)
-                self._chain_prefix_subject = a_node
-                self._current_steps.clear()
+            a_var = LamVar(iri=str(a_node), label=cd["subject_label"])
+            new_term = LamApp(a_var, self._current_term_as_lam())
+            self._current_term = new_term
+            self._show_node_and_claims(stay_node, push_stack=False)
+
+        elif lv_id == "to-list" and isinstance(item, ChainTargetItem):
+            self._push_term_snapshot()
+            stay_node = self.current_node
+            new_term = LamApp(item.reading_term, self._current_term_as_lam())
+            self._current_term = new_term
+            self.notify(f"Composed — reading: {item.reading_name}")
             self._show_node_and_claims(stay_node, push_stack=False)
 
         elif self.state == "claims_list" and isinstance(item, ChainTargetItem):
-            # Attach selected chain as sub_chain of the last step (or store as prefix
-            # if no steps taken yet), then continue navigation from the chain's tail.
-            if self._current_steps:
-                self._current_steps[-1].sub_chain = item.chain
-            else:
-                self._chain_prefix = item.chain
-                self._chain_prefix_subject = self.current_node
+            self._push_term_snapshot()
+            new_term = LamApp(self._current_term_as_lam(), item.reading_term)
+            self._current_term = new_term
             self._nav_stack.clear()
-            tail_node = item.chain.steps[-1].object_node
-            self.notify(f"Composed — continuing from: {item.chain.steps[-1].object_label}")
+            tail_iri = _term_type(item.reading_term)
+            tail_node = rdflib.URIRef(tail_iri) if tail_iri else self.current_node
+            type_lbl = local_name(tail_iri) if tail_iri else "?"
+            self.notify(f"Composed — continuing from: {type_lbl}")
             self._show_node_and_claims(tail_node)
 
     # ── Key handlers ─────────────────────────────────────────────────────────
 
-    def action_save_chain(self) -> None:
-        self._handle_save_chain()
+    def action_save_reading(self) -> None:
+        self._handle_save_reading()
 
     def action_lambda_abstraction(self) -> None:
         self._handle_lambda_abstraction()
@@ -1632,85 +1707,55 @@ class KGBrowser(App):
     def action_lambda_browser(self) -> None:
         self.push_screen(LambdaBrowserModal(self.g))
 
-    def _handle_save_chain(self) -> None:
+    def _handle_save_reading(self) -> None:
         if self.state != "claims_list":
             return
-        steps = list(self._current_steps)
-        if not steps and self._chain_prefix is None:
+        if self._current_term is None:
             return
-        if self._chain_prefix is not None:
-            subj = self._chain_prefix_subject or (steps[0].subject if steps else None)
-            subj_label = node_label(self.g, subj) if subj else ""
-            if steps:
-                steps[0] = dc_replace(
-                    steps[0],
-                    sub_chain=self._chain_prefix,
-                    subject=subj,
-                    subject_label=subj_label,
-                )
-            else:
-                # prefix only (no further steps): synthesise a step from c to the
-                # tail of the prefix chain so it can be stored as a Chain object
-                tail = self._chain_prefix.steps[-1]
-                steps = [dc_replace(
-                    tail,
-                    subject=subj,
-                    subject_label=subj_label,
-                    sub_chain=self._chain_prefix,
-                )]
-        chain = Chain(steps=steps)
-        self.chains.append(chain)
-        self._refresh_chains_panel()
-        self.notify(f"Term saved: {chain.label}")
-        # reset navigation to start a new path
-        self._current_steps.clear()
-        self._nav_stack.clear()
-        self._pending_step = None
-        self._chain_prefix = None
-        self._chain_prefix_subject = None
-        self._refresh_history_tree()
-        self._list_label("Term saved — start a new search:")
-        lv = self.query_one("#results-list", ListView)
-        lv.clear()
-        self.state = "search"
-        inp = self.query_one("#search-box", Input)
-        inp.value = ""
-        inp.focus()
+        term = self._current_term
+        default_name = _top_claim_name(self.g, term)
+        term_str = str(term)
+
+        def on_name_chosen(name: str | None) -> None:
+            if not name:
+                return
+            self.readings.append((name, term))
+            save_readings_db(self.readings)
+            self._refresh_readings_panel()
+            self.notify(f"Reading saved: {name}")
+            self.call_after_refresh(self.action_reset)
+
+        self.push_screen(NameReadingModal(default_name, term_str), on_name_chosen)
 
     def _handle_lambda_abstraction(self) -> None:
-        if self.state != "claims_list" or not self._current_steps:
+        if self.state != "claims_list" or self._current_term is None:
             self.notify("Start building a chain first", severity="warning")
             return
-        steps = list(self._current_steps)
-        if self._chain_prefix is not None:
-            subj = self._chain_prefix_subject or steps[0].subject
-            steps[0] = dc_replace(
-                steps[0],
-                sub_chain=self._chain_prefix,
-                subject=subj,
-                subject_label=node_label(self.g, subj),
-            )
-        chain = Chain(steps=steps)
+        term = self._current_term_as_lam()
 
         def on_lambda_selected(abs_term: LamAbs | None) -> None:
             if abs_term is None:
                 return
-            append_lambda_term(chain.label, abs_term, self.g)
+            term_name = _top_claim_name(self.g, abs_term.body) if isinstance(abs_term, LamAbs) else str(abs_term)
+            append_lambda_term(term_name, abs_term, self.g)
             self.notify(f"Saved: {abs_term}", timeout=6)
+            self.call_after_refresh(self.action_reset)
 
-        self.push_screen(LambdaAbstractionModal(self.g, chain), on_lambda_selected)
+        self.push_screen(LambdaAbstractionModal(self.g, term), on_lambda_selected)
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
-    def action_focus_chains(self) -> None:
-        lv = self.query_one("#chains-list", ListView)
+    def action_focus_readings(self) -> None:
+        lv = self.query_one("#readings-list", ListView)
         lv.focus()
-        if self.chains and lv.index is None:
+        if self.readings and lv.index is None:
             lv.call_after_refresh(setattr, lv, "index", 0)
 
     def on_key(self, event: events.Key) -> None:
         to_lv = self.query_one("#to-list", ListView)
-        if not to_lv.has_focus:
+        results_lv = self.query_one("#results-list", ListView)
+        active = to_lv.has_focus or results_lv.has_focus
+        if not active:
             return
         if event.key == "left":
             event.stop()
@@ -1720,16 +1765,14 @@ class KGBrowser(App):
             self.action_show_source()
 
     def action_go_back(self) -> None:
-        if self.state != "claims_list" or len(self._nav_stack) < 2:
+        if self.state != "claims_list" or not self._term_history:
             return
-        self._pending_step = None
-        self._chain_prefix = None
-        self._chain_prefix_subject = None
-        if self._current_steps:
-            self._current_steps.pop()
-        self._nav_stack.pop()
-        prev_node = self._nav_stack[-1]
-        self._show_node_and_claims(prev_node, push_stack=False)
+        term, node = self._term_history.pop()
+        self._current_term = term
+        if node in self._nav_stack:
+            idx = len(self._nav_stack) - 1 - self._nav_stack[::-1].index(node)
+            self._nav_stack = self._nav_stack[:idx + 1]
+        self._show_node_and_claims(node, push_stack=False)
 
     def action_copy_item(self) -> None:
         lv = self.query_one("#results-list", ListView)
@@ -1745,53 +1788,56 @@ class KGBrowser(App):
             self.notify("Node IRI copied")
 
     def action_show_source(self) -> None:
-        # If chains panel is focused, show chain detail
-        chains_lv = self.query_one("#chains-list", ListView)
-        if chains_lv.has_focus:
-            item = chains_lv.highlighted_child
-            if isinstance(item, ChainListItem):
-                self.push_screen(ChainDetailModal(item.chain, self.g))
+        # Readings panel focused → show reading detail
+        readings_lv = self.query_one("#readings-list", ListView)
+        if readings_lv.has_focus:
+            item = readings_lv.highlighted_child
+            if isinstance(item, ReadingItem):
+                self.push_screen(ReadingDetailModal(item.reading_name, item.reading_term, self.g))
             return
 
         if self.state != "claims_list":
             return
+
+        # Determine which list is focused
         to_lv = self.query_one("#to-list", ListView)
+        results_lv = self.query_one("#results-list", ListView)
         if to_lv.has_focus:
             item = to_lv.highlighted_child
-            if isinstance(item, ReverseClaimItem):
-                claim_text = item.claim_data.get("claim_text", "")
-                source_text = item.claim_data.get("source_text", "")
-                if claim_text:
-                    self.push_screen(ClaimTextModal(claim_text, source_text))
+        elif results_lv.has_focus:
+            item = results_lv.highlighted_child
+        else:
             return
-        lv = self.query_one("#results-list", ListView)
-        item = lv.highlighted_child
-        if isinstance(item, ChainTargetItem):
-            self.push_screen(ChainDetailModal(item.chain, self.g))
-            return
-        if not isinstance(item, ClaimItem):
-            return
-        claim_text = item.claim_data.get("claim_text", "")
-        source_text = item.claim_data.get("source_text", "")
-        if not claim_text:
-            return
-        self.push_screen(ClaimTextModal(claim_text, source_text))
+
+        if isinstance(item, (ClaimItem, MappingItem)):
+            cd = item.claim_data if isinstance(item, ClaimItem) else item.mapping_data
+            claim_text = cd.get("claim_text", "")
+            source_text = cd.get("source_text", "")
+            if claim_text:
+                self.push_screen(ClaimTextModal(claim_text, source_text))
+        elif isinstance(item, ReverseClaimItem):
+            claim_text = item.claim_data.get("claim_text", "")
+            source_text = item.claim_data.get("source_text", "")
+            if claim_text:
+                self.push_screen(ClaimTextModal(claim_text, source_text))
+        elif isinstance(item, ChainTargetItem):
+            self.push_screen(ReadingDetailModal(item.reading_name, item.reading_term, self.g))
+        elif isinstance(item, ReadingItem):
+            self.push_screen(ReadingDetailModal(item.reading_name, item.reading_term, self.g))
 
     def action_reset(self) -> None:
         self.current_node = None
         self.state = "search"
         self._nav_stack.clear()
-        self._current_steps.clear()
-        self._pending_step = None
-        self._chain_prefix = None
-        self._chain_prefix_subject = None
+        self._current_term = None
+        self._term_history.clear()
         self._refresh_history_tree()
         self._list_label("Type a query and press Enter to search.")
-        lv = self.query_one("#results-list", ListView)
-        lv.clear()
-        inp = self.query_one("#search-box", Input)
-        inp.value = ""
-        inp.focus()
+        self.query_one("#results-list", ListView).clear()
+        self.query_one("#to-list", ListView).clear()
+        self.query_one("#to-list-label", Static).update("Claims to…")
+        self.query_one("#search-box", Input).value = ""
+        self._show_search()
 
 
 if __name__ == "__main__":
