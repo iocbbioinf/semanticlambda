@@ -1,0 +1,82 @@
+[
+  {
+    "name": "'AHoJ-DB' 'enables' 'ligand binding site predictor'",
+    "term": {
+      "type": "app",
+      "func": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#AHoJDB",
+        "label": "AHoJ-DB"
+      },
+      "arg": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#LBSPredictor",
+        "label": "ligand binding site predictor"
+      }
+    }
+  },
+  {
+    "name": "'holo form' 'hinders' 'ligand binding site predictor'",
+    "term": {
+      "type": "app",
+      "func": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#HoloForm",
+        "label": "holo form"
+      },
+      "arg": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#HoloForm",
+          "label": "holo form"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AHoJDB",
+            "label": "AHoJ-DB"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#LBSPredictor",
+            "label": "ligand binding site predictor"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "test1",
+    "term": {
+      "type": "app",
+      "func": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#HoloForm",
+        "label": "holo form"
+      },
+      "arg": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AHoJ",
+            "label": "AHoJ"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AHoJDB",
+            "label": "AHoJ-DB"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#LBSPredictor",
+          "label": "ligand binding site predictor"
+        }
+      }
+    }
+  }
+]

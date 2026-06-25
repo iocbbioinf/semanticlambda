@@ -515,7 +515,10 @@ class ClaimTextModal(ModalScreen):
     def action_to_source(self) -> None:
         if not self._source_text:
             return
-        self.app.push_screen(SourceTextModal(self._claim_text, self._source_text))
+        def on_source_dismissed(close_all: bool | None) -> None:
+            if close_all:
+                self.dismiss()
+        self.app.push_screen(SourceTextModal(self._claim_text, self._source_text), on_source_dismissed)
 
     def action_copy(self) -> None:
         pyperclip.copy(self._claim_text)
@@ -526,9 +529,10 @@ class SourceTextModal(ModalScreen):
     CSS = MODAL_CSS
 
     BINDINGS = [
-        Binding("escape", "dismiss", "Close"),
-        Binding("q", "dismiss", "Close"),
+        Binding("escape", "close_all", "Close"),
+        Binding("q", "close_all", "Close"),
         Binding("left", "dismiss", "Back to claim text"),
+        Binding("right", "dismiss", "Back to claim text"),
         Binding("c", "copy", "Copy"),
     ]
 
@@ -537,10 +541,13 @@ class SourceTextModal(ModalScreen):
         self._source_text = source_text
 
     def compose(self) -> ComposeResult:
-        hint = "← back  |  c copy  |  Esc close"
+        hint = "← → back  |  c copy  |  Esc close"
         with ScrollableContainer(id="modal-container"):
             yield Static(f"Citation  [dim]({hint})[/dim]", id="modal-title", markup=True)
             yield Static(esc(self._source_text), id="modal-body")
+
+    def action_close_all(self) -> None:
+        self.dismiss(True)
 
     def action_copy(self) -> None:
         pyperclip.copy(self._source_text)
@@ -646,16 +653,23 @@ class LambdaAbstractionModal(ModalScreen):
         self._candidates = results
         for node in results:
             lv.append(NodeItem(node, node_label(self._g, node)))
-        if results:
+
+    def on_key(self, event: events.Key) -> None:
+        if event.key != "down":
+            return
+        lv = self.query_one("#lambda-results", ListView)
+        inp = self.query_one("#lambda-search", Input)
+        if inp.has_focus and self._candidates:
+            event.stop()
+            event.prevent_default()
+            lv.focus()
             lv.call_after_refresh(setattr, lv, "index", 0)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         lv = self.query_one("#lambda-results", ListView)
         if self._candidates:
-            # focus the list so user can pick with arrows / Enter
             lv.focus()
-            if lv.index is None:
-                lv.call_after_refresh(setattr, lv, "index", 0)
+            lv.call_after_refresh(setattr, lv, "index", 0)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         item = event.item
@@ -1267,6 +1281,8 @@ class NameReadingModal(ModalScreen):
             self.dismiss(name)
 
 
+# ── Widgets ───────────────────────────────────────────────────────────────────
+
 # ── Application ───────────────────────────────────────────────────────────────
 
 class KGBrowser(App):
@@ -1410,7 +1426,7 @@ class KGBrowser(App):
 
     def on_mount(self) -> None:
         self._refresh_readings_panel()
-        self.query_one("#search-box", Input).focus()
+        self._show_search()
 
     # ── Search panel visibility ───────────────────────────────────────────────
 
@@ -1419,11 +1435,17 @@ class KGBrowser(App):
         inp.display = True
         inp.disabled = False
         inp.focus()
+        self.query_one("#history-scroll").display = False
+        self.query_one("#to-list-label").display = False
+        self.query_one("#to-list").display = False
 
     def _hide_search(self) -> None:
         inp = self.query_one("#search-box", Input)
         inp.display = False
         inp.disabled = True
+        self.query_one("#history-scroll").display = True
+        self.query_one("#to-list-label").display = True
+        self.query_one("#to-list").display = True
 
     # ── Helper: current term ──────────────────────────────────────────────────
 
@@ -1586,10 +1608,7 @@ class KGBrowser(App):
 
     # ── Events ────────────────────────────────────────────────────────────────
 
-    def on_input_submitted(self, event: Input.Submitted) -> None:
-        query = event.value.strip()
-        if not query:
-            return
+    def _run_search(self, query: str) -> None:
         results = search_nodes(self.g, query)
         matching_readings = [
             (name, term) for name, term in self.readings
@@ -1599,6 +1618,7 @@ class KGBrowser(App):
         lv.clear()
         if not results and not matching_readings:
             self._list_label(f"No nodes found for [i]{esc(query)}[/i].")
+            self.state = "search"
             return
         self._list_label(
             f"Results for [i]{esc(query)}[/i] — select a node (↑↓ + Enter):"
@@ -1613,8 +1633,27 @@ class KGBrowser(App):
                 idx = next(j for j, (n, _) in enumerate(self.readings) if n == name)
                 lv.append(ReadingItem(name, term, idx))
         self.state = "node_list"
-        lv.focus()
-        lv.call_after_refresh(setattr, lv, "index", 0)
+        lv.call_after_refresh(setattr, lv, "index", 1)
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id != "search-box":
+            return
+        query = event.value.strip()
+        if not query:
+            self.query_one("#results-list", ListView).clear()
+            self._list_label("Type a query and press Enter to search.")
+            self.state = "search"
+            return
+        self._run_search(query)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.id != "search-box":
+            return
+        lv = self.query_one("#results-list", ListView)
+        if self.state == "node_list":
+            lv.focus()
+            if lv.index is None:
+                lv.call_after_refresh(setattr, lv, "index", 1)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         item = event.item
@@ -1752,17 +1791,16 @@ class KGBrowser(App):
             lv.call_after_refresh(setattr, lv, "index", 0)
 
     def on_key(self, event: events.Key) -> None:
-        to_lv = self.query_one("#to-list", ListView)
-        results_lv = self.query_one("#results-list", ListView)
-        active = to_lv.has_focus or results_lv.has_focus
-        if not active:
+        if len(self.screen_stack) > 1:
             return
-        if event.key == "left":
+        search_box = self.query_one("#search-box", Input)
+        if search_box.has_focus and event.key == "down" and self.state == "node_list":
             event.stop()
-            self.action_go_back()
-        elif event.key == "right":
-            event.stop()
-            self.action_show_source()
+            event.prevent_default()
+            lv = self.query_one("#results-list", ListView)
+            lv.focus()
+            lv.call_after_refresh(setattr, lv, "index", 1)
+            return
 
     def action_go_back(self) -> None:
         if self.state != "claims_list" or not self._term_history:
@@ -1814,16 +1852,16 @@ class KGBrowser(App):
             claim_text = cd.get("claim_text", "")
             source_text = cd.get("source_text", "")
             if claim_text:
-                self.push_screen(ClaimTextModal(claim_text, source_text))
+                self.call_after_refresh(self.push_screen, ClaimTextModal(claim_text, source_text))
         elif isinstance(item, ReverseClaimItem):
             claim_text = item.claim_data.get("claim_text", "")
             source_text = item.claim_data.get("source_text", "")
             if claim_text:
-                self.push_screen(ClaimTextModal(claim_text, source_text))
+                self.call_after_refresh(self.push_screen, ClaimTextModal(claim_text, source_text))
         elif isinstance(item, ChainTargetItem):
-            self.push_screen(ReadingDetailModal(item.reading_name, item.reading_term, self.g))
+            self.call_after_refresh(self.push_screen, ReadingDetailModal(item.reading_name, item.reading_term, self.g))
         elif isinstance(item, ReadingItem):
-            self.push_screen(ReadingDetailModal(item.reading_name, item.reading_term, self.g))
+            self.call_after_refresh(self.push_screen, ReadingDetailModal(item.reading_name, item.reading_term, self.g))
 
     def action_reset(self) -> None:
         self.current_node = None
