@@ -344,7 +344,8 @@ def _principal_wire(n: Node) -> int:
 
 
 def _locate(g: Graph, end: int) -> Optional[tuple[Node, str, int]]:
-    """The (node, port, slot) that wire-end `end`'s peer belongs to."""
+    """The (node, port, slot) that wire-end `end`'s peer belongs to. Joints are
+    spliced out before reduction, so no through-joint walk is needed."""
     p = g.peer(end)
     if p is None:
         return None
@@ -374,10 +375,22 @@ class Redex:
                 f" <-> {self.b.kind.value}#{self.b.id} @slot {self.slot})")
 
 
+def _touches_root(g: Graph, ends: list[int]) -> bool:
+    """True if any wire of `ends` connects directly to a ROOT node. Used to keep
+    the interface delimiters (between a fan and the result/free roots) inert:
+    they are part of the compiled normal form, not reducible redexes (a crude
+    stand-in for the paper's accessibility / orientation, sufficient here)."""
+    for e in ends:
+        p = g.peer(e)
+        if p is not None and g.nodes[g.ends[p].owner].kind == NodeKind.ROOT:
+            return True
+    return False
+
+
 def _principal_bus_clean(g: Graph, a: Node, b: Node) -> bool:
     """True iff fans a,b face on a clean shared principal bus: equal width and
-    every wire a.principal[i] connects straight to b.principal[i] (no bracket /
-    croissant spliced in between)."""
+    every wire a.principal[i] reaches b.principal (through JOINTs only — no
+    bracket/croissant spliced in between)."""
     ea, eb = a.ports["principal"], b.ports["principal"]
     if len(ea) != len(eb):
         return False
@@ -410,16 +423,16 @@ def _classify_at(g: Graph, a: Node) -> Optional[Redex]:
     if a.kind == F:
         # b is whatever sits on a's principal wire.
         if b.kind == F:
-            # a's principal[main] connects to b. Where on b?
+            # a's principal[main] lands on b's principal port (somewhere). The
+            # two fans interact iff their principal BUSES are cleanly connected
+            # (every wire a.principal[i] <-> b.principal[i], no bookkeeping
+            # spliced in). Same main -> annihilate (R1); different main ->
+            # duplicate (R4). Marked wires need NOT map to each other: on a
+            # shared bus a's main wire connects to b's same-index wire, which is
+            # b's main only when the mains coincide. If the bus is not clean,
+            # the bookkeeping on it commutes first (R5/R6 from its own side).
             if bport != "principal":
-                return None                     # not principal-to-principal
-            if bslot != b.main:
-                return None                     # marked wires not aligned
-            # The two fans meet on their marked wires. They may annihilate /
-            # duplicate ONLY IF their shared principal bus is CLEAN — every wire
-            # connects fan-a directly to fan-b. If any wire carries a bracket /
-            # croissant, that bookkeeping commutes first (detected from its own
-            # side as R5/R6), so we do not fire the fan-fan rule yet.
+                return None
             if not _principal_bus_clean(g, a, b):
                 return None
             if a.main == b.main:
@@ -433,12 +446,16 @@ def _classify_at(g: Graph, a: Node) -> Optional[Redex]:
                 return None
             if bslot == a.main:
                 return None                     # deadlock (same wire)
+            if _touches_root(g, b.ports["wide"]):
+                return None                     # interface delimiter (inert)
             return Redex(5, a, b, bslot)
         if b.kind == CR:
             if bport != "wide":
                 return None
             if bslot == a.main:
                 return None                     # deadlock
+            if _touches_root(g, b.ports["thin"]):
+                return None                     # interface delimiter (inert)
             return Redex(6, a, b, bslot)
         return None
 
@@ -452,6 +469,8 @@ def _classify_at(g: Graph, a: Node) -> Optional[Redex]:
             # (R5) unless it is exactly on the fan's marked wire (deadlock).
             if bslot == b.main:
                 return None
+            if _touches_root(g, a.ports["wide"]):
+                return None                     # interface delimiter (inert)
             return Redex(5, b, a, bslot)        # (fan, bracket)
         return None
 
@@ -462,6 +481,8 @@ def _classify_at(g: Graph, a: Node) -> Optional[Redex]:
         if b.kind == F and bport == "principal":
             if bslot == b.main:
                 return None
+            if _touches_root(g, a.ports["thin"]):
+                return None                     # interface delimiter (inert)
             return Redex(6, b, a, bslot)        # (fan, croissant)
         return None
 
@@ -498,7 +519,8 @@ def _ext(g: Graph, ends: list[int]) -> list[int]:
 
 
 def _p(g: Graph, end: int) -> Optional[int]:
-    """The external peer of a wire-end (None if open)."""
+    """The external peer of a wire-end (None if open). Joints are removed before
+    reduction (see _splice_joints), so this is a plain peer lookup."""
     return g.peer(end)
 
 
@@ -554,29 +576,43 @@ def rule4_fan_fan_diff(g: Graph, bottom: Node, top: Node) -> None:
     """
     n = bottom.width("principal")
     i, j = bottom.main, top.main
-    # external peers of the four branch buses
-    top_grey, top_black = _ext(g, top.ports["grey"]), _ext(g, top.ports["black"])
-    bot_grey = _ext(g, bottom.ports["grey"])
-    bot_black = _ext(g, bottom.ports["black"])
+    # capture the four old branch externals loop-aware (a self-loop e.g.
+    # top.grey[k] <-> top.black[k] in a duplicated lambda x . x must be re-tied
+    # between the corresponding NEW principals).
+    cap = {}
+    for f in (bottom, top):
+        cap[f.id] = _capture_ports(g, f, ("grey", "black"))
     g.remove_node(bottom.id)
     g.remove_node(top.id)
 
-    # copies of bottom (main=i) sitting on top's grey/black branches
-    bot_on_top_grey = g.new_fan(n, i, role=bottom.role, iri=bottom.iri,
-                                label=bottom.label)
-    bot_on_top_black = g.new_fan(n, i, role=bottom.role, iri=bottom.iri,
-                                 label=bottom.label)
-    # copies of top (main=j) sitting on bottom's grey/black branches
-    top_on_bot_grey = g.new_fan(n, j, role=top.role, iri=top.iri,
-                                label=top.label)
-    top_on_bot_black = g.new_fan(n, j, role=top.role, iri=top.iri,
-                                 label=top.label)
+    # copies of bottom (main=i) on top's grey/black; copies of top (main=j) on
+    # bottom's grey/black.
+    bot_on_top_grey = g.new_fan(n, i, role=bottom.role, iri=bottom.iri, label=bottom.label)
+    bot_on_top_black = g.new_fan(n, i, role=bottom.role, iri=bottom.iri, label=bottom.label)
+    top_on_bot_grey = g.new_fan(n, j, role=top.role, iri=top.iri, label=top.label)
+    top_on_bot_black = g.new_fan(n, j, role=top.role, iri=top.iri, label=top.label)
 
-    # principals take the old external branches
-    g.connect_bus(top_grey, bot_on_top_grey.ports["principal"])
-    g.connect_bus(top_black, bot_on_top_black.ports["principal"])
-    g.connect_bus(bot_grey, top_on_bot_grey.ports["principal"])
-    g.connect_bus(bot_black, top_on_bot_black.ports["principal"])
+    # The principal of each new fan represents one old branch external:
+    #   bot_on_top_grey.principal  <- top.grey      bot_on_top_black <- top.black
+    #   top_on_bot_grey.principal  <- bottom.grey   top_on_bot_black <- bottom.black
+    new_end = {
+        (top.id, "grey"): list(bot_on_top_grey.ports["principal"]),
+        (top.id, "black"): list(bot_on_top_black.ports["principal"]),
+        (bottom.id, "grey"): list(top_on_bot_grey.ports["principal"]),
+        (bottom.id, "black"): list(top_on_bot_black.ports["principal"]),
+    }
+    # finalize externals + self-loops, keyed by (fan_id, port)
+    nd = {f"{fid}:{port}": ends for (fid, port), ends in new_end.items()}
+    target = {}
+    for (fid, port), ends in new_end.items():
+        toks = []
+        for tok in cap[fid][port]:
+            if tok[0] == "loop":
+                toks.append(("loop", f"{fid}:{tok[1]}", tok[2]))
+            else:
+                toks.append(tok)
+        target[f"{fid}:{port}"] = toks
+    _finalize(g, nd, target)
 
     # 2x2 colour grid: bottomOnTop[p].q  <->  topOnBottom[q].p
     g.connect_bus(bot_on_top_grey.ports["grey"], top_on_bot_grey.ports["grey"])
@@ -592,39 +628,119 @@ def _splice_slot(base: list[int], slot: int, repl: list[int]) -> list[int]:
     return base[:slot] + list(repl) + base[slot + 1:]
 
 
+def _capture_ports(g: Graph, fan: Node, ports: tuple) -> dict:
+    """For each named port of `fan`, capture per-wire external peers as tokens:
+    ('ext', peer_end) for a wire leaving the fan, or ('loop', port2, slot2) if
+    the wire loops back to another wire of THIS fan (e.g. grey[i]<->black[i] in
+    lambda x . x). Captured BEFORE the fan is removed."""
+    own = fan.id
+    out: dict[str, list] = {}
+    for port in ports:
+        toks: list = []
+        for e in fan.ports[port]:
+            p = g.peer(e)
+            if p is not None and g.ends[p].owner == own:
+                w = g.ends[p]
+                toks.append(("loop", w.port, w.slot))
+            else:
+                toks.append(("ext", p))
+        out[port] = toks
+    return out
+
+
+def _finalize(g: Graph, new_end: dict, target: dict) -> None:
+    """Wire each new-fan end to its captured target. `new_end[port]` lists the
+    new-fan-side ends representing OLD wires (one per old wire, except the
+    principal which may carry the unfold); `target[port]` the matching tokens
+    from _capture_ports. Self-loops are tied between the two new-fan ends.
+
+    Loop resolution uses new_end as the OLD-wire -> new-end map; a ('loop',
+    port2, slot2) connects to new_end[port2][slot2]. Each loop is wired once."""
+    done: set = set()
+    for port, ends in new_end.items():
+        tgts = target[port]
+        for i, (end, tok) in enumerate(zip(ends, tgts)):
+            if tok[0] == "ext":
+                if tok[1] is not None:
+                    g.connect_wire(end, tok[1])
+            else:  # ('loop', port2, slot2)
+                _, p2, s2 = tok
+                key = frozenset(((port, i), (p2, s2)))
+                if key in done:
+                    continue
+                done.add(key)
+                g.connect_wire(end, new_end[p2][s2])
+
+
+def _fold_pair(g: Graph, a: int, b: int) -> int:
+    """Bracket folding two wire-ends (a,b) into one; returns the narrow end.
+    (narrow 1 / wide 2; wide[0]=a, wide[1]=b.)"""
+    br = g.new_bracket(1, 0)
+    g.connect_wire(a, br.ports["wide"][0])
+    g.connect_wire(b, br.ports["wide"][1])
+    return br.ports["narrow"][0]
+
+
+def _unfold_one(g: Graph, w: int) -> tuple[int, int]:
+    """Bracket unfolding one wire-end into two; returns (wide0, wide1).
+    (narrow 1 / wide 2; narrow[0]=w.)"""
+    br = g.new_bracket(1, 0)
+    g.connect_wire(w, br.ports["narrow"][0])
+    return br.ports["wide"][0], br.ports["wide"][1]
+
+
 def rule5_fan_bracket_diff(g: Graph, fan: Node, bracket: Node, slot: int) -> None:
-    """R5 (bus-shared): a bracket sits on the fan's principal bus at `slot`
-    (its narrow stem == fan.principal[slot]), slot != fan.main. They commute:
-    the fan moves to the bracket's WIDE side (the slot's 1 wire becomes 2, so
-    width +1, main shifts by expand_slot_across_bracket); a fresh bracket is
-    duplicated onto the fan's grey and black branches at the same slot.
+    """R5 (bus-shared, per the explicit spec). A fold-bracket (narrow 1 / wide 2)
+    sits on the fan's principal at `slot` (its narrow stem == principal[slot]),
+    slot != main. Commute:
+
+      left (fan width n; principal[slot] is the FOLDED wire)
+        ->
+      right (fan width n+1; principal[slot] UNFOLDED into [slot, slot+1];
+             each bottom branch gets a fold-bracket re-folding [slot, slot+1])
+
+    main shifts by expand_slot_across_bracket. Wires other than the slot pass
+    straight through; only the slot wire unfolds (principal) / re-folds (each
+    branch).
     """
     n = fan.width("principal")
     assert slot != fan.main
     new_main = expand_slot_across_bracket(fan.main, slot)
 
-    # external peers, per wire, of the fan's three ports (slot wires included)
-    prin = [_p(g, e) for e in fan.ports["principal"]]
-    grey = [_p(g, e) for e in fan.ports["grey"]]
-    black = [_p(g, e) for e in fan.ports["black"]]
-    br_wide = _ext(g, bracket.ports["wide"])     # 2 wires (the widened slot)
-    # the bracket's narrow stem was on fan.principal[slot]; drop that peer.
+    # capture externals as loop-aware tokens (self-loops back to `fan` recorded
+    # as ('loop', port, slot) so they can be re-tied between new-fan wires)
+    cap = _capture_ports(g, fan, ("principal", "grey", "black"))
+    br_wide = _ext(g, bracket.ports["wide"])     # exactly 2 wires
+    assert len(br_wide) == 2, f"R5 expects a fold-bracket, got wide {len(br_wide)}"
     g.remove_node(bracket.id)
     g.remove_node(fan.id)
 
-    new_w = n + 1
-    nf = g.new_fan(new_w, new_main, role=fan.role, iri=fan.iri, label=fan.label)
-    # principal: slot's single wire replaced by the bracket's 2 wide wires.
-    new_prin = _splice_slot(prin, slot, br_wide)
-    _attach_each(g, nf.ports["principal"], new_prin)
+    nf = g.new_fan(n + 1, new_main, role=fan.role, iri=fan.iri, label=fan.label)
 
-    # grey & black: duplicate the bracket at `slot` (1 wire -> 2 via a bracket)
-    g_grey = g.new_bracket(n, slot)              # narrow n / wide n+1
-    g_black = g.new_bracket(n, slot)
-    _attach_each(g, g_grey.ports["narrow"], grey)
-    _attach_each(g, g_black.ports["narrow"], black)
-    g.connect_bus(nf.ports["grey"], g_grey.ports["wide"])
-    g.connect_bus(nf.ports["black"], g_black.ports["wide"])
+    # new_end[port][i] = the new-fan-side end representing OLD wire i (length n);
+    # at `slot` a grey/black branch RE-FOLDS the [slot, slot+1] pair, while the
+    # principal UNFOLDS into the bracket's two wide externals.
+    new_end: dict[str, list[int]] = {}
+    target: dict[str, list] = {}
+    for port in ("principal", "grey", "black"):
+        np = nf.ports[port]
+        ends: list[int] = []
+        tgt: list = []
+        for i in range(n):
+            if i == slot:
+                if port == "principal":
+                    # unfold: slot's 2 new wires go to the bracket's 2 externals
+                    ends.extend([np[slot], np[slot + 1]])
+                    tgt.extend([("ext", br_wide[0]), ("ext", br_wide[1])])
+                else:
+                    ends.append(_fold_pair(g, np[slot], np[slot + 1]))
+                    tgt.append(cap[port][i])
+            else:
+                ends.append(np[i if i < slot else i + 1])
+                tgt.append(cap[port][i])
+        new_end[port] = ends
+        target[port] = tgt
+    _finalize(g, new_end, target)
     g.book_interactions += 1
 
 
@@ -640,28 +756,43 @@ def rule6_fan_croissant_diff(g: Graph, fan: Node, croissant: Node,
     assert n >= 2 and slot != fan.main
     new_main = compress_slot_across_croissant(fan.main, slot)
 
-    prin = [_p(g, e) for e in fan.ports["principal"]]
-    grey = [_p(g, e) for e in fan.ports["grey"]]
-    black = [_p(g, e) for e in fan.ports["black"]]
-    cr_thin = _ext(g, croissant.ports["thin"])   # 0 wires if the croissant is
-                                                 # a pure generator (thin width 0)
+    cap = _capture_ports(g, fan, ("principal", "grey", "black"))
+    cr_thin = _ext(g, croissant.ports["thin"])   # croissant's thin side (≤1 wire)
     g.remove_node(croissant.id)
     g.remove_node(fan.id)
 
-    new_w = n - 1
-    nf = g.new_fan(new_w, new_main, role=fan.role, iri=fan.iri, label=fan.label)
-    # principal: the slot wire disappears (replaced by the croissant's thin,
-    # which has one fewer wire).
-    new_prin = _splice_slot(prin, slot, cr_thin)
-    _attach_each(g, nf.ports["principal"], new_prin)
+    nf = g.new_fan(n - 1, new_main, role=fan.role, iri=fan.iri, label=fan.label)
 
-    # grey & black: duplicate the croissant at `slot` (1 wire vanishes).
-    c_grey = g.new_croissant(n, slot)            # wide n / thin n-1
-    c_black = g.new_croissant(n, slot)
-    _attach_each(g, c_grey.ports["wide"], grey)
-    _attach_each(g, c_black.ports["wide"], black)
-    g.connect_bus(nf.ports["grey"], c_grey.ports["thin"])
-    g.connect_bus(nf.ports["black"], c_black.ports["thin"])
+    # new_end[port][i] = the end representing OLD wire i (length n), so loop
+    # tokens stay index-aligned across ports. The slot wire is consumed:
+    #   principal[slot]: was the croissant stem -> dropped (replaced by the
+    #     croissant's thin side, usually nothing); represented by a stub end so
+    #     the index space stays length n. Its captured token is the (removed)
+    #     croissant, so nothing real attaches.
+    #   each branch[slot]: absorbed by a fresh croissant (wide 1 / thin 0).
+    # Non-slot wires pass straight to the new (n-1)-wide fan branch.
+    new_end: dict[str, list[int]] = {}
+    target: dict[str, list] = {}
+    for port in ("principal", "grey", "black"):
+        np = nf.ports[port]                       # width n-1
+        ends: list[int] = []
+        tgt: list = []
+        for i in range(n):
+            if i != slot:
+                ends.append(np[i if i < slot else i - 1])
+                tgt.append(cap[port][i])
+            elif port == "principal":
+                # the principal slot wire disappears with the croissant; if the
+                # croissant had a (non-empty) thin side, that becomes the slot.
+                end = cr_thin[0] if cr_thin else g.new_croissant(1, 0).ports["wide"][0]
+                ends.append(end)
+                tgt.append(("ext", None))         # nothing real to attach
+            else:
+                ends.append(g.new_croissant(1, 0).ports["wide"][0])   # absorb
+                tgt.append(cap[port][i])
+        new_end[port] = ends
+        target[port] = tgt
+    _finalize(g, new_end, target)
     g.book_interactions += 1
 
 
@@ -1174,8 +1305,36 @@ def readback(g: Graph) -> LamTerm:
 # Normalisation driver
 # ---------------------------------------------------------------------------
 
+def _splice_joints(g: Graph) -> None:
+    """Remove every JOINT by wiring its up[i] peer straight to its down[i] peer.
+    A JOINT is an identity pass-through (the compile-time variable-edge marker);
+    splicing it out lets operators on either side meet on a shared bus without a
+    JOINT blocking detection. Read-back already treats JOINTs as transparent, so
+    this does not change the read-back result.
+
+    Joints can chain (a joint's peer is another joint's end); we splice one at a
+    time, re-reading peers live, until none remain."""
+    while True:
+        nid = next((n.id for n in g.nodes.values()
+                    if n.kind == NodeKind.JOINT), None)
+        if nid is None:
+            return
+        j = g.nodes[nid]
+        up, down = list(j.ports["up"]), list(j.ports["down"])
+        peers_up = [g.peer(e) for e in up]
+        peers_down = [g.peer(e) for e in down]
+        for e in up + down:
+            g.disconnect(e)
+        for pu, pd in zip(peers_up, peers_down):
+            if pu is not None and pd is not None:
+                g.connect_wire(pu, pd)
+            # if exactly one side is open (a dangling variable edge), leave it.
+        g.remove_node(nid)
+
+
 def normalize(g: Graph, max_steps: int = 1_000_000) -> Graph:
     """Fire active pairs until none remain (or max_steps). Leftmost-first."""
+    _splice_joints(g)            # remove identity pass-throughs up front
     steps = 0
     while True:
         redexes = find_redexes(g)

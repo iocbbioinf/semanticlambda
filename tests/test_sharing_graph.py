@@ -59,17 +59,6 @@ ORACLE = {
     "I": I,
     "Iy": A(I, V("y")),
     "II": A(I, L("z", V("z"))),
-}
-
-# NOTE (2026-06-30): bus-shared (per-wire) detection + R5/R6 are in. I, Iy, II
-# now reduce correctly under the width-2 wiring (R5/R6 commute the addressing
-# brackets/croissants off the shared principal bus, then R1 annihilates the
-# fans). Terms with NESTED abstractions (K, Ky, Kab, K2ab, KIy) still fail: a
-# bracket there is width>1 and spans a wire of the fan AND a wire of another
-# operator (croissant) — R5 must commute the fan across only its OWN shared
-# wire, not the bracket's whole wide bus. That general fan/bracket-on-a-shared-
-# bus splice is the remaining work (paper Fig 2 bottom row, exact wire counts).
-KNOWN_FAILING = {
     "Ky": A(K, V("y")),
     "K": K,
     "Kab": A(A(K, V("a")), V("b")),
@@ -77,6 +66,8 @@ KNOWN_FAILING = {
     "KIy": A(A(K, I), V("y")),
     "dupI": A(L("x", A(V("x"), V("x"))), I),
 }
+
+KNOWN_FAILING: dict = {}
 
 
 def run() -> int:
