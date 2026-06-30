@@ -67,6 +67,7 @@ three = church(3)
 succ = L("n", L("f", L("x", A(V("f"), A(A(V("n"), V("f")), V("x"))))))
 plus = L("m", L("n", L("f", L("x",
         A(A(V("m"), V("f")), A(A(V("n"), V("f")), V("x")))))))
+mult = L("m", L("n", L("f", A(V("m"), A(V("n"), V("f"))))))
 
 ORACLE = {
     "I": I,
@@ -90,6 +91,13 @@ ORACLE = {
     "three_K_a": A(A(three, K), V("a")),
     "succ_two": A(A(A(succ, two), V("f")), V("x")),
     "plus_2_3": A(A(A(A(plus, two), three), V("f")), V("x")),
+    # deep sharing: Church multiplication — these formerly REDUCED fine but
+    # the structural read-back cycled (depth guard) because it could not
+    # unfold a body shared by several occurrences. Now read back by the
+    # context-stack discipline in _ReadBack.
+    "mult_2_3": A(A(mult, two), three),
+    "mult_3_3": A(A(mult, three), three),
+    "mult_2_2_2": A(A(mult, A(A(mult, two), two)), two),
     # combinators
     "SKKz": A(A(A(S, K), K), V("z")),
     "SIIw": A(A(A(S, I), I), V("w")),
