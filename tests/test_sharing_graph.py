@@ -55,6 +55,19 @@ ROUND_TRIP = {
     "freevars": L("x", A(V("y"), A(V("x"), V("z")))),
 }
 
+def church(n: int):
+    body = V("x")
+    for _ in range(n):
+        body = A(V("f"), body)
+    return L("f", L("x", body))
+
+
+two = church(2)
+three = church(3)
+succ = L("n", L("f", L("x", A(V("f"), A(A(V("n"), V("f")), V("x"))))))
+plus = L("m", L("n", L("f", L("x",
+        A(A(V("m"), V("f")), A(A(V("n"), V("f")), V("x")))))))
+
 ORACLE = {
     "I": I,
     "Iy": A(I, V("y")),
@@ -64,7 +77,22 @@ ORACLE = {
     "Kab": A(A(K, V("a")), V("b")),
     "K2ab": A(A(L("x", L("y", V("y"))), V("a")), V("b")),
     "KIy": A(A(K, I), V("y")),
+    # sharing / duplication
     "dupI": A(L("x", A(V("x"), V("x"))), I),
+    "dup2": A(L("x", A(V("x"), V("x"))), A(I, I)),
+    "dupK": A(L("x", A(V("x"), V("x"))), K),
+    "dup_dup": A(L("x", A(V("x"), V("x"))),
+                 A(L("y", A(V("y"), V("y"))), I)),
+    # Church numerals / arithmetic
+    "two_I_z": A(A(two, I), V("z")),
+    "three_I_z": A(A(three, I), V("z")),
+    "two_f_x": A(A(two, V("f")), V("x")),
+    "three_K_a": A(A(three, K), V("a")),
+    "succ_two": A(A(A(succ, two), V("f")), V("x")),
+    "plus_2_3": A(A(A(A(plus, two), three), V("f")), V("x")),
+    # combinators
+    "SKKz": A(A(A(S, K), K), V("z")),
+    "SIIw": A(A(A(S, I), I), V("w")),
 }
 
 KNOWN_FAILING: dict = {}

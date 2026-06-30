@@ -532,37 +532,83 @@ def _attach_each(g: Graph, fresh: list[int], peers: list[Optional[int]]) -> None
             g.connect_wire(f, p)
 
 
-def rule1_fan_fan_same(g: Graph, a: Node, b: Node) -> None:
-    """R1: fans on the SAME wire annihilate. grey<->grey, black<->black;
-    width unchanged. (Paper Fig 2 top-left; the i/i fan rule.)"""
-    a_grey, a_black = _ext(g, a.ports["grey"]), _ext(g, a.ports["black"])
-    b_grey, b_black = _ext(g, b.ports["grey"]), _ext(g, b.ports["black"])
+def _annihilate(g: Graph, a: Node, b: Node, ports: list[tuple[str, str]]) -> None:
+    """Annihilate two operators, fusing their matching ports wire-for-wire,
+    self-loop-safe. `ports` is a list of (a_port, b_port) pairs to splice
+    straight through. A wire of a/b that loops back to a/b (rather than leaving)
+    is reconnected to whatever the splice would join it to, by union-find over
+    the saved external peers."""
+    # Collect the desired wire merges as pairs of (node, port, slot) endpoints,
+    # captured as raw peers (may reference a/b's own ends for self-loops).
+    pairs: list[tuple[int, int]] = []
+    for pa, pb in ports:
+        ea, eb = a.ports[pa], b.ports[pb]
+        assert len(ea) == len(eb)
+        for x, y in zip(ea, eb):
+            pairs.append((g.peer(x), g.peer(y)))
+    own = {a.id, b.id}
+    # Build a map from each removed-fan end -> the external it should fuse with,
+    # by walking the merge pairs (an end on a/b in one pair connects two
+    # externals across the annihilation).
+    # Union-find over endpoint ids; representative prefers a non-(a/b) end.
+    parent: dict[int, int] = {}
+
+    def find(x: int) -> int:
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(x: int, y: int) -> None:
+        rx, ry = find(x), find(y)
+        if rx != ry:
+            parent[rx] = ry
+
+    for x, y in pairs:
+        if x is None or y is None:
+            continue
+        union(x, y)
+    # Also union each operator's INTERNAL self-loops (a wire whose two ends both
+    # belong to a/b, e.g. grey[k] <-> black[k] in a duplicated lambda x . x), so
+    # the externals on either side of that wire end up in one class.
+    for node in (a, b):
+        for e in node.all_ends():
+            p = g.peer(e)
+            if p is not None and g.ends[p].owner in own:
+                union(e, p)
     g.remove_node(a.id)
     g.remove_node(b.id)
-    g.connect_bus(a_grey, b_grey)
-    g.connect_bus(a_black, b_black)
+    # Each union class should contain exactly the external ends to connect; an
+    # end belonging to a/b (now removed) is just a relay. Connect the surviving
+    # (still-existing) ends in each class pairwise.
+    classes: dict[int, list[int]] = {}
+    for e in list(parent):
+        if e in g.ends:                          # survived (not on a/b)
+            classes.setdefault(find(e), []).append(e)
+    for members in classes.values():
+        for k in range(1, len(members)):
+            g.connect_wire(members[0], members[k])
+
+
+def rule1_fan_fan_same(g: Graph, a: Node, b: Node) -> None:
+    """R1: fans on the SAME wire annihilate. grey<->grey, black<->black;
+    width unchanged. (Paper Fig 2 top-left; the i/i fan rule.) Self-loop-safe."""
+    _annihilate(g, a, b, [("grey", "grey"), ("black", "black")])
     g.fan_interactions += 1
 
 
 def rule2_bracket_bracket_same(g: Graph, a: Node, b: Node) -> None:
     """R2: brackets on the SAME slot annihilate; the two WIDE sides connect,
-    so the bus between them is +1 vs the narrow interaction bus."""
-    a_wide = _ext(g, a.ports["wide"])
-    b_wide = _ext(g, b.ports["wide"])
-    g.remove_node(a.id)
-    g.remove_node(b.id)
-    g.connect_bus(a_wide, b_wide)
+    so the bus between them is +1 vs the narrow interaction bus. Loop-safe."""
+    _annihilate(g, a, b, [("wide", "wide")])
     g.book_interactions += 1
 
 
 def rule3_croissant_croissant_same(g: Graph, a: Node, b: Node) -> None:
     """R3: croissants on the SAME slot annihilate; the two THIN sides connect,
-    so the bus between them is -1 vs the wide interaction bus."""
-    a_thin = _ext(g, a.ports["thin"])
-    b_thin = _ext(g, b.ports["thin"])
-    g.remove_node(a.id)
-    g.remove_node(b.id)
-    g.connect_bus(a_thin, b_thin)
+    so the bus between them is -1 vs the wide interaction bus. Loop-safe."""
+    _annihilate(g, a, b, [("thin", "thin")])
     g.book_interactions += 1
 
 
@@ -660,6 +706,8 @@ def _finalize(g: Graph, new_end: dict, target: dict) -> None:
     for port, ends in new_end.items():
         tgts = target[port]
         for i, (end, tok) in enumerate(zip(ends, tgts)):
+            if end is None:
+                continue                         # this new wire vanished
             if tok[0] == "ext":
                 if tok[1] is not None:
                     g.connect_wire(end, tok[1])
@@ -669,7 +717,9 @@ def _finalize(g: Graph, new_end: dict, target: dict) -> None:
                 if key in done:
                     continue
                 done.add(key)
-                g.connect_wire(end, new_end[p2][s2])
+                partner = new_end[p2][s2]
+                if partner is not None:
+                    g.connect_wire(end, partner)
 
 
 def _fold_pair(g: Graph, a: int, b: int) -> int:
@@ -782,11 +832,13 @@ def rule6_fan_croissant_diff(g: Graph, fan: Node, croissant: Node,
                 ends.append(np[i if i < slot else i - 1])
                 tgt.append(cap[port][i])
             elif port == "principal":
-                # the principal slot wire disappears with the croissant; if the
-                # croissant had a (non-empty) thin side, that becomes the slot.
-                end = cr_thin[0] if cr_thin else g.new_croissant(1, 0).ports["wide"][0]
-                ends.append(end)
-                tgt.append(("ext", None))         # nothing real to attach
+                # the principal slot wire disappears with the croissant (its
+                # stem). For a pure generator (thin empty) the wire simply
+                # vanishes: None end, which _finalize skips. (A non-empty thin
+                # would route here, but the bus translation only emits pure
+                # generators, so that path is unused.)
+                ends.append(None)
+                tgt.append(("ext", None))
             else:
                 ends.append(g.new_croissant(1, 0).ports["wide"][0])   # absorb
                 tgt.append(cap[port][i])
