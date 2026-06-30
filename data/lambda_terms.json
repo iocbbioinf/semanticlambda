@@ -178,5 +178,38 @@
         "claim_text": "The 40% higher pocket RMSD of apo pockets compared to holo pockets hints at the existence of cryptic binding sites \u2014 pockets that are hidden in the apo state and open upon ligand binding."
       }
     ]
+  },
+  {
+    "chain_label": "'AHoJ-DB' 'complements tool' 'AlphaFold'",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#AHoJDB",
+        "label": "AHoJ-DB"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#AHoJDB",
+          "label": "AHoJ-DB"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#AlphaFold",
+          "label": "AlphaFold"
+        }
+      }
+    },
+    "term_str": "\u03bbAHoJ-DB.(AHoJ-DB \u00b7 AlphaFold)",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#AHoJDB",
+        "obj_iri": "https://ahoj-db.org/kg#AlphaFold",
+        "claim_iri": "https://ahoj-db.org/kg#C21",
+        "claim_text": "AHoJ-DB captures conformational variability of proteins with identical sequences, complementing AlphaFold predictions by providing curated experimental structure ensembles that reflect apo/holo differences AlphaFold cannot model."
+      }
+    ]
   }
 ]
