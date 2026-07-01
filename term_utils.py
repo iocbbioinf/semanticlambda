@@ -6,7 +6,7 @@ from typing import Optional
 
 import rdflib
 
-from lambda_term import LamTerm, LamVar, LamApp, LamAbs, lam_to_dict
+from optimal_lambda import LamTerm, LamVar, LamApp, LamAbs, lam_to_dict
 from kg_store import EX, local_name, esc, _claim_predicate_label, load_lambda_db, save_lambda_db
 
 

@@ -11,7 +11,7 @@ from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, Label, ListView, Static
 from textual.containers import VerticalScroll, Horizontal, Vertical
 
-from lambda_term import LamTerm, LamVar, LamApp, LamAbs
+from optimal_lambda import LamTerm, LamVar, LamApp, LamAbs
 from kg_store import (
     load_graph, load_readings_db, save_readings_db,
     node_label, node_description, esc, search_nodes,

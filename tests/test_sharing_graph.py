@@ -16,8 +16,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import sharing_graph as sg
-from lambda_term import LamVar, LamApp, LamAbs, beta_reduce_sequence
+import optimal_lambda as sg
+from optimal_lambda import LamVar, LamApp, LamAbs, beta_reduce_sequence
 
 
 # -- term builders ----------------------------------------------------------

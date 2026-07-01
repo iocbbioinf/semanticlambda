@@ -9,11 +9,11 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, Label, ListItem, ListView, Static
 from textual.containers import ScrollableContainer, Horizontal, Vertical
 
-from lambda_term import LamTerm, LamVar, LamApp, LamAbs, lam_from_dict
+from optimal_lambda import LamTerm, LamVar, LamApp, LamAbs, lam_from_dict
 from kg_store import (
     local_name, node_label, esc, search_nodes, load_lambda_db,
 )
-from lambda_term import beta_reduce_sequence
+from optimal_lambda import beta_reduce_sequence
 from term_utils import (
     _term_type, _render_lam_root, collect_edge_claims,
     _make_ontology_term, _make_beta_term,

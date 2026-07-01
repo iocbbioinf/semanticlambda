@@ -7,7 +7,7 @@ from typing import Optional
 import rdflib
 from rdflib.namespace import RDFS, OWL, SKOS, DCTERMS
 
-from lambda_term import LamTerm, lam_to_dict, lam_from_dict
+from optimal_lambda import LamTerm, lam_to_dict, lam_from_dict
 
 TTL_FILE = Path("/home/marek/uochb/ch/paperskg/ahoj-db.ttl")
 LAMBDA_DB = Path(__file__).parent / "data" / "lambda_terms.json"
