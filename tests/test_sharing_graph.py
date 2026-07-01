@@ -17,7 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import optimal_lambda as sg
-from optimal_lambda import LamVar, LamApp, LamAbs, beta_reduce_sequence
+from optimal_lambda import LamVar, LamApp, LamAbs, beta_reduce_sequence, parse
 
 
 # -- term builders ----------------------------------------------------------
@@ -101,6 +101,16 @@ ORACLE = {
     # combinators
     "SKKz": A(A(A(S, K), K), V("z")),
     "SIIw": A(A(A(S, I), I), V("w")),
+    # deep nesting w/ sharing — reduces to λx y.((x y) (x y)) in 26 beta steps
+    "nested_share": parse(
+        r"(\x.(\y.((\f.((\h.(h (\p.(h (\q.q)))))"
+        r" (\l.(((f (\n.(l n))) x) y))))"
+        r" (\g.(\u.(\v.((g u) (g v))))))))"),
+    # same shape but inner body is p (not q) — reduces to λx y.((x x) (y y))
+    "nested_share2": parse(
+        r"(\x.(\y.((\f.((\h.(h (\p.(h (\q.p)))))"
+        r" (\l.(((f (\n.(l n))) x) y))))"
+        r" (\g.(\u.(\v.((g u) (g v))))))))"),
 }
 
 KNOWN_FAILING: dict = {}
