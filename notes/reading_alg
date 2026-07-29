@@ -1,0 +1,611 @@
+READING — algorithm / pseudocode
+================================
+
+Companion to `reading_desc`. Language-agnostic, but named so it can be
+implemented directly against the `optimal_lambda/` package.
+
+Assumptions carried over from `reading_desc` are marked [A].
+
+
+0. Data structures
+------------------
+
+    Entity      := IRI of a knowledge-graph node        # a "type" A, B, C...
+    Relation    := (subject: Entity, object: Entity)    # an arrow A -> B
+
+    Term        := Var(iri, label)                      # optimal_lambda.term
+                 | App(func: Term, arg: Term)
+                 | Abs(var: Var, body: Term)
+
+    Pointer     := handle designating a node or edge of G(t).
+                   Must survive graph rewriting, so it is NOT a raw node id;
+                   implement as a stable id minted per graft site.
+
+    Reading     := record {
+                     graph      : Graph        # G(t), a sharing graph
+                     term       : Term         # t  (kept in step with graph)
+                     pointers   : set[Pointer]
+                     ontologies : set[Ontology] # models in which R is valid
+                     name       : optional str  # set once saved
+                   }
+
+    Ontology    := record {                    # ont(G(t), P) -- reading_desc §7
+                     graph    : Graph          # contains ABSTRACTIONS
+                     term     : Term
+                     pointers : set[Pointer]   # corresponds elementwise to
+                   }                           # the reading's pointer set
+
+    Question    := an Abs created by the user from a reading by selecting the
+                   queried entity (already implemented: app.py "Ask question"
+                   -> widgets.LambdaAbstractionModal -> Abs(var=entity,
+                   body=reading_term); persisted by
+                   term_utils.append_lambda_term). Its type is its bound
+                   variable's type, since [(lam a) t] = [a].
+
+    Store       := saved readings, addressable by name.
+    QStore      := saved questions (the lambda DB), queryable BY TYPE.
+
+
+1. Typing  —  [t]
+-----------------
+
+Normative implementation already exists: `term_utils._term_type`.
+
+    function TYPE_OF(t: Term) -> Entity:
+        while t is App:
+            if t.func is Abs:
+                return t.func.var.iri          # [(lam a) t] = [a]
+            t = t.arg                          # [app(a,b)]  = [b]
+        if t is Var:
+            return t.iri                       # [a]
+        return UNDEFINED
+
+    function TYPE_AT(R, p) -> Entity:
+        return TYPE_OF( SUBTERM_AT(R, p) )
+
+SUBTERM_AT(R,p) returns the subterm t1 whose subgraph G(t1) the pointer p
+designates.
+
+
+2. Initial step
+---------------
+
+    function INIT_FROM_ENTITY(A: Entity) -> Reading:
+        a  = fresh Var of type A                 # [a] = A
+        t  = a
+        G  = compile_term(t)                     # optimal_lambda.compile
+        p  = POINTER_TO_ROOT(G)
+        return Reading(graph=G, term=t, pointers={p})
+
+    function INIT_FROM_SAVED(R1: Reading, p: Pointer) -> (Reading, Pointer):
+        require p in R1.pointers
+        # Not a special mode: reading continues generically from here,
+        # with R := R1 and p as the acting position.
+        return (COPY_OF(R1), p)
+
+
+3. Legality
+-----------
+
+DESIGN CONSTRAINT (reading_desc §3b): the reader does not know the graph in
+advance. Every operand must be either (K1) an arrow incident to the type at the
+current pointer, or (K2) one of the reader's own saved readings. Consequences
+for this module:
+
+  - the move menu at a pointer of type A is built from arrows INCIDENT to A
+    only — never from a global entity list, and never from a path lookup;
+  - there is deliberately NO "go to node / go to entity" navigation procedure.
+    Adding one would breach (K1), and it is not needed: grafting saved readings
+    at a pointer already yields every application shape (reading_desc §9.1);
+  - (K2) enters only THROUGH a pointer, via cases 2 and 4. EVERY procedure here
+    acts at one pointer; none takes two readings as co-equal operands. The
+    former case 5 did, and was removed for that reason (reading_desc §4.2d).
+
+    function LEGAL_CONTRACTION_DEPART(R, p, arrow: Relation) -> bool:
+        # cases 1 and 2: reader stands at the arrow's SUBJECT
+        return TYPE_AT(R, p) == arrow.subject          # invariant I4
+
+    function LEGAL_CONTRACTION_ARRIVE(R, p, arrow: Relation) -> bool:
+        # case 4: reader stands at the arrow's OBJECT
+        return TYPE_AT(R, p) == arrow.object           # invariant I4
+
+    function LEGAL_REFLECTION(R, p, B, C) -> bool:
+        A = TYPE_AT(R, p)
+        # [A] two relations OUT OF A are contrasted
+        return EXISTS_RELATION(A, B) and EXISTS_RELATION(A, C)
+
+EXISTS_RELATION consults the knowledge graph. Offering the user the legal
+moves at a pointer of type A needs BOTH directions:
+
+    outgoing arrows A -> X   `kg_store.get_claims_for_subject`  (cases 1, 2)
+    incoming arrows X -> A   `kg_store.get_claims_for_object`   (case 4, via
+                                                                TRIVIAL_READING)
+
+
+4. Contraction, case 1  —  follow a relation A -> B
+----------------------------------------------------
+
+    procedure CONTRACT_RELATION(R, p, arrow = (A, B)):
+        require LEGAL_CONTRACTION_DEPART(R, p, arrow)
+
+        t1  = SUBTERM_AT(R, p)                   # [t1] == A
+        b   = fresh Var of type B
+        t2  = App(t1, b)                         # [t2] == B
+
+        REPLACE_SUBGRAPH(R.graph, at=p, old=G(t1), new=G(t2))
+        R.term = REPLACE_SUBTERM(R.term, t1, t2)
+
+        # p is re-pointed at the new application node; all other pointers
+        # are untouched (invariant I2).
+        REBIND(p, to = node_of(t2))
+
+        # R.pointers unchanged as a set; p now designates the App node.
+        return R
+
+    Post: TYPE_AT(R, p) == B.
+
+
+5. Contraction, case 2  —  enter a saved reading A -> R1
+---------------------------------------------------------
+
+The defining property: the reader DESCENDS INTO R1. R1's pointers become live,
+p is consumed by the graft, and the reading's other pointers survive:
+
+        P1 = Pr union (P - p)
+
+    SHARE_GRAFTED_READING := false     # [A] default: copy. see reading_desc O1
+
+    procedure CONTRACT_READING(R, p, A: Entity, R1: Reading):
+        require TYPE_AT(R, p) == A
+
+        t1 = SUBTERM_AT(R, p)                    # [t1] == A
+
+        if SHARE_GRAFTED_READING:
+            # one G(tr1), referenced from many readings; edits propagate
+            sub    = SHARED_REF(R1.graph)
+            newPtr = R1.pointers                 # still valid: same graph
+        else:
+            # independent instance; saved R1 stays immutable
+            (sub, ptrMap) = DEEP_COPY(R1.graph)
+            newPtr = { ptrMap[q] for q in R1.pointers }   # rebase onto copy
+
+        t2 = App(t1, R1.term)
+
+        REPLACE_SUBGRAPH(R.graph, at=p, old=G(t1), new=App-node(G(t1), sub))
+        R.term = REPLACE_SUBTERM(R.term, t1, t2)
+
+        # THE DESCENT: R1's pointers become live. p is CONSUMED by the graft;
+        # every other pointer of R survives (invariant I2).
+        R.pointers = newPtr union (R.pointers \ {p})
+
+        require R.pointers is non-empty                    # invariant I6
+        return R
+
+    |P| changes by -1 + |Pr|, so one step may open several new positions.
+    R.term still records the whole path traversed before the descent — only
+    the POSITIONS change.
+
+
+5b. Case 3  —  OMITTED (subsumed by case 4)
+--------------------------------------------
+
+The former case 3 ("arrive along A -> B": prepend a fresh Var of type A) is
+not a primitive. It is case 4 instantiated at the TRIVIAL READING
+
+    TRIVIAL_READING(A) = Reading(graph    = compile_term(a),
+                                 term     = a,          # a fresh Var, [a]==A
+                                 pointers = {ptr(a)})
+
+Because case 4 discards the grafted reading's pointers, the trivial reading's
+pointer contributes nothing and the result is exactly the old case 3.
+See §5c and reading_desc §4.2b.
+
+Case 1 is NOT similarly reducible to case 2: case 2 ADOPTS the grafted
+reading's pointers, so instantiating it at a trivial reading would leave the
+pointer on the argument rather than on the new application node.
+
+
+5c. Contraction, case 4  —  arrive from a saved reading R1 -> B
+----------------------------------------------------------------
+
+Dual of case 2: the saved reading goes into FUNCTION position, so the type is
+unchanged and Pr is NOT adopted. Subsumes the former case 3 when R1 is
+TRIVIAL_READING(A).
+
+    procedure CONTRACT_INCOMING_READING(R, p, R1: Reading, B: Entity):
+        require TYPE_AT(R, p) == B
+
+        t1 = SUBTERM_AT(R, p)                    # [t1] == B
+
+        if SHARE_GRAFTED_READING:
+            sub = SHARED_REF(R1.graph)
+        else:
+            (sub, _) = DEEP_COPY(R1.graph)       # ptrMap unused: Pr discarded
+
+        t2 = App(R1.term, t1)                    # [t2] == [t1] == B
+
+        REPLACE_SUBGRAPH(R.graph, at=p, old=G(t1), new=App-node(sub, G(t1)))
+        R.term = REPLACE_SUBTERM(R.term, t1, t2)
+
+        REBIND(p, to = node_of(t2))
+        # Pr is DISCARDED — the reader does not enter R1 (contrast case 2).
+        # all other pointers untouched; |P| unchanged
+
+        return R
+
+    Post: TYPE_AT(R, p) == B, UNCHANGED.
+
+    Cases 2 and 4 differ only in the position R1 is grafted into, and that
+    single difference decides everything:
+        argument position -> type becomes [tr1], reader ENTERS  R1, adopt Pr
+        function position -> type stays B,       reader REMAINS outside, drop Pr
+
+    Convenience wrapper for the common move "arrive at B from a plain entity
+    A" (the omitted case 3). Expose this in the interface; it is not a
+    separate primitive:
+
+    procedure CONTRACT_INCOMING(R, p, arrow = (A, B)):
+        require LEGAL_CONTRACTION_ARRIVE(R, p, arrow)      # [t1] == B
+        return CONTRACT_INCOMING_READING(R, p, TRIVIAL_READING(A), B)
+
+
+5d. Case 5  —  REMOVED (kept as a possible future enhancement)
+---------------------------------------------------------------
+
+Removed so that every step is local (reading_desc §3b, §4.2d). It was the only
+operation taking two READINGS and no pointer:
+
+    function JOIN_READINGS(R1, R2) -> Reading:        # NOT part of the calculus
+        t = App(R1.term, R2.term)                     # [t] == [R2.term]
+        return Reading(graph = App-node(R1.graph, R2.graph),
+                       term = t, pointers = R2.pointers)   # P1 discarded
+
+Removing it costs no expressive power: cases 2 and 4 already graft a saved
+reading's whole term at a pointer, which yields every application shape
+(reading_desc §9.1). To build app(t1, t2) with both sides compound, save t2 as
+a reading and graft it at a pointer — no joining needed.
+
+If reinstated, the open questions were whether it produces a new reading or
+mutates one in place, and whether R1 == R2 is permitted.
+
+
+6. Reflection  —  fork attention over a shared subject
+-------------------------------------------------------
+
+    procedure REFLECT(R, p, B: Entity, C: Entity):
+        require LEGAL_REFLECTION(R, p, B, C)
+
+        tA = SUBTERM_AT(R, p)                    # [tA] == A
+
+        b = fresh Var of type B                  # [A] fresh vars, not
+        c = fresh Var of type C                  #     entity constants
+
+        # tA occurs twice in the TERM but exists once in the GRAPH.
+        fan = NEW_SHARING_FANIN(over = G(tA))    # cf. _Compiler._fan_in :
+                                                 #   arity-3 INTERNAL fan
+                                                 #   marked on OFFSET wire
+        left  = App(tA, b)                       # attaches to fan.grey
+        right = App(tA, c)                       # attaches to fan.black
+        t2    = App(left, right)
+
+        REPLACE_SUBGRAPH(R.graph, at=p, old=G(tA), new=G(t2))
+        R.term = REPLACE_SUBTERM(R.term, tA, t2)
+
+        pB = POINTER_TO_EDGE_AT(fan, port="grey")    # upper LEFT  aux port
+        pC = POINTER_TO_EDGE_AT(fan, port="black")   # upper RIGHT aux port
+
+        R.pointers = (R.pointers \ {p}) union {pB, pC}
+        return R
+
+    Post: TYPE_AT(R, pB) == B  and  TYPE_AT(R, pC) == C
+          exactly one G(tA) exists in the graph            # invariant I5
+
+    Why OFFSET matters: the sharing fan-in must sit on the OFFSET wire while
+    the syntactic lambda/application fans sit on COMMAND. Same wire => the two
+    fans meet with equal `main` => rule R1 ANNIHILATE (the shared subject is
+    consumed once — wrong). Different wires => rule R4 DUPLICATE (the subject
+    is copied into each context — right).
+    See skill `understand-bus-optimal-reduction` §3.
+
+
+6b. Ontologies  —  models in which the reading is valid
+--------------------------------------------------------
+
+See reading_desc §7. A reading records what the user did; an ontology is a
+term WITH abstractions whose reduction replays the reading:
+
+    contraction  <->  R1 fires (fan/fan same wire, annihilate)
+    reflection   <->  R4 fires (fan/fan different wires, duplicate)
+
+Every reading step: first UPDATE (filter + advance), then ENRICH.
+
+    function QUESTIONS(A: Entity) -> set[Question]:
+        # already implemented: widgets.py:_record_contains_iri does exactly
+        #   isinstance(term, Abs) and term.var.iri == A
+        return { q in QStore : TYPE_OF(q) == A }        # [(lam a) t] = [a]
+
+
+6b.1 Enrichment
+---------------
+
+    procedure ENRICH_ALL(onts: set[Ontology]):
+        for each o in onts:                    # iterate a SNAPSHOT
+            ENRICH(o, o.pointers, onts)
+
+    procedure ENRICH(o, P, onts):
+        p = HEAD(P)
+        if p == null: return
+        let p designate subterm tp of o.term
+
+        ENRICH(o, P - p, onts)                 # the remaining pointers
+
+        # (a) tp is a variable in FUNCTION position of an application
+        if o.term has subterm App(tp, _) and tp is a Var:
+            for each q in QUESTIONS(TYPE_OF(tp)):
+                o2  = o with o.graph's G(tp) replaced by G(q)
+                pq  = pointer to q in o2
+                o2.pointers = (P - p) union {pq}
+                onts.add(o2)
+                ENRICH(o2, P - p, onts)
+
+        # (b) tp is in ARGUMENT position, function side t1 a variable
+        if o.term has subterm App(t1, tp) and t1 is a Var:
+            for each q in QUESTIONS(TYPE_OF(t1)):
+                o2 = o with o.graph's G(t1) replaced by G(q)
+                o2.pointers = P                # pointer set unchanged
+                onts.add(o2)
+                ENRICH(o2, P - p, onts)
+
+    TERMINATION: every recursive call passes P - p, and a newly created
+    ontology is enriched only for the REMAINING pointers — a question is never
+    substituted inside a question introduced in the same enrichment. Depth is
+    bounded by |P|.
+
+    Note the asymmetry: (a) replaces p by pq (the question becomes a new
+    position); (b) leaves P alone. This follows the argument/function principle
+    of reading_desc §5.
+
+
+6b.2 Initialisation
+-------------------
+
+    function INIT_ONTS_FROM_ENTITY(a: Var) -> set[Ontology]:
+        o = Ontology(graph=compile_term(a), term=a,
+                     pointers={ptr to the edge G(a)})
+        onts = {o}; ENRICH_ALL(onts); return onts
+
+    function INIT_ONTS_FROM_SAVED(R1: Reading) -> set[Ontology]:
+        onts = COPY_OF(R1.ontologies); ENRICH_ALL(onts); return onts
+
+
+6b.3 Update on contraction case 1   (arrow A -> B at pointer p)
+----------------------------------------------------------------
+
+    procedure ONTS_AFTER_CONTRACT_1(R, p, arrow = (A, B)):
+        newOnts = {}
+        for each o in R.ontologies:
+            p1 = CORRESPONDING_POINTER(o, p)        # see INVARIANT below
+            if p1 == null: continue
+
+            # p1 must point at ta inside an application App(ta, tb)
+            if o.term has subterm App(ta, tb) with p1 designating ta
+               and TYPE_OF(ta) == A and TYPE_OF(tb) == B:
+                if R1_APPLICABLE(o.graph, p1):      # i.e. ta is an abstraction
+                    pb = pointer to tb
+                    APPLY_R1(o.graph, p1)
+                    BOOKKEEP(o.graph)               # rules R2, R3, R5, R6
+                    o2 = o with pointers = (o.pointers - {p1}) union {pb}
+                    newOnts.add(o2)
+
+        R.ontologies = newOnts                      # REFUTATION: see 6b.5
+        ENRICH_ALL(R.ontologies)
+
+    The pointer moves from the abstraction ta to tb, mirroring the reading,
+    where case 1 moves the reader from A to B.
+
+
+6b.4 Update on reflection   (B -> C at p, p designating ta with [ta] == A)
+---------------------------------------------------------------------------
+
+    procedure ONTS_AFTER_REFLECT(R, p, B, C):
+        newOnts = {}
+        for each o in R.ontologies:
+            p1 = CORRESPONDING_POINTER(o, p)
+            if p1 == null: continue
+            let p1 designate toa
+
+            if toa is an Abs
+               and R4_APPLICABLE(o.graph, p1)
+               and o.term has subterm App(tb, tc)
+                   with TYPE_OF(tb)==B, TYPE_OF(tc)==C, TYPE_OF(toa)==A
+               and IS_SHARED_IN_BOTH(o.graph, toa, tb, tc):   # PRECONDITION
+                APPLY_R4(o.graph, p1)
+                BOOKKEEP(o.graph)
+                pB = pointer to upper-LEFT  aux port edge     # fan-in `grey`
+                pC = pointer to upper-RIGHT aux port edge     # fan-in `black`
+                o2 = o with pointers = (o.pointers - {p1}) union {pB, pC}
+                newOnts.add(o2)
+
+        R.ontologies = newOnts
+        ENRICH_ALL(R.ontologies)
+
+    IMPLEMENTATION CAVEAT on IS_SHARED_IN_BOTH. Requiring G(toa) to be ALREADY
+    shared across tb and tc is a deliberate precondition (reading_desc §7.6),
+    and it is STRICTER than the reducer's own applicability test.
+    `optimal_lambda/rules.py:rule4_fan_fan_diff` fires whenever two fans meet
+    principal-to-principal on DIFFERENT main wires, and its EFFECT is to
+    replicate each fan onto the other's grey/black branches — the reducer
+    CREATES duplication rather than requiring it. So IS_SHARED_IN_BOTH is an
+    extra filter layered on top of `find_redexes`; it must be implemented and
+    checked separately, not read off redex detection.
+
+
+6b.5 Refutation
+---------------
+
+Both update procedures REPLACE R.ontologies rather than adding to it: an
+ontology in which the required rule does not fire is DISCARDED, being falsified
+by what the user just did. The set shrinks by refutation and grows by
+enrichment.
+
+    AN EMPTY ONTOLOGY SET IS MEANINGFUL — the reading has no valid model. It is
+    a distinguished state and must be surfaced to the user:
+
+        if R.ontologies is empty:
+            SIGNAL("this reading has no valid model")
+
+    Note this is deliberately NOT folded into ASSERT_INVARIANTS: an empty
+    ontology set is a legitimate (if notable) outcome, not a broken state.
+
+
+6b.6 The correspondence invariant
+---------------------------------
+
+    INVARIANT (reading_desc O12): every pointer p of the reading has exactly one
+    counterpart p1 in each ontology, and CORRESPONDING_POINTER(o, p) finds it.
+
+    Maintained by construction: enrichment case (a) replaces p by pq, case (b)
+    leaves P alone, and each update procedure rewrites pointers in step with the
+    reading's own rule. Every ontology procedure depends on this totally, so
+    implement CORRESPONDING_POINTER explicitly (e.g. carry a reading-pointer id
+    on each ontology pointer) rather than re-deriving it positionally.
+
+
+6b.7 Update on contraction cases 2 and 4  —  OPEN
+--------------------------------------------------
+
+    NOT SPECIFIED (reading_desc §7.8, O10). Cases 2 and 4 graft a saved reading
+    R1, which carries its own ontology set, so the two sets must be combined.
+    Candidate: cartesian product { graft(o, o1) : o in R.ontologies,
+    o1 in R1.ontologies } with pointers following the reading's own rule (case 2
+    adopts R1's, case 4 discards them). Alternative: graft only R1's plain term
+    and let ENRICH_ALL re-derive questions, discarding R1's inferred models.
+    Left open by decision, 2026-07-29.
+
+
+7. Driver
+---------
+
+    procedure RUN_READING():
+        choice = ask user: start at entity | resume saved reading
+
+        if choice == start at entity:
+            A = user picks an Entity
+            R = INIT_FROM_ENTITY(A)
+            R.ontologies = INIT_ONTS_FROM_ENTITY(R.term)        # §6b.2
+        else:
+            R1 = user picks a saved Reading from Store
+            p  = user picks a Pointer from R1.pointers
+            (R, p) = INIT_FROM_SAVED(R1, p)
+            R.ontologies = INIT_ONTS_FROM_SAVED(R1)             # §6b.2
+
+        loop until user stops:
+            # every operation acts at one pointer — there is no reading-level
+            # branch, since case 5 was removed (see §5d)
+            p = user picks a Pointer from R.pointers
+            A = TYPE_AT(R, p)
+
+            op = user picks: contraction | reflection
+
+            if op == contraction:
+                # what is offered is decided by the type A at the pointer:
+                #   outgoing arrows (A -> X)  admit cases 1 and 2 (depart /
+                #                                                  descend)
+                #   incoming arrows (X -> A)  admit case 4        (arrive)
+                target = user picks one of
+                     an outgoing Entity B   -> CONTRACT_RELATION(R,p,(A,B))
+                                               ONTS_AFTER_CONTRACT_1(R,p,(A,B))
+                   | a saved Reading R1     -> CONTRACT_READING(R,p,A,R1)
+                                               # ontology update: OPEN (§6b.7)
+                   | an incoming Entity X   -> CONTRACT_INCOMING(R,p,(X,A))
+                                               # = case 4 at TRIVIAL_READING(X)
+                                               # ontology update: OPEN (§6b.7)
+                   | a saved Reading R1     -> CONTRACT_INCOMING_READING(
+                                                   R,p,R1,A)
+                                               # ontology update: OPEN (§6b.7)
+
+                # note: the two saved-reading options differ only in grafting
+                # position, hence in whether the reader ENTERS R1 (case 2,
+                # adopts Pr) or stays put (case 4, discards Pr). Both are
+                # offered at any pointer, because a saved reading has no
+                # entity endpoint to match [t1] against (see reading_desc O7)
+                # — so the type at p does NOT select between them, unlike
+                # case 1 vs case 4 on a plain arrow. The UI must present them
+                # as distinct choices.
+
+            else:  # reflection
+                (B, C) = user picks two relations out of A       # [A]
+                REFLECT(R, p, B, C)
+                ONTS_AFTER_REFLECT(R, p, B, C)                  # §6b.4
+
+            ASSERT_INVARIANTS(R)
+            if R.ontologies is empty:                           # §6b.5
+                SIGNAL("this reading has no valid model")
+
+        optionally: SAVE(R, name)      # makes R available to init-2 and to
+                                       # contraction cases 2 and 4. NOT
+                                       # optional in effect: saved-reading
+                                       # grafting is what makes the calculus
+                                       # shape-complete (reading_desc §10.1).
+                                       # NOTE: saving must persist ontologies
+                                       # too, since init-2 inherits them (§6b.2)
+
+
+8. Invariant check
+------------------
+
+    procedure ASSERT_INVARIANTS(R):
+        for p in R.pointers:
+            assert DESIGNATES_LIVE_NODE_OR_EDGE(R.graph, p)      # I1
+            assert TYPE_AT(R, p) is defined                      # I3
+        assert R.pointers is non-empty                           # I6
+        assert R.graph.check_integrity() == []      # optimal_lambda.graph
+        # width arithmetic is the usual source of silent breakage:
+        # R2/R5 widen by +1, R3/R6 narrow by -1.
+
+        # ontology side (§6b.6). NOTE: an EMPTY ontology set is legitimate and
+        # is deliberately NOT asserted here — it means "no valid model", which
+        # the driver surfaces to the user instead.
+        for o in R.ontologies:
+            assert o.graph.check_integrity() == []
+            for p in R.pointers:
+                assert CORRESPONDING_POINTER(o, p) != null       # O12
+
+
+9. Complexity / notes for the implementer
+------------------------------------------
+
+  - EVERY operation is LOCAL: each rewrites one subgraph at one pointer. Cost
+    is O(size of the grafted material), not O(|G(t)|) — except DEEP_COPY when a
+    saved reading is grafted (cases 2, 4), which is O(|G(tr1)|). Choosing
+    SHARE_GRAFTED_READING makes that O(1) at the price of mutable saved
+    readings.
+
+  - THE READING LAYER never reduces: it only builds terms. THE ONTOLOGY LAYER
+    does — every ontology update applies R1 or R4 plus full bookkeeping
+    (R2/R3/R5/R6). So `optimal_lambda.normalize` / `rules.py` are load-bearing
+    for ontologies even though the reading itself never needs them. This
+    supersedes the earlier note that nothing in the construction requires
+    reduction (reading_desc O5 concerned the READING only).
+
+  - POINTER STABILITY UNDER REDUCTION is now the central implementation hazard,
+    not a hypothetical one. Ontology pointers are held ACROSS R1/R4 and across
+    bookkeeping reductions, and `optimal_lambda/rules.py` knows nothing about
+    pointers — `_annihilate`, `_capture_ports` and `_finalize` rewire ends
+    freely. Either the rules must be extended to carry pointers through, or
+    pointers must be re-derived after each reduction from something stable
+    (e.g. the SyntaxRole/iri carried on fans). This must be solved before the
+    ontology layer can work at all.
+
+  - COST OF THE ONTOLOGY LAYER. Enrichment branches over QUESTIONS(A) at every
+    pointer on every step, so the set can grow multiplicatively; refutation
+    prunes it, but nothing guarantees the rates balance (reading_desc O11).
+    Each surviving ontology also pays a reduction cost per step. Budget for
+    a cap plus a deterministic eviction policy.
+
+  - Persistence gap: `kg_store.save_readings_db` stores (name, term) pairs
+    only. Neither pointer sets NOR ontology sets are persisted, so init-2 —
+    which inherits R1's ontologies (§6b.2) — and contraction case 2 cannot be
+    restored across sessions without extending that schema. Questions already
+    persist separately (the lambda DB, via term_utils.append_lambda_term).
+    See reading_desc O4.

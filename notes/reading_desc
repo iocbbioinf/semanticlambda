@@ -1,0 +1,933 @@
+READING — consolidated description
+==================================
+
+Status: consolidated from the specification given by Marek (2026-07-27), with
+the design principle of §3b, the case revisions (case 3 subsumed, case 5
+removed), and the ONTOLOGY concept of §7 added 2026-07-29.
+
+Points marked [ASSUMPTION] were not fixed by the original text; they are the
+reading I adopted so the definition is total. Points marked [CLARIFIED] were
+settled by Marek in discussion. Correct either in place if wrong.
+
+Contents: §1-2 what a reading and its typing are · §3-3b how one starts and the
+epistemic principle governing everything · §4 the operations · §5 summary
+table · §6 invariants · §7 ONTOLOGY · §8 worked example · §9 open points ·
+§10 expressiveness results.
+
+
+1. What a Reading is
+--------------------
+
+A Reading is a recorded path of attention through the knowledge graph.
+
+    R = (G(t), P)
+
+  - t     is a lambda term (the record of the path taken so far).
+  - G(t)  is the shared graph representing t — a sharing graph in the sense
+          of the GAL bus algorithm (see the `optimal_lambda/` package).
+  - P     is a set of pointers. Each pointer designates a node or an edge
+          of G(t) — a position the reader may act at next.
+
+The reader is never "outside" the reading: at all times the live positions are
+exactly the members of P. A reading with |P| > 1 records attention that has
+been forked and not yet collapsed.
+
+
+2. Types are entities
+---------------------
+
+Typing here is NOT the typing of the usual typed lambda calculus. It is a
+device for answering one question: WHERE IS THE READER STANDING?
+
+  - Types are exactly entities of the knowledge graph. Written A, B, C, ...
+  - Variables are written a, b, c, ...  Each variable has a type [a].
+  - [t] denotes the type of the term t.
+
+Typing rules:
+
+    [a]           = A            for a variable a of type A
+    [app(a, b)]   = [b]
+    [(lam a) t]   = [a]
+
+The second rule is the load-bearing one. Applying the current term to b moves
+the type to [b] — so extending the term along a relation A->B leaves the term
+with type B. THE TYPE OF THE TERM IS THE ENTITY THE READER CURRENTLY OCCUPIES.
+Reading a term is therefore reading a trajectory: each application is one step,
+and the type after each step says where that step landed.
+
+The third rule gives an abstraction the type of its BOUND VARIABLE (not of its
+body).
+
+Correspondence to code: `term_utils._term_type` already implements exactly
+these three rules and is treated here as normative.
+
+An arrow A->B denotes a relation (claim) of the knowledge graph with subject A
+and object B. [ASSUMPTION] Selecting an arrow is what licenses a step: the
+reader may only move along relations that actually exist in the graph.
+(cf. `kg_store.get_claims_for_subject`.)
+
+
+3. Initial step
+---------------
+
+A reading begins in exactly one of two ways.
+
+  (init-1) START AT AN ENTITY.
+      The user selects an arbitrary entity A. This means the reader stands at
+      A. The reading is of type A.
+
+          t = a,  where [a] = A
+          R = (G(a), {p}),  p pointing at the whole of G(a)
+
+  (init-2) RESUME A SAVED READING.
+      The user selects an already saved reading R1 = (G, P) and then selects
+      one pointer p from P.
+
+          R = R1, with p as the acting position
+
+      Reading then continues exactly as in the generic case below: init-2 is
+      not a special mode, it merely chooses the starting reading and position.
+
+Note the kinship with contraction case 2 (§4.2): both "enter" a saved reading
+and adopt its pointers. They differ in that init-2 starts from R1 alone, with
+no prior term or pointers to carry, whereas case 2 performs the same entry
+mid-reading — grafting R1 onto the accumulated term and taking Pr in ADDITION
+to the reader's surviving positions.
+
+
+3b. The governing design principle: the reader does not know the graph
+----------------------------------------------------------------------
+
+Stated by Marek, 2026-07-29. This is the constraint from which the shape of the
+whole operation set follows, so it is recorded before the operations.
+
+  THE READER DOES NOT KNOW THE KNOWLEDGE GRAPH IN ADVANCE.
+  Every operand of every step must therefore be something the reader ALREADY
+  KNOWS — either what is visible from where it now stands, or its own prior
+  readings.
+
+Two admissible sources of knowledge, and nothing else:
+
+  (K1) LOCAL VISIBILITY. Standing at an entity A, the reader can see the arrows
+       incident to A — outgoing A -> X and incoming X -> A — and nothing
+       further. It cannot name an entity two hops away, because it has not
+       been there.
+
+  (K2) ITS OWN READINGS. A saved reading is the reader's own prior work. Its
+       term and its positions are fully known to it, however far they range
+       over the graph.
+
+EVERY STEP IS LOCAL. Each acts at one pointer p and uses only an arrow
+incident to the type at p, plus possibly one saved reading grafted there. No
+step ranges over the graph, and no step takes two readings as co-equal
+operands. (The former case 5 did; it was removed for exactly this reason —
+§4.2d.)
+
+Consequences, which explain the operation set as designed rather than
+arbitrary:
+
+  - Cases 1, 2 and 4 are LOCAL because of (K1): each acts at one pointer and
+    uses only an arrow incident to the type at that pointer. Locality is not
+    an end in itself here; it is what (K1) forces when the graph is unknown.
+
+  - (K2) enters only THROUGH a pointer: cases 2 and 4 graft a saved reading at
+    the position the reader already occupies. The reading's content may range
+    arbitrarily over the graph — that is fine, it is the reader's own — but the
+    ACT of grafting is still local.
+
+  - A general "navigate to an arbitrary position / arbitrary entity" step would
+    be INADMISSIBLE. It would let the reader designate a position it has never
+    read, which presupposes exactly the graph knowledge (K1) denies. Note this
+    is not needed for expressiveness either: grafting saved readings at a
+    pointer already yields every application shape (§10.1).
+
+  - It also explains C1 (§9), i.e. why case 2 adopts Pr while case 4 discards
+    it. Entering a saved reading (argument position) means inheriting positions
+    the reader has itself previously stood at — admissible under (K2). A
+    reading placed behind the reader (function position) is context, not a
+    place the reader occupies, so there are no positions to inherit.
+
+  - THE INITIAL STEP IS THE ONLY PLACE GRAPH KNOWLEDGE ENTERS. init-1 lets the
+    user select an arbitrary entity A with no prior reading to justify it;
+    init-2 selects a saved reading, which is (K2). So init-1 is the single
+    admitted breach, and presumably corresponds to search/browse — a facility
+    OUTSIDE the reading calculus by which the reader first comes to know an
+    entity at all. Everything after the initial step is (K1) or (K2), and every
+    step after it is local.
+
+
+4. Generic definition
+---------------------
+
+After the initial step, a Reading is a SEQUENCE of steps, each of which is one
+of two operations:
+
+    - contraction step   (three cases: 1 §4.1, 2 §4.2, 4 §4.2c)
+    - reflection step    (§4.3)
+
+Two cases of an earlier draft are gone: case 3 is omitted as a special case of
+case 4 (§4.2b), and case 5 is removed to keep every step local (§4.2d). The
+numbering 1, 2, 4 is kept so earlier notes still refer to the same cases.
+
+ALL of them act on the current reading R = (G(t), P) at one chosen pointer p
+from P, using only knowledge admitted by §3b. There are no exceptions: every
+step is local.
+
+
+4.1 Contraction step, case 1 — follow a relation
+------------------------------------------------
+
+The user selects a relation  A -> B.
+
+  Precondition:
+      p points to a subgraph G(t1) with [t1] == A.
+
+  Effect:
+      G(t2) is G(t) with the subgraph G(t1) replaced by G(app(t1, b)),
+      where b is a fresh variable with [b] == B.
+
+      P1 is P with p replaced by a pointer to G(app(t1, b)).
+
+      R := (G(t2), P1)
+
+  Resulting type at that pointer:  [app(t1,b)] = [b] = B.
+  The reader has moved from A to B. All other pointers of P are untouched.
+
+This is the ordinary "step along an edge" of a reading.
+
+
+4.2 Contraction step, case 2 — enter a saved reading
+-----------------------------------------------------
+
+The user selects  A -> R1,  where R1 = (G(tr1), Pr) is an already saved
+reading.
+
+  Precondition:
+      p points to a subgraph G(t1) with [t1] == A.
+
+  Effect:
+      G(t2) is G(t) with the subgraph G(t1) replaced by G(app(t1, R1)).
+
+      P1 = Pr  union  (P - p)
+
+      R := (G(t2), P1)
+
+  THE READER STEPS INSIDE R1. The saved reading's own pointers Pr become live
+  positions of the current reading. This is the defining property of case 2:
+  grafting a saved reading is a DESCENT into it, not merely an attachment
+  below the current position.
+
+  Consequences, stated explicitly:
+      - p is CONSUMED by the graft: it does not survive into P1. (It is the
+        position that was spent to enter R1.)
+      - every OTHER pointer of P does survive — the reader keeps whatever
+        positions it already had elsewhere.
+      - the reading gains all of R1's positions at once, so |P| may grow by
+        more than one.
+      - the term G(t2) records the whole path, including everything traversed
+        before the descent.
+
+  So case 1 moves one position along an edge; case 2 spends one position to
+  open up all of R1's positions, while keeping the accumulated term and the
+  reader's other positions.
+
+  [ASSUMPTION] The argument grafted in argument position is the saved
+  reading R1 as a whole (term together with its pointers), which is why Pr is
+  meaningful in the result. Whether G(tr1) is COPIED into G(t2) or SHARED with
+  the stored R1 via a fan-in is not fixed by the specification. Copying makes
+  each graft independent; sharing makes later edits of R1 visible in every
+  reading that grafted it. The pseudocode in `reading_alg` parameterises this
+  as a flag `SHARE_GRAFTED_READING` and defaults to COPY, since copy keeps
+  saved readings immutable and requires only that Pr be rebased onto the copy.
+
+
+4.2b Case 3 — OMITTED (subsumed by case 4)
+-------------------------------------------
+
+An earlier version of this specification had a case 3: "user selects A -> B,
+p points to G(t1) with [t1] == B, replace G(t1) by G(app(a, t1)) where
+[a] == A, and re-point p at the new application."
+
+IT IS OMITTED as a primitive, being an exact special case of case 4 (§4.2c).
+Instantiate case 4 at the TRIVIAL READING
+
+    R_a = ( G(a), {ptr(a)} )   with a a single variable, [a] == A
+
+and case 4 produces app(tr1, t1) = app(a, t1) — the same term, the same
+precondition [t1] == B, the same resulting type B, and the same pointer
+result. The collapse works precisely BECAUSE case 4 discards Pr (§9 C1): case 3
+also leaves P untouched apart from re-pointing p, so nothing distinguishes
+them.
+
+The case numbering 1, 2, 4, 5 is kept as-is so that this document and any
+earlier notes refer to the same cases by the same numbers.
+
+For contrast, case 1 is NOT a special case of case 2, even though the terms
+likewise coincide for a trivial reading. Case 2 yields Pr union (P - p),
+consuming p and adopting the grafted reading's positions, whereas case 1
+re-points p at the new application node. Instantiating case 2 at a trivial
+R_b = (G(b), {ptr(b)}) would leave the pointer on the ARGUMENT b, not on
+app(t1, b). The descent semantics of case 2 is the obstruction — see §5.
+
+Consequence for implementations: since arriving from a plain entity is the
+common move and arriving from a saved reading the rarer one, an implementation
+should offer "arrive from entity A" in the interface and realise it by
+SYNTHESISING the trivial reading R_a and invoking case 4. See §4.2c.
+
+
+4.2c Contraction step, case 4 — arrive from a saved reading R1 -> B
+-------------------------------------------------------------------
+
+The dual of case 2: a saved reading is placed in FUNCTION position, so the
+reader arrives at B from R1. Subsumes the former case 3 (§4.2b) when R1 is a
+trivial single-variable reading.
+
+The user selects  R1 -> B,  where R1 = (G(tr1), Pr) is an already saved
+reading.
+
+  Precondition:
+      p points to a subgraph G(t1) with [t1] == B.
+
+  Effect:
+      G(t2) is G(t) with the subgraph G(t1) replaced by G(app(tr1, t1)).
+
+      P1 is P with p replaced by a pointer to G(app(tr1, t1)).
+
+      R := (G(t2), P1)
+
+  Resulting type at that pointer:  [app(tr1,t1)] = [t1] = B — UNCHANGED.
+  This follows from [app(a,b)] = [b]: the type is carried by the ARGUMENT, so
+  wrapping t1 in a new function position leaves the reader's location alone.
+  Where case 1 MOVES the reader A -> B, case 4 keeps the reader at B and
+  enriches the record with where it arrived FROM. Attention does not travel;
+  context accumulates behind it.
+
+  ARRIVING FROM A PLAIN ENTITY. To record arrival at B from a bare entity A
+  (the former case 3), instantiate this case at the trivial reading
+
+      R_a = ( G(a), {ptr(a)} ),   a a single variable with [a] == A
+
+  giving app(a, t1). Since Pr is discarded, the trivial reading's pointer
+  contributes nothing and the result is exactly the omitted case 3 (§4.2b).
+  An implementation should expose this as its own interface affordance —
+  arriving from an entity is the common move — while realising it through this
+  single primitive.
+
+  Note what is grafted and what is NOT adopted: the saved reading's TERM tr1
+  goes into function position, but its pointer set Pr is DISCARDED — P1 comes
+  from P alone. This is the exact opposite of case 2. It is CONFIRMED correct
+  (see §9 C1) and it is coherent:
+
+      case 2  puts R1 in ARGUMENT position; the type becomes [tr1], so the
+              reader ENTERS R1 and takes on its positions Pr.
+      case 4  puts R1 in FUNCTION position; the type stays B, so the reader
+              REMAINS where it was and R1 becomes recorded context behind it.
+              There is nothing to enter, hence no reason to adopt Pr.
+
+  Position in argument vs. function is thus what decides both the type and the
+  fate of the pointers — a single principle covering every case.
+
+  All other pointers of P are untouched; |P| is unchanged.
+
+
+4.2d Case 5 — REMOVED from the specification (kept as a future enhancement)
+---------------------------------------------------------------------------
+
+Removed by Marek, 2026-07-29, to make EVERY step local (§3b). Recorded here
+because it may be reinstated later.
+
+What it was: a step stated not for a reading and a pointer, but for TWO
+READINGS —
+
+      given  R1 = (G(t1), P1)  and  R2 = (G(t2), P2):
+      R := ( G(app(t1, t2)), P2 )
+
+i.e. apply R1's term to R2's term and keep R2's pointers. (Consistent with the
+argument-determines-everything principle of §5: [app(t1,t2)] = [t2], so the
+reader ends up wherever R2 pointed. It was case 2 with the host reduced to
+nothing.)
+
+WHY REMOVING IT COSTS NOTHING. Case 5 was the only non-local step — the only
+one whose operands were two whole readings rather than one pointer and its
+surroundings. Removing it makes the epistemic principle of §3b uniform: every
+remaining step uses only (K1), what is visible from the current position, or
+grafts a saved reading at a pointer.
+
+Crucially this loses NO expressive power. Cases 2 and 4 already graft a saved
+reading's ENTIRE TERM at a pointer, and a saved reading may itself be
+arbitrarily compound. Application shapes therefore remain COMPLETE without
+case 5 — verified by exhaustive enumeration to 6 leaves (§10.1). For example
+((x y) (z w)) is built by saving (z w) as a reading and grafting it at a
+pointer inside (x y), with no need to join two readings.
+
+So case 5 was REDUNDANT, not load-bearing. It offered a convenience — compose
+two finished readings directly — at the cost of the only breach of locality in
+the calculus.
+
+IF REINSTATED, the two points left open about it were: whether it produces a
+new reading or modifies one in place (the original text said "R is modified"
+but named no pointer and no host subgraph), and whether R1 == R2 is permitted.
+
+
+4.3 Reflection step — fork attention over a shared subject
+-----------------------------------------------------------
+
+The user selects  B -> C.
+
+  Precondition:
+      p points to a subgraph G(tA) with [tA] == A.
+
+  Effect:
+      G(t2) is G(t) with the subgraph G(tA) replaced by
+
+          G( app( app(tA, B), app(tA, C) ) )
+
+      where tA IS SHARED BY A FAN-IN — it occurs twice in the term but exists
+      once in the graph.
+
+      P1 is P with p removed and two new pointers added:
+          pB  points to the edge ending on the UPPER LEFT auxiliary port of
+              the sharing fan-in;
+          pC  points to the edge ending on the UPPER RIGHT auxiliary port of
+              the sharing fan-in.
+
+      R := (G(t2), P1)
+
+  Where contraction MOVES the reader, reflection SPLITS the reader: one
+  position continues under B, the other under C, over one and the same
+  subject tA. Sharing is essential — the two branches must be two views of the
+  same thing, not two copies of it. This is exactly the sharing that the
+  optimal reducer provides.
+
+  [ASSUMPTION — types] The relation of A to B and C is not fixed by the
+  original text: it says the user selects "B->C" while the pointer carries
+  type A, and A then never recurs. The reading adopted here is that reflection
+  contrasts two relations OUT OF the pointed subject, i.e. the user in effect
+  selects A->B and A->C, and "B->C" names the contrasted pair of targets. Under
+  that reading the two branches have types B and C respectively.
+  If instead a single relation B->C is meant with A constrained to equal B,
+  the only change needed is the precondition ([tA] == B) and the type of the
+  second branch.
+
+  [ASSUMPTION — operands] The original text writes app(tA, B) and app(tA, C)
+  with the ENTITIES B and C in argument position, whereas contraction case 1
+  carefully applies to a fresh VARIABLE b with [b] == B. For consistency this
+  document takes reflection to build app(tA, b) and app(tA, c) with fresh
+  variables b, c of types B and C. This keeps a single discipline — argument
+  positions hold variables, types are carried by the typing judgement — and
+  makes [app(tA,b)] = B fall out of the ordinary rule.
+
+  Correspondence to code: the sharing fan-in built by `_Compiler._fan_in`
+  (`optimal_lambda/compile.py`) is an arity-3 INTERNAL fan marked on the OFFSET
+  wire, with ports named `principal` / `grey` / `black`. "Upper left aux port"
+  and "upper right aux port" are `grey` and `black` respectively; `principal`
+  carries the shared subject tA. The OFFSET placement is what makes the two
+  uses DUPLICATE rather than annihilate when they meet the syntactic
+  lambda/application fans on the COMMAND wire — see the sibling skill
+  `understand-bus-optimal-reduction` §3.
+
+
+5. Summary of the operations
+----------------------------
+
+  Contraction has THREE primitive cases: 1, 2 and 4. Case 3 is omitted as a
+  special case of case 4 (§4.2b); case 5 is removed to keep every step local
+  (§4.2d). The numbering is preserved.
+
+  The three are exactly the cells of one 2x2 grid, minus the cell that
+  collapses — two choices: what is grafted, and where it goes:
+
+                            argument position      function position
+      fresh variable        case 1  (depart)        [collapses into case 4]
+      saved reading         case 2  (descend)       case 4  (arrive from)
+
+  There is no outlier. Every case grafts material at one pointer.
+
+  The single governing principle, from [app(a,b)] = [b]: THE ARGUMENT
+  DETERMINES BOTH THE RESULTING TYPE AND THE SURVIVING POINTERS. Put material
+  in argument position and the reader moves into it; put it in function
+  position and the reader stays put while the material becomes context behind
+  it.
+
+  Note the hole in the upper-right cell, and why only THAT cell collapses. A
+  fresh variable differs from a saved reading only in having no pointers of its
+  own. In FUNCTION position the grafted material's pointers are discarded
+  anyway, so the distinction is invisible and case 3 reduces to case 4. In
+  ARGUMENT position they are adopted, so the distinction is load-bearing and
+  case 1 does NOT reduce to case 2.
+
+                 case 1        case 2         case 4
+  selected       A -> B        A -> R1        R1 -> B
+  required [t1]  A             A              B
+  grafts         app(t1,b)     app(t1,R1)     app(tr1,t1)
+  type after     B             [tr1]          B (unchanged)
+  pointers       p re-pointed  p -> Pr,       p re-pointed
+                               rest kept      (Pr dropped)
+  |P| changes    0             -1 + |Pr|      0
+  reader         departs       descends       arrives
+                 A -> B        into R1        from R1
+
+  Reflection (§4.3) stands apart from all three: it is the only operation that
+  SHARES its subject (fan-in) and the only one that INCREASES the number of
+  positions, p -> {pB, pC}.
+
+  In every operation, contraction and reflection alike, exactly ONE pointer (p)
+  is acted on and every other pointer of P is left untouched.
+
+  Cases 1 and 4 are the two ways one arrow can be used, distinguished by where
+  the reader stands: case 1 fires when the reader is at the SUBJECT and moves
+  it to the object; case 4 fires when the reader is at the OBJECT and records
+  the source behind it without moving. Their preconditions differ ([t1]==A vs
+  [t1]==B), so a given arrow and pointer generally admit only one of them —
+  both only when A == B (a reflexive relation).
+
+
+6. Invariants
+-------------
+
+  I1  Every pointer of P designates a node or edge of the CURRENT G(t).
+      Every step must re-establish this for pointers it touches.
+
+  I2  EVERY step acts at exactly one pointer p of P, and leaves every pointer
+      other than p untouched. Contraction cases 1 and 4 re-point p; case 2
+      consumes p and adds Pr; reflection consumes p and adds pB, pC. There is
+      no exception (the former case 5, which acted at no pointer, is removed —
+      §4.2d).
+
+  I3  The type at a pointer is well defined: for a pointer to G(t1), [t1] is
+      computed by the three rules of §2.
+
+  I4  A step is legal only if its precondition on [t1] holds; the type at the
+      pointer is what selects which case is available:
+
+          case 1  arrow A -> B      requires [t1] == A
+          case 2  arrow A -> R1     requires [t1] == A
+          case 4  arrow R1 -> B     requires [t1] == B
+
+      A mismatch is not a legal move.
+
+  I5  Reflection never duplicates its subject: after the step there is exactly
+      one G(tA) in the graph, reached through the fan-in.
+
+  I6  P is never empty after a legal step. Contraction cases 1 and 4 preserve
+      the count; reflection turns one pointer into two; case 2 yields
+      Pr union (P - p), which is empty only in the degenerate case where
+      P == {p} and Pr is empty. Requiring saved readings to have non-empty
+      pointer sets rules that out.
+
+
+7. Ontology
+-----------
+
+Consolidated from the draft given by Marek, 2026-07-29, with the four points
+he clarified in that session marked [CLARIFIED].
+
+7.1 What an ontology is, and why
+---------------------------------
+
+A READING records what the user DID. An ONTOLOGY is a MODEL IN WHICH THAT
+READING IS VALID.
+
+The division of labour is the point of the design:
+
+    reading   = the observation. A bare applicative term: NO abstractions
+                (§10.1), built only from arrows the reader could see (§3b).
+    ontology  = the theory. A term that DOES contain abstractions, such that
+                reducing it in the bus reducer REPLAYS the reading step for
+                step.
+    reducer   = the test. Each reading step must be matched by the
+                corresponding rule firing in the ontology.
+
+The correspondence between reading steps and reduction rules is exact:
+
+    contraction in the reading   <->   application of R1 (fan/fan same wire:
+                                       annihilate — the shared beta-step)
+    reflection  in the reading   <->   application of R4 (fan/fan different
+                                       wires: duplicate)
+
+So an ontology is a hypothesis about the SCHEMA the reader is implicitly
+walking, and the ontology SET is every hypothesis still consistent with the
+reading so far. This is why Reading itself needs no abstractions: abstraction
+lives entirely in the ontology layer.
+
+Notation, mirroring a reading:
+
+    ont( G(t), P )
+
+where G(t) is a shared graph and P is a set of pointers marking where the user
+is standing IN THIS GRAPH. P corresponds elementwise to the reading's own
+pointer set — each p in the reading has a counterpart p1 in each ontology.
+
+Each reading has a SET of ontologies. They are maintained continuously: after
+every reading step the set is updated (§7.4-7.6) and then enriched (§7.3).
+
+
+7.2 Questions
+-------------
+
+[CLARIFIED] A QUESTION is a lambda abstraction created by the user from a
+reading, by selecting the entity being questioned. This is already implemented:
+
+    app.py           binding "a" -> action_lambda_abstraction ("Ask question")
+    widgets.py       LambdaAbstractionModal: "Select queried entity"
+                     abs_term = LamAbs(var=selected_entity, body=reading_term)
+    term_utils.py    append_lambda_term(...) persists it to the lambda DB
+
+So a question is A READING TURNED INTO A SCHEMA by making one of its entities
+a parameter. Its type follows the ordinary rule of §2:
+
+    [(lam a) t] = [a]        a question's type is its BOUND VARIABLE's type
+
+Hence "all questions of type A" is a concrete finite lookup over the saved
+abstractions — exactly what `widgets.py:_record_contains_iri` already does:
+
+    isinstance(term, LamAbs) and term.var.iri == iri
+
+Substituting a question for a variable during enrichment (§7.3) therefore means
+hypothesising: "this position is not a bare entity — it is an instance of that
+earlier, generalised reading." R1 later firing there is that hypothesis paying
+off.
+
+
+7.3 Enrichment
+--------------
+
+After EVERY reading step (init, contraction or reflection) the ontology set is
+enriched: for each ontology and each pointer, wherever the pointed subterm is a
+VARIABLE sitting in an application, a question of matching type may be
+substituted in its place, yielding a further candidate ontology.
+
+    method enrichOnts(ontologies):
+        for each ont in ontologies:
+            enrichOnt(ont, ont.P)
+
+    method enrichOnt(ont(G(t), P)):
+        p = headOf(P)
+        if p == null: return
+        let p point to subgraph G(tp)
+
+        enrichOnt( ont(G(t)), P - p )                    # rest of the pointers
+
+        # (a) pointed subterm in FUNCTION position of an application
+        if G(t) has a subgraph G(app(tp, t2)) and tp is a variable:
+            for each question qp with [qp] == [tp]:
+                let G(tnew) = G(t) with G(tp) replaced by G(qp)
+                let pqp point to qp
+                ontologies = ontologies union { ont(G(tnew), (P - p) union {pqp}) }
+                enrichOnt( ont(G(tnew)), P - p )
+
+        # (b) pointed subterm in ARGUMENT position of an application
+        if t has a subtree app(t1, tp) and t1 is a variable:
+            for each question qt1 with [qt1] == [t1]:
+                let G(tnew) = G(t) with G(t1) replaced by G(qt1)
+                ontologies = ontologies union { ont(G(tnew), P) }
+                enrichOnt( ont(G(tnew)), P - p )
+
+[CLARIFIED — TERMINATION] The recursion is strictly on the SHRINKING pointer
+set: every recursive call passes P - p, and a newly created ontology is
+enriched only for the REMAINING pointers. No question is ever substituted
+inside a question introduced during the same enrichment. Depth is therefore
+bounded by |P| and enrichment always terminates.
+
+Note the asymmetry between (a) and (b), which is deliberate and follows §5's
+argument/function principle: in (a) the substituted question becomes a new
+POSITION (pqp joins the pointer set, replacing p), whereas in (b) the question
+replaces material in function position and the pointer set is left as P.
+
+
+7.4 Initialisation
+------------------
+
+  after init-1 (user selects entity A):
+
+      ontologies = { ont( G(a), {p} ) },  p pointing to the edge G(a)
+
+  after init-2 (user resumes a saved reading R1):
+
+      ontologies = the ontologies of R1
+
+  Then enrich (§7.3).
+
+
+7.5 Updating on a contraction step, case 1  (A -> B at p)
+----------------------------------------------------------
+
+    newOntologies = {}
+    for each ont(G(t), P) in ontologies:
+        take p1 from P corresponding to p in the reading
+
+        if t contains a subtree app(ta, tb) with p1 pointing to ta,
+           [ta] == A and [tb] == B:
+            if R1 is applicable to G(t) at p1:        # i.e. ta is an abstraction
+                let pb point to tb
+                apply R1, then perform all possible BOOKKEEPING reductions
+                    (rules R2, R3, R5, R6) -> G(t1)
+                newOntologies = newOntologies
+                                union { ont( G(t1), (P - {p1}) union {pb} ) }
+
+    ontologies = newOntologies
+    then enrich (§7.3)
+
+The pointer moves from the abstraction ta to tb — mirroring the reading, where
+contraction case 1 moves the reader from A to B.
+
+
+7.6 Updating on a reflection step  (B -> C at p, p pointing to ta, [ta] == A)
+------------------------------------------------------------------------------
+
+    newOntologies = {}
+    for each ont(G(t), P) in ontologies:
+        take p1 from P corresponding to p in the reading; let p1 point to toa
+
+        if toa is an abstraction
+           and R4 is applicable at p1
+           and t contains a subtree app(tb, tc) with [tb] == B, [tc] == C,
+               [toa] == A
+           and G(toa) IS ALREADY SHARED as a subterm in both tb and tc:
+            apply R4, then perform all possible BOOKKEEPING reductions
+                (rules R2, R3, R5, R6) -> G(t1)
+            newOntologies = newOntologies union
+                { ont( G(t1),
+                       (P - {p1}) union { ptr to upper-LEFT  aux port edge,
+                                          ptr to upper-RIGHT aux port edge } ) }
+
+    ontologies = newOntologies
+    then enrich (§7.3)
+
+[CLARIFIED — R4 DIRECTION] The requirement that G(toa) be ALREADY shared across
+both tb and tc is a PRECONDITION, as specified: an ontology qualifies only if
+the sharing pre-exists. Note for implementers that this is stricter than the
+reducer's own applicability condition. In `optimal_lambda/rules.py`,
+`rule4_fan_fan_diff` fires whenever two fans meet principal-to-principal on
+DIFFERENT main wires, and its EFFECT is to replicate each fan onto the other's
+grey and black branches — i.e. the reducer CREATES duplication rather than
+requiring it. So the sharing test here is an ADDITIONAL filter layered on top
+of `find_redexes`, not a restatement of it, and must be checked separately.
+
+The two new pointers land on the sharing fan-in's auxiliary ports, which in the
+implementation are `grey` (upper left) and `black` (upper right) — see §4.3.
+
+
+7.7 Refutation, and the empty set
+----------------------------------
+
+[CLARIFIED] Both update rules REPLACE the ontology set with newOntologies, so
+an ontology in which the required rule does not fire is DISCARDED. This is
+deliberate: the user's action falsifies any model that cannot accommodate it.
+The set therefore shrinks by refutation (§7.5, §7.6) and grows by enrichment
+(§7.3).
+
+AN EMPTY ONTOLOGY SET IS MEANINGFUL: it says the reading has NO VALID MODEL.
+This is a distinguished state and should be surfaced to the user, not treated
+as an ordinary outcome.
+
+
+7.8 Ontology update for contraction cases 2 and 4 — OPEN
+---------------------------------------------------------
+
+NOT YET SPECIFIED. Cases 2 and 4 graft a saved reading R1, and R1 carries its
+OWN ontology set, so the two sets must be combined somehow. The obvious
+candidate is a cartesian product — pair each current ontology with each of
+R1's, grafting R1's ontology-term at the position, with pointers following the
+reading (case 2 adopts R1's, case 4 discards them) — but that may grow the set
+quickly, and the alternative of grafting only R1's plain term discards the
+models R1 had itself accumulated. Left open by decision, 2026-07-29. See O10.
+
+
+8. Worked example
+-----------------
+
+Let the graph contain Protein --binds--> Ligand, Protein --hasFunction-->
+Function, and Gene --encodes--> Protein.
+
+  init-1: user selects Protein.
+      t = p0                          [t] = Protein
+      P = {ptr(p0)}
+
+  contraction case 4 along Gene -> Protein, at the trivial reading R_g0:
+      the reader is standing at the OBJECT of this arrow, so case 4 applies,
+      instantiated at R_g0 = (G(g0), {ptr(g0)}) with [g0] = Gene.
+      t = app(g0, p0)                 [t] = Protein   — UNCHANGED
+      P = {ptr(app(g0,p0))}
+      The reader has not moved; it has recorded that this protein is arrived
+      at from a gene. R_g0's pointer is discarded, which is why a trivial
+      reading behaves exactly like the omitted case 3. Case 1 was not
+      available here: it would have required [t1] == Gene.
+
+  contraction case 1 along Protein -> Ligand:
+      now the reader is at the SUBJECT of the arrow, so case 1 applies.
+      t = app( app(g0,p0), l0 )       [t] = Ligand
+      P = {ptr(that app)}
+      The reader now stands at Ligand.
+
+  reflection contrasting Ligand -> Affinity and Ligand -> Structure:
+      t = app( app(l, aff), app(l, str) )
+          where l = app( app(g0,p0), l0 ), shared
+      P = {pB -> grey branch, pC -> black branch}
+      One position reads the ligand under Affinity, the other under Structure,
+      but there is a single shared occurrence of the ligand subterm.
+
+  contraction case 1 at pB along Affinity -> Measurement:
+      the grey branch becomes app(app(l,aff), meas)
+      pC is untouched — the reader has advanced one of its two positions.
+
+
+9. Open points
+--------------
+
+CONFIRMED (no longer open):
+
+  C1  Case 4 discards Pr while case 2 adopts it. CONFIRMED CORRECT by Marek,
+      2026-07-29. This is not an oversight but the argument/function principle
+      of §5 applied twice: R1 in argument position (case 2) means the reader
+      enters it and takes on its positions; R1 in function position (case 4)
+      means the reader stays put and R1 becomes recorded context, so there is
+      nothing to enter and Pr is dropped.
+
+STILL OPEN:
+
+  O1  Copy vs. share when a saved reading is grafted (cases 2, 4) —
+      parameterised in the pseudocode as SHARE_GRAFTED_READING, defaulted to
+      copy.
+  O2  The A / B / C relationship in reflection (§4.3) — adopted as "two
+      relations out of A".
+  O3  Whether reflection's operands are fresh variables or entity constants
+      (§4.3) — adopted as fresh variables, for consistency with contraction.
+  O4  Not specified: how a reading is SAVED (what makes R1 available to
+      init-2 and to contraction cases 2 and 4), and whether a reading may
+      graft itself (recursion). `kg_store.load_readings_db` / `save_readings_db`
+      already persist (name, term) pairs but not pointer sets, so persisting
+      P is an implementation gap. NOTE this is now load-bearing rather than
+      incidental: saved-reading grafting is what makes the calculus
+      shape-complete (§10.1), so saving is not an optional convenience.
+  O5  RESOLVED by §7. The READING layer never reduces — it only builds terms.
+      The ONTOLOGY layer does: every ontology update applies R1 or R4 plus full
+      bookkeeping (R2/R3/R5/R6). So reduction is essential to the design, but
+      it runs on ontology graphs, never on G(t) of the reading itself.
+      Consequence: pointer stability under reduction becomes a real
+      implementation problem for ontologies (see reading_alg §9).
+  O6  (Retired. Concerned case 5, now removed — see §4.2d, which records the
+      two questions left open in case it is ever reinstated.)
+  O7  Not specified: whether the arrow in cases 2 and 4 (A -> R1, R1 -> B) is
+      required to exist in the knowledge graph at all, and if so what its
+      endpoints are. A saved reading is not an entity, so `EXISTS_RELATION`
+      cannot be checked the way it is for case 1 and for case 4 on a plain
+      entity. The pseudocode
+      therefore checks only the type precondition on [t1].
+  O8  Whether nested reflections at distinct fan-in levels should count as the
+      same graph as a single node of fan-out 3 — i.e. what the fan-in LEVEL
+      means semantically for a READING, as opposed to what it means for the
+      reducer (where levels keep independent sharings from interfering).
+      Bears on §10.2(a).
+  O9  Whether a MERGE / coreference step is wanted (§10.2). Without it, sharing
+      in argument position — the pattern optimal reduction exists to exploit —
+      is not constructible. Deliberate constraint or gap: your call.
+  O10 How the ontology set is updated on contraction cases 2 and 4 (§7.8).
+      Left open by decision, 2026-07-29.
+  O11 Whether the ontology set needs a size bound in practice. Enrichment
+      terminates (§7.3) but is not obviously SMALL: it branches over every
+      question of matching type at every pointer, on every step. Refutation
+      (§7.7) prunes it, but nothing guarantees the two rates balance.
+  O12 Whether an ontology's pointer set can drift out of correspondence with
+      the reading's. §7 assumes each p in the reading has a counterpart p1 in
+      every ontology ("take p1 from P that corresponds to p"). Enrichment case
+      (a) replaces p by pqp while case (b) keeps P, so the correspondence is
+      maintained by construction — but this is worth stating as an invariant
+      and checking, since the update rules depend on it totally.
+
+
+10. Expressiveness: which graphs can a Reading build?
+------------------------------------------------------
+
+Scope of this section: applicative terms over variables (t ::= x | (t t)) —
+no abstractions — plus sharing. Results were checked exhaustively by
+enumeration up to 6 leaves.
+
+10.1 APPLICATION SHAPES: COMPLETE with cases 1, 2 and 4 alone.
+
+  Every binary-tree shape is reachable (Catalan: 1, 1, 2, 5, 14, 42 — none
+  missing up to 6 leaves), WITHOUT case 5.
+
+  What does the work is that cases 2 and 4 graft a saved reading's ENTIRE TERM
+  at a pointer, and a saved reading may itself be arbitrarily compound. So a
+  compound can be introduced in either position:
+
+      ((x y) (z w))     save (z w) as a reading; graft it at a pointer
+                        inside (x y). No joining of two readings needed.
+
+  Contrast: cases 1 and 4 restricted to FRESH VARIABLES only are NOT complete.
+  First failure at 4 leaves, exactly the shape above; missing 1 of 5 at 4
+  leaves, 6 of 14 at 5, 26 of 42 at 6. The obstruction there is POINTER
+  REACHABILITY — grafting a fresh variable re-points p at the new application
+  node and never ADDS a pointer, so from init-1 the reader holds one pointer
+  forever and can extend only along a single spine, never growing both
+  children of an application into compounds. (Confirmed: allowing a pointer
+  hypothetically at EVERY node makes fresh-variable grafting alone complete at
+  every size. The rules are shape-complete; what they lack is access to
+  positions.)
+
+  Saved-reading grafting supplies that access WITHOUT a navigation step: the
+  reader does not reach into an unread position, it brings a finished reading
+  of its own to the position it already occupies. This is why the calculus can
+  be both fully local (§3b) and shape-complete.
+
+  CONSEQUENCE: case 5 was REDUNDANT. It offered direct composition of two
+  finished readings as a convenience, at the cost of being the only non-local
+  step. Removing it loses no expressive power (§4.2d).
+
+10.2 SHARING: INCOMPLETE.
+
+  Reflection is the only operation that introduces sharing, and it emits one
+  fixed pattern:
+
+      app( app(tA, b), app(tA, c) )      with tA shared
+
+  This fixes three things at once: a shared node has EXACTLY TWO parents, both
+  parents are APP nodes, and tA occupies the FUNCTION position of both. Hence
+  the following sharing graphs are NOT constructible:
+
+    (a) fan-out > 2 — one subterm with three or more distinct uses. Nested
+        reflections give nested fan-ins at distinct levels, which is not the
+        same graph as one node with three parents. (Whether that distinction
+        is semantically meaningful depends on the intended reading of the
+        fan-in level — see O8.)
+
+    (b) a shared subterm in ARGUMENT position — no way to build app(f,s) and
+        app(g,s) sharing s as the argument of both. Reflection always places
+        the shared node on the left. This is the sharpest gap, because it is
+        exactly the pattern optimal reduction exists to exploit: a duplicated
+        ARGUMENT that should be reduced once. The applicative analogue of
+        (lam x. x x) I is not constructible.
+
+    (c) asymmetric / late sharing — the two uses must be siblings under a
+        common application created by the same step. Two positions that are
+        far apart in the term, or whose sharing is recognised only later,
+        cannot be joined.
+
+    (d) cyclic sharing — every step grafts new material or joins two existing
+        readings, so the result is always a DAG. No operation creates a cycle.
+
+  CANDIDATE CLOSURE (proposed, NOT part of the specification). The dual of
+  reflection — a MERGE / coreference step:
+
+      given p1, p2 in P with [t_p1] == [t_p2]
+      replace both occurrences by a single shared node (fan-in)
+      P1 = P with p1 and p2 replaced by one pointer to the shared node
+
+  Reflection consumes one pointer and yields two; merge would consume two and
+  yield one. It reads naturally as "these two things I have been attending to
+  separately are in fact the same thing", and it is admissible under §3b (K2)
+  since both operands are positions the reader already holds. With merge
+  added, cases 1/4/5 give every tree and merge gives every DAG over it.
+
+  Whether merge is wanted is a design decision, not a defect: a reader that
+  can only share what it discovers by reflection is a coherent — and more
+  constrained — notion than one that can identify arbitrary co-referents.
+
+10.3 A NOTE ON WHAT THE KG CONSTRAINS.
+
+  Shape completeness is about the space of TREE SHAPES. Which LABELLED terms
+  are reachable is separately constrained by the knowledge graph: every step
+  needs an arrow that exists, and by [app(a,b)] = [b] the type at a pointer is
+  its rightmost leaf. So the reachable labelled terms are exactly the
+  KG-realisable ones — by design, not by omission.

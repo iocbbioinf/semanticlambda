@@ -1,14 +1,29 @@
 ---
 name: understand-bus-optimal-reduction
-description: Comprehension guide to paper1's OPTIMAL LAMBDA REDUCTION algorithm in its BUS formulation (Gonthier–Abadi–Lévy §3.3–3.4, Figure 2), and how it maps to the working reducer in sharing_graph.py. Use when reading, explaining, reasoning about, extending, or debugging the bus-of-wires algorithm in this project — i.e. any question of the form "how/why does the bus reduction work", "what does this fan/bracket/croissant do", "why does term X reduce/read-back the way it does". For the from-scratch implementation roadmap and paper2 efficiency caveats, see the sibling skill `optimal-lambda-reduction`.
+description: Comprehension guide to paper1's OPTIMAL LAMBDA REDUCTION algorithm in its BUS formulation (Gonthier–Abadi–Lévy §3.3–3.4, Figure 2), and how it maps to the working reducer in the optimal_lambda/ package. Use when reading, explaining, reasoning about, extending, or debugging the bus-of-wires algorithm in this project — i.e. any question of the form "how/why does the bus reduction work", "what does this fan/bracket/croissant do", "why does term X reduce/read-back the way it does". For the from-scratch implementation roadmap and paper2 efficiency caveats, see the sibling skill `optimal-lambda-reduction`.
 ---
 
 # Understanding the GAL Bus Algorithm for Optimal Lambda Reduction
 
-This skill explains **how paper1's optimal reducer works in its bus form**, and ties every concept to the **working** implementation in `sharing_graph.py`. It is a *reading/reasoning* companion, not an implementation checklist — the algorithm is already built and passes 24 oracle + 8 round-trip tests. Use it to answer "why does this work" and "where in the code is this."
+This skill explains **how paper1's optimal reducer works in its bus form**, and ties every concept to the **working** implementation in the `optimal_lambda/` package. It is a *reading/reasoning* companion, not an implementation checklist — the algorithm is already built and passes 24 oracle + 8 round-trip tests. Use it to answer "why does this work" and "where in the code is this."
 
 - **paper1** — Gonthier, Abadi, Lévy, *The Geometry of Optimal Lambda Reduction* (POPL 1992). Sources on disk: `/home/marek/uochb/work/as/geometryOfOptimalLambdaReduction.pdf` (and `…PDFA.pdf`). The bus material is **§3.3–3.4 + Figure 2 (p.6)** and the λ-translation is **§4.1 (p.6–7)**; context semantics is **§5.1 (p.8)**.
-- **Implementation** — `sharing_graph.py` (a single module; `lambda_term.py` is the naive oracle). Tests: `.venv/bin/python tests/test_sharing_graph.py` from project root.
+- **Implementation** — the **`optimal_lambda/` package** (split out of the old single `sharing_graph.py` in commit `f501c1c`; neither `sharing_graph.py` nor a top-level `lambda_term.py` exists any more). Public API is re-exported from `optimal_lambda/__init__.py`, whose docstring carries its own module map.
+
+  | Module | Contents |
+  |---|---|
+  | `term.py` | the `LamTerm` AST + **naive oracle** (`lam_subst`, `beta_step`, `beta_reduce_sequence`) |
+  | `parser.py` | `parse` — source text → `LamTerm`; `ParseError` |
+  | `graph.py` | bus geometry: `Graph`, `Node`, `WireEnd`, `NodeKind`, `SyntaxRole`, `BASE`/`OFFSET`/`COMMAND`, `INITIAL_ROOT_WIDTH`, slot arithmetic (`expand_slot_across_bracket`, `compress_slot_across_croissant`) |
+  | `redex.py` | active-pair detection: `find_redexes`, `Redex`, `_classify_at`, `_principal_bus_clean`, `_principal_wire`, `_locate` |
+  | `rules.py` | the six Figure-2 rewrites `rule1…rule6`, `reduce_redex`, `_annihilate`, `_capture_ports`, `_finalize` |
+  | `context_semantics.py` | `Ctx`, `validate_bus_rules` — symbolic §5.1 validation |
+  | `compile.py` | `compile_term`, `_Compiler`, `Fragment` |
+  | `readback.py` | `readback`, `_ReadBack`, `read_branch`, `_read_fanin` |
+  | `normalize.py` | `normalize`, `optimal_normal_form`, `_splice_joints` |
+  | `repl.py`, `__main__.py` | interactive REPL (`python -m optimal_lambda`) |
+
+  Tests, from project root: `.venv/bin/python tests/test_sharing_graph.py` and `.venv/bin/python tests/test_lambda_parser.py`.
 - **Sibling skill** — `optimal-lambda-reduction` covers the *indexed* form (Figure 1), the implementation roadmap, and paper2's efficiency reality-check. Read that for "should I build this / what will it cost"; read *this* for "how does the bus version actually compute."
 
 ## 1. Why buses at all (§3.3)
@@ -21,7 +36,7 @@ Mental model to keep: **a bus is a maximal bundle of parallel wires running betw
 
 ## 2. The five node kinds, in bus form (§3.1 + §3.3)
 
-Cross-reference: `NodeKind` and the `new_*` constructors in `sharing_graph.py` (`Graph.new_root/new_void/new_fan/new_bracket/new_croissant`, plus `new_joint`).
+Cross-reference: `NodeKind` and the `new_*` constructors in `optimal_lambda/graph.py` (`Graph.new_root/new_void/new_fan/new_bracket/new_croissant`, plus `new_joint`/`new_open_edge`).
 
 | Node | Bus shape (ports & widths) | Role | Paper | Code |
 |------|---------------------------|------|-------|------|
@@ -40,7 +55,7 @@ Plus an implementation-only helper: **joint** (`NodeKind.JOINT`, `new_joint`) �
 
 ## 3. The three wire roles: BASE / OFFSET / COMMAND
 
-This is the single most load-bearing design decision in the implementation and it is **not spelled out in the paper** — it was reconstructed and verified by round-trip + oracle. `sharing_graph.py` constants:
+This is the single most load-bearing design decision in the implementation and it is **not spelled out in the paper** — it was reconstructed and verified by round-trip + oracle. `optimal_lambda/graph.py` constants:
 
 ```
 BASE    = 0   # base address, shared by all commands of one lexical-scope call
@@ -52,7 +67,7 @@ Paper §4.1 (p.7): a variable is a **bus of width 3** carrying *commands* betwee
 
 The project then assigns each wire a **job**, so that operators meeting on different jobs *commute* (R5/R6) instead of *deadlocking*:
 
-- **BASE (slot 0)** — call/scope **addressing** brackets & croissants live here (`_call_wrap`, `_scope_bracket` / the `_fold`+`_croissant_new` gadgets).
+- **BASE (slot 0)** — call/scope **addressing** brackets & croissants live here, built inline in `_Compiler.app` / `_Compiler.abs` from the `_fold` / `_unfold` / `_croissant_new` helpers.
 - **OFFSET (slot 1)** — the **sharing fan-in** for a shared variable acts here (`_fan_in`, an arity-3 INTERNAL fan marked on the middle wire).
 - **COMMAND (slot 2)** — the **syntactic** λ/@ fans (the APP and LAM gadgets) act here.
 
@@ -90,12 +105,12 @@ Counters mirror the paper2 story: `g.fan_interactions` (R1, R4 — the β-ish wo
 The exact BASE/OFFSET/COMMAND routing is **informal in the paper** ("the translation is presented only informally") and was reconstructed to satisfy round-trip `readback(compile(t)) == t`. Authoritative wiring as built:
 
 - **Variable** → an open bus of width 3 `[BASE, OFFSET, COMMAND]` (`var`, via `new_open_edge`). Paper: "a variable is represented with a bus of width 3."
-- **Application `M N`** (`app`) — a **fan-in**, width 2 (the 3 root wires fold to 2). Principal points **down** to the function `G` through `_call_wrap` (a `_fold` of OFFSET+COMMAND then a `_croissant_new` null offset on BASE, net width 3→3); **grey** branch = the result edge (up); **black** branch = the argument `H` (up). Marked on COMMAND. Shared free variables of `M` and `N` are merged by a `_fan_in`.
-- **Abstraction `λx.M`, `x ∈ FV(M)`** (`abs`) — a **fan-out**, width 2, dual to the application fan, marked on COMMAND. One branch goes to the body `G` (through addressing brackets), the other is the bound variable `x` and **loops around** to `x`'s occurrence inside `G`. Every free variable of `G` exits through its own `_scope_bracket` ("brackets added to all free-variable edges", p.7).
+- **Application `M N`** (`app`) — a **fan-in**, width 2 (the 3 root wires fold to 2), `main = 1`. Principal points **down** to the function `G`: `principal[0] → G.BASE`, `principal[1] → G.COMMAND`, and `G.OFFSET` is created fresh by `_croissant_new()` (a null offset). **grey** = the result edge (up), width 3 via `_unfold(grey[1])` → OFFSET+COMMAND; **black** = the argument `H` (up), with `_fold(H.OFFSET, H.COMMAND)` onto `black[1]`. Marked on COMMAND. Shared free variables of `M` and `N` are merged by `_fan_in` (via `_merge_free`).
+- **Abstraction `λx.M`, `x ∈ FV(M)`** (`abs`) — a **fan-out**, width 2, `main = 1`, dual to the application fan, marked on COMMAND. **grey** goes to the body `G` (`grey[0] → G.BASE`, `_fold(G.OFFSET, G.COMMAND) → grey[1]`); **black** is the bound variable `x` and **loops around** to `x`'s occurrence inside `G` (same fold). Principal is the result edge, width 3 via `_unfold(principal[0])` → BASE+OFFSET. Every free variable `y` of `G` crossing the λ gets a **scope boundary on its BASE wire** — built inline as `ll, lr = _unfold(y.BASE)`, then `y.OFFSET = _fold(lr, y.OFFSET)` ("brackets added to all free-variable edges", p.7).
 - **Abstraction `λx.M`, `x ∉ FV(M)`** — same, but the bound-variable (black) branch is terminated by a **void** plug (p.7: "the black branch is effectively dead, terminate it by a plug").
 - **Shared free variable** → `_fan_in`: an **arity-3 INTERNAL fan** (not width-2), all three wires straight through on grey (use in `M`) / black (use in `N`) / principal (merged), **marked on OFFSET (slot 1)**. This is the sharing combinator; keeping it full-width-3 on OFFSET (rather than folding it like the syntactic fans) is a deliberate, tested choice.
 
-Helpers: `_fold(a,b)` = bracket combining two wires into one; `_unfold(w)` = its inverse; `_croissant_new()` = croissant creating a fresh wire. There is **no** up-front common-subexpression detection — sharing (fan-out) emerges only *during* reduction.
+Helpers (all `_Compiler` methods in `optimal_lambda/compile.py`): `_fold(a,b)` = a 1-narrow/2-wide bracket combining two wires into one; `_unfold(w)` = its inverse orientation; `_croissant_new()` = a wide-1/thin-0 croissant creating a fresh wire ex nihilo. `Fragment` carries `result` / `free` / `labels` up the recursion. There is **no** up-front common-subexpression detection — sharing (fan-out) emerges only *during* reduction.
 
 ## 6. Reading a graph back to a λ-term (§5.2, §6.1)
 
@@ -112,9 +127,9 @@ Read-back is iterative over sharing, so Python recursion depth grows only with t
 Two independent checks, both in the repo:
 
 1. **Symbolic rule validation** — `validate_bus_rules(max_width)` builds context trees (`Ctx`: `BOX □`, `GREY ∘.a`, `BLACK ⋆.a`, `PAIR ⟨a,b⟩`) and checks that **all six Figure-2 rules preserve the §5.1 context semantics** for buses up to `max_width`. A fan maps a wire-context `b → ∘.b` (grey) / `⋆.b` (black) at its main slot; a bracket combines adjacent `a,b → ⟨a,b⟩`; a croissant inserts `□`. **This is the authority for whether the rule wiring is right.**
-2. **Oracle round-trip** — for each term, `readback(normalize(compile_term(t)))` must equal `lambda_term.beta_reduce_sequence(t)[-1]` up to α-equivalence / IRI renaming. The naive reducer in `lambda_term.py` is ground truth. 24 oracle terms pass (I, K, S combinators; `dupI`; Church numerals; `succ`, `plus`, and deep `mult 2 3 / 3 3 / 2 2 2`). `KNOWN_FAILING` is empty.
+2. **Oracle round-trip** — for each term, `readback(normalize(compile_term(t)))` must equal `term.beta_reduce_sequence(t)[-1]` up to α-equivalence / IRI renaming. The naive reducer in `optimal_lambda/term.py` is ground truth. 24 oracle terms pass (I, K, S combinators; `dupI`; Church numerals; `succ`, `plus`, and deep `mult 2 3 / 3 3 / 2 2 2`). `KNOWN_FAILING` is empty.
 
-If you change a rule or a gadget, **run both**: `validate_bus_rules` catches wiring/semantics regressions; the oracle catches compile/readback regressions. Also run `Graph.check_integrity` / `check_widths` after edits — width arithmetic (R2/R5 +1, R3/R6 −1) is the usual source of silent breakage.
+If you change a rule or a gadget, **run both**: `validate_bus_rules` catches wiring/semantics regressions; the oracle catches compile/readback regressions. Also run `Graph.check_integrity` / `Node.check_widths` after edits — width arithmetic (R2/R5 +1, R3/R6 −1) is the usual source of silent breakage.
 
 ## 8. Vocabulary — keep it consistent with paper and code
 
@@ -122,9 +137,10 @@ bus (bundle of wires) · width · slot · wire · main (main level / marked slot
 
 ## 9. Fast pointers for a returning session
 
-- Rule wiring wrong → `validate_bus_rules` + `_annihilate` / `rule4…` / `rule5…` / `rule6…`.
-- "Fires 0 rules" → per-wire detection: `_classify_at`, `_principal_bus_clean`, `_locate`, `_principal_wire`.
-- Annihilates when it should duplicate → wire-role placement (BASE/OFFSET/COMMAND) in `_Compiler`; sharing fan-in must be on OFFSET, λ/@ on COMMAND.
-- Read-back cycles / wrong on shared terms → the per-level stack in `read_branch` / `_read_fanin`.
-- Crash after duplication (`KeyError`, double-wiring) → loop handling: `_capture_ports` / `_finalize` / union-find in `_annihilate`.
+- Rule wiring wrong → `context_semantics.py:validate_bus_rules` + `rules.py` (`_annihilate` / `rule4…` / `rule5…` / `rule6…`).
+- "Fires 0 rules" → per-wire detection in `redex.py`: `_classify_at`, `_principal_bus_clean`, `_locate`, `_principal_wire`.
+- Annihilates when it should duplicate → wire-role placement (BASE/OFFSET/COMMAND) in `compile.py:_Compiler`; sharing fan-in must be on OFFSET, λ/@ on COMMAND.
+- Read-back cycles / wrong on shared terms → the per-level stack in `readback.py`: `read_branch` / `_read_fanin`.
+- Crash after duplication (`KeyError`, double-wiring) → loop handling in `rules.py`: `_capture_ports` / `_finalize` / union-find in `_annihilate`.
+- Redexes detected but joints in the way → `normalize.py:_splice_joints` (runs once up front, inside `normalize`).
 - Full narrative of every fix, in order, is in memory `optimal-lambda-reduction-impl` (progress notes #1–#11).

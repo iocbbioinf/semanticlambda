@@ -9,7 +9,7 @@ from rdflib.namespace import RDFS, OWL, SKOS, DCTERMS
 
 from optimal_lambda import LamTerm, lam_to_dict, lam_from_dict
 
-TTL_FILE = Path("/home/marek/uochb/ch/paperskg/ahoj-db.ttl")
+TTL_FILE = Path("/home/marek/uochb/ch/paperskg/bioinfo-lab.rdf")
 LAMBDA_DB = Path(__file__).parent / "data" / "lambda_terms.json"
 READINGS_DB = Path(__file__).parent / "data" / "readings.json"
 
@@ -19,7 +19,7 @@ PROV_ACTIVITY = rdflib.URIRef("http://www.w3.org/ns/prov#Activity")
 
 def load_graph() -> rdflib.Graph:
     g = rdflib.Graph()
-    g.parse(str(TTL_FILE), format="turtle")
+    g.parse(str(TTL_FILE))
     return g
 
 

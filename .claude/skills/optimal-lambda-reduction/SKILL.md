@@ -14,7 +14,7 @@ Sources on disk: `/home/marek/uochb/work/as/geometryOfOptimalLambdaReductionPDFA
 
 ## What "optimal" means and why bother
 
-Naive beta reduction (what `lambda_term.py:lam_subst` does today) **copies** the argument into every occurrence of the bound variable. When the argument is itself reducible and is duplicated *before* being reduced, the same work is redone in each copy — exponential blowup on terms like Church-numeral exponentiation.
+Naive beta reduction (what `optimal_lambda/term.py:lam_subst` does) **copies** the argument into every occurrence of the bound variable. When the argument is itself reducible and is duplicated *before* being reduced, the same work is redone in each copy — exponential blowup on terms like Church-numeral exponentiation.
 
 Lévy's notion of optimality (1978): redexes that are "the same" (share a history / a label) should be reduced **once, together**, in a single parallel beta-step — never duplicated, never re-done. Lamping (1990) gave the first correct graph implementation; paper1 reconstructs and simplifies it through Girard's *geometry of interaction*.
 
@@ -99,19 +99,35 @@ Paper2 is the cold shower. Implement optimal reduction, but calibrate expectatio
 - **The bottleneck is the irreducible `+−` bookkeeping** described above, not the β-work.
 - **Local rules can't detect normal form** efficiently — there exist terms needing only Θ(n) parallel β-steps but Ω(2ⁿ) further fan interactions to certify normalization (paper2 Theorem 6 / §3).
 - Optimal evaluators **fail the Frandsen–Sturtivant cost model** (paper2 §5.1): reducing to the Church numeral for 2^(2ⁿ) genuinely needs a Θ(2ⁿ)-node graph.
-- **Implication for this project:** an optimal reducer is the right choice when sharing actually pays (duplicated reducible arguments — e.g. Church arithmetic, repeated function application). For terms with little sharing it can be *slower* than the naive `beta_step` already in `lambda_term.py` due to bookkeeping overhead. Consider keeping both and choosing per-term, or benchmark before replacing the naive path.
+- **Implication for this project:** an optimal reducer is the right choice when sharing actually pays (duplicated reducible arguments — e.g. Church arithmetic, repeated function application). For terms with little sharing it can be *slower* than the naive `beta_step` in `optimal_lambda/term.py` due to bookkeeping overhead. Consider keeping both and choosing per-term, or benchmark before replacing the naive path.
 
-## Implementation roadmap for THIS project
+## Status in THIS project: already implemented (bus form)
 
-The existing `lambda_term.py` has `LamVar`/`LamApp`/`LamAbs` (IRI-keyed) and a naive `lam_subst`/`beta_step`. To add optimal reduction:
+**This roadmap is done.** The reducer exists and passes its tests — but it was built in the **bus form (Figure 2)**, not the indexed form (Figure 1) that the rest of this skill describes. So treat the sections above as *conceptual background*; for the code as actually written, read the sibling skill **`understand-bus-optimal-reduction`**.
 
-1. **New module** (e.g. `sharing_graph.py`) — do **not** modify the naive reducer; keep it as the reference oracle for testing.
-2. Define interaction-net node types: `Fan`, `Bracket`, `Croissant`, `Root`, `Void`, each with `index: int` and a small fixed set of ports (track which port is the principal/interaction port).
-3. **Compile** `LamTerm → Graph` per §4.1 above. Use the existing IRIs as stable identifiers for variables and λ-binders so the graph links back to the RDF/KG layer.
-4. Implement the **indexed-form rules** (Figure 1): a worklist of edges whose two endpoints have facing principal ports; pop, apply the matching rule, push newly-adjacent pairs. Loop until no active pair.
-5. Implement **read-back** (§5.2/§6.1) `Graph → LamTerm`.
-6. **Test by oracle:** for many random closed terms, assert `readback(normalize(compile(t))) == beta_reduce_sequence(t)[-1]` (up to α-equivalence / IRI renaming). The naive reducer in `lambda_term.py` is ground truth on terms small enough for it to terminate.
-7. Add a **bookkeeping-step counter** so you can empirically reproduce paper2's blowup on `Cₙ(λx.λy.xy)` and document where the implementation sits.
+Code lives in the `optimal_lambda/` package (split out in commit `f501c1c`; there is no `sharing_graph.py` or top-level `lambda_term.py`):
+
+| Roadmap step | Where it landed |
+|---|---|
+| 1. Keep the naive reducer as oracle | `optimal_lambda/term.py` — `LamVar`/`LamApp`/`LamAbs` (IRI-keyed), `lam_subst`, `beta_step`, `beta_reduce_sequence`. Unmodified; still ground truth. |
+| 2. Node types & principal ports | `optimal_lambda/graph.py` — `NodeKind`, `SyntaxRole`, `Node`, `WireEnd`, `Graph.new_*`. Bus form, so nodes carry a **`slot`/`main` wire position instead of an `index: int`**. |
+| 3. Compile `LamTerm → Graph` (§4.1) | `optimal_lambda/compile.py` — `compile_term`, `_Compiler`. |
+| 4. Rules + driver | `optimal_lambda/rules.py` (`rule1…rule6`, `reduce_redex`), `optimal_lambda/redex.py` (`find_redexes`), `optimal_lambda/normalize.py` (`normalize`, `optimal_normal_form`). **Six Figure-2 schemas, not the indexed Figure-1 rules.** |
+| 5. Read-back (§5.2/§6.1) | `optimal_lambda/readback.py` — `readback`, `_ReadBack`. |
+| 6. Oracle test | `tests/test_sharing_graph.py` — 24 oracle + 8 round-trip; `KNOWN_FAILING` is empty. Plus `tests/test_lambda_parser.py` (13). |
+| 7. Bookkeeping counters | `Graph.fan_interactions` (R1/R4, β-work) vs `Graph.book_interactions` (R2/R3/R5/R6). See paper2 blow-up on Church arithmetic. |
+
+Extras beyond the original roadmap: `optimal_lambda/parser.py` (`parse` — source text → `LamTerm`), `optimal_lambda/context_semantics.py` (`validate_bus_rules` — symbolic §5.1 check on the rule wiring), `optimal_lambda/repl.py` + `__main__.py` (interactive REPL). Public API is re-exported from `optimal_lambda/__init__.py`.
+
+Run the tests from the project root:
+
+```
+.venv/bin/python tests/test_sharing_graph.py
+.venv/bin/python tests/test_lambda_parser.py
+python -m optimal_lambda          # REPL
+```
+
+If you extend a rule or gadget, run **both** `validate_bus_rules` (rule wiring/semantics) and the oracle suite (compile/read-back), plus `Graph.check_integrity` / `Node.check_widths` — width arithmetic (R2/R5 +1, R3/R6 −1) is the usual source of silent breakage.
 
 ## Naming / vocabulary to keep consistent
 
