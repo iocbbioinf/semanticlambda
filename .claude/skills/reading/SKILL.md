@@ -1,134 +1,166 @@
 ---
 name: reading
-description: The Reading calculus and its Ontology layer — this project's model of a user reading a knowledge graph as a typed applicative lambda term, with ontologies as models in which the reading is valid. Covers the operations (contraction cases 1/2/4, reflection), the typing-as-location rule, the epistemic design principle, verified expressiveness results, and how it all maps onto the bus reducer in optimal_lambda/. Use when reading, explaining, extending, implementing or debugging anything about readings, pointers, contraction, reflection, questions, or ontologies — including "why is there no case 3/5", "why does case 2 adopt Pr", "what can a reading build", "how do ontologies get filtered".
+description: The Reading calculus — this project's model of a user reading a knowledge graph as a typed applicative lambda term built bottom-up in a sharing graph. Covers the one contraction step (two options), the reflection step, closing a pointer, typing-as-location, and verified expressiveness results including how argument-position sharing is constructed. Use when reading, explaining, extending, implementing or debugging anything about readings, pointers, contraction, reflection, questions, open vs closed readings, or sharing.
 ---
 
-# The Reading Calculus and its Ontology Layer
+# The Reading Calculus
 
-This project models **a user reading a knowledge graph** as the incremental construction of a typed applicative lambda term, together with a set of **ontologies** — models in which that reading is valid, obtained by reduction in the GAL bus reducer.
+This project models **a user reading a knowledge graph** as the incremental,
+bottom-up construction of a typed applicative lambda term held as a sharing
+graph.
 
-**Authoritative specification, do not duplicate — read these files:**
+**Authoritative specification, do not duplicate — read this file:**
 
-- `notes/reading_desc` — the consolidated prose spec (§1–§10): what a reading is, typing, the design principle, every operation, invariants, the ontology concept, worked example, open points, expressiveness results.
-- `notes/reading_alg` — language-agnostic pseudocode: data structures, typing, legality, each operation, ontology procedures, driver, invariant check, implementer notes.
+- `notes/reading_desc` — the prose spec (§1–§10): what a reading is, typing, the
+  steps, invariants, expressiveness, **§8 ontology**, worked examples, open
+  points.
 
-Sibling skills: `understand-bus-optimal-reduction` (how the reducer works, R1–R6, BASE/OFFSET/COMMAND) and `optimal-lambda-reduction` (implementation roadmap, paper2 efficiency caveats). The ontology layer **depends** on the reducer, so read the bus skill before touching ontology code.
+It was rewritten from scratch 2026-08-13 against Marek's specification of that
+date. **Earlier drafts are superseded and their history is not preserved** — if
+you recall cases numbered 1/2/4/5, pointer adoption from grafted readings, or an
+ontology layer built on those cases, that material is gone. Do not reintroduce
+it.
+
+There is deliberately **no pseudocode companion**. A `notes/reading_alg` existed
+and was **deleted 2026-08-13** while the calculus is still settling — it is
+recoverable from git (`git show 4c879ac:notes/reading_alg`) but describes the
+superseded concept. Do not recreate it unless asked.
+
+Sibling skills: **`reading-interpretation`** (what the operations MEAN — sense
+movement, the two sides of abstraction, subjectivity, why GAL locality matters;
+**load it for any "why is it this way" question, and before changing an
+operation**), **`ontology`** (the §8 ontology layer — `ont(G(t),P)`, enrichment,
+refutation, pointer stability), `understand-bus-optimal-reduction` (how the
+reducer works, R1–R6, BASE/OFFSET/COMMAND) and `optimal-lambda-reduction`
+(implementation roadmap, paper2 efficiency caveats).
 
 ## The one idea everything follows from
 
-Typing here is **not** ordinary typed lambda calculus. Types **are** entities of the knowledge graph, and the type of the term answers one question: **where is the reader standing?**
+Typing here is **not** ordinary typed lambda calculus. Types **are** entities of
+the knowledge graph, and the type answers one question: **where is the user
+standing?**
 
 ```
 [a]         = A        for a variable a of type A
 [app(a,b)]  = [b]      <-- the load-bearing rule
-[(lam a) t] = [a]      the BOUND variable's type, not the body's
+[(lam a) t] = [a]      the BOUND variable's type
 ```
 
-Because the type rides on the **argument**, extending a term along `A -> B` moves the reader to `B`, while wrapping a term in a new *function* position leaves the reader where it was. Every design decision below is a consequence.
+Because the type rides on the **argument**: material in argument position moves
+the type to it; material in function position leaves the type untouched.
 
-Normative implementation: `term_utils._term_type` implements exactly these three rules. Treat it as ground truth; verify claims against it rather than reasoning in your head (that is how the case-3/case-4 collapse and the case-5 redundancy were both established).
+Normative implementation: `term_utils._term_type`. Verify typing claims against
+it rather than reasoning in your head.
 
-## Reading = (G(t), P)
+## A reading is a process
 
-`t` is a lambda term (the record of the path), `G(t)` its sharing graph, `P` a set of **pointers** to nodes/edges — the reader's live positions. The reader is never outside the reading; `|P| > 1` means attention has forked and not yet collapsed.
+**OPEN** while being created: `R = (G(t), Pr)` — a sharing graph plus a set of
+pointers to **edges**. **CLOSED** once saved: the graph **alone**, no pointers.
 
-## The operations
+Before each step the user selects one pointer, **actPtr** — *the place where the
+user stays*. Pointers exist only because of reflection; contraction never
+changes their number.
 
-Contraction has **three** primitive cases — 1, 2, 4 — plus **reflection**. Numbering is preserved from earlier drafts; cases 3 and 5 were removed (below).
+**The two states are not two kinds of object.** A closed reading is *de facto
+equivalent to a reading with one pointer, to the root of its graph* — closing
+**collapses** the pointer set to the root. Hence: saving is **total** (closable
+from any state, empty `Pr` included); re-opening is well defined for every closed
+reading; and **no pointer set need be stored**, so the existing `(name, term)`
+persistence is complete by construction. *Scope:* this says what a closed reading
+**is**, not that the two are interchangeable everywhere — §4's steps act on an
+open reading, so a closed one must be re-opened before being stepped on.
 
-| | argument position | function position |
-|---|---|---|
-| **fresh variable** | **case 1** (depart `A->B`) | *collapses into case 4* |
-| **saved reading** | **case 2** (descend into `R1`) | **case 4** (arrive from `R1`) |
+**Opening** (§3), two forms: a **type** A → `(G(a), {ptr to a})`, or an **already
+saved reading** → `(G(t), {ptr to G(t)})`. Both start with exactly one pointer.
 
-**The governing principle:** *the argument determines both the resulting type and the surviving pointers.* Argument position → the reader moves into the material and adopts its pointers. Function position → the reader stays put and the material becomes context behind it.
+**`Pr` may be empty** — closing the last pointer is legal (O3 resolved). No step
+can then fire, but the reading is still savable: a **terminal** state, not a stuck
+one. Do not assert non-emptiness.
 
-- **case 1** `A->B`, requires `[t1]==A` → `app(t1,b)`, type becomes `B`, `p` re-pointed.
-- **case 2** `A->R1`, requires `[t1]==A` → `app(t1,R1)`, type becomes `[tr1]`, pointers `Pr ∪ (P−p)` — `p` is *consumed*, the reader **descends** into `R1`.
-- **case 4** `R1->B`, requires `[t1]==B` → `app(tr1,t1)`, type **unchanged**, `Pr` **discarded**, `p` re-pointed.
-- **reflection** → `app(app(tA,b), app(tA,c))` with `tA` **shared by a fan-in**; `p` becomes `{pB,pC}` on the fan-in's `grey`/`black` aux ports. The only operation that shares, and the only one that increases `|P|`.
+A closed reading contributes only its **type** and graph when used later. This
+is why there is a single contraction case for entities and closed readings
+alike: **there is never a pointer set to adopt or discard.**
 
-Every operation acts at exactly **one** pointer and leaves all others untouched. No exceptions.
+## The steps
 
-## Why case 3 and case 5 are gone (both verified, don't re-litigate)
+**Contraction** — one case, two options. Relates **two places**, both prepared
+beforehand: the selected operand (entity or closed reading, type B) and where
+the user stays (actPtr, type A). Not a movement — after it **the user stays at
+both places at once**.
 
-**Case 3** ("arrive along `A->B`", prepend a fresh variable) is an *exact* special case of case 4 at a trivial single-variable reading: same term `app(a,t1)`, same precondition `[t1]==B`, same type, same pointers. The collapse works **because case 4 discards `Pr`** — the trivial reading's pointer contributes nothing.
+| | builds | type after | reading |
+|---|---|---|---|
+| **option 1** | `app(t1, t2)` | **B** | A asks, B answers |
+| **option 2** | `app(t2, t1)` | **A** (unchanged) | B asks, A answers |
 
-**Case 1 is NOT similarly reducible to case 2**, and the asymmetry is instructive: a fresh variable differs from a saved reading only in having no pointers. In function position pointers are discarded anyway, so the distinction is invisible; in argument position they are adopted, so it is load-bearing. That is the hole in the upper-right cell of the table.
+Option 2's unchanged type is not a failure to move: A is one of the two occupied
+places, and it is the one actPtr designates.
 
-**Case 5** ("join two readings", `app(t1,t2)` keeping `P2`) was removed to make every step local. It was **redundant, not load-bearing** — cases 2/4 already graft a saved reading's *whole term* at a pointer, and a saved reading may itself be arbitrarily compound. Both cases are retained in the notes as future enhancements with their open questions preserved.
-
-## The epistemic design principle (§3b) — the real invariant
-
-**The reader does not know the knowledge graph in advance.** Every operand must be something it already knows:
-
-- **(K1) local visibility** — standing at `A`, it sees only arrows *incident* to `A`. It cannot name an entity two hops away.
-- **(K2) its own readings** — a saved reading is its own prior work, however far it ranges.
-
-So "locality" is not a rule in its own right; it is what (K1) **forces** when the graph is unknown. (K2) enters only *through* a pointer (cases 2/4 graft at the position the reader occupies).
-
-**Consequences that matter when extending this:**
-
-- A general "navigate to an arbitrary position/entity" step is **inadmissible** — it presupposes exactly the knowledge (K1) denies. Do not add one, even though it would make cases 1+4 shape-complete on their own. It is also unnecessary (see below).
-- This explains why case 2 adopts `Pr` and case 4 discards it: entering a reading means inheriting positions you have yourself stood at; a reading *behind* you is context, not a place you occupy.
-- **init-1 is the single admitted breach** — picking a first entity out of the blue. That presumably corresponds to search/browse, outside the calculus. Everything after is (K1) or (K2).
-
-## Verified expressiveness results (§10)
-
-Established by exhaustive enumeration to 6 leaves. Scope: applicative terms `t ::= x | (t t)`, no abstractions, plus sharing.
-
-- **Application shapes: COMPLETE** with cases 1, 2, 4 alone (Catalan 1,1,2,5,14,42 — none missing), *without* case 5. What does the work is that cases 2/4 graft a saved reading's entire term at a pointer.
-- Cases 1+4 restricted to **fresh variables only** are *incomplete* — first failure `((x y) (z w))` at 4 leaves (missing 1/5, 6/14, 26/42). The obstruction is **pointer reachability**, not the rewrite rules: fresh-variable grafting never *adds* a pointer, so from init-1 the reader extends along a single spine. Confirmed by re-running with a hypothetical pointer at every node → complete at every size.
-- **Consequence: saving a reading is load-bearing**, not a convenience — it is what makes the calculus shape-complete.
-- **Sharing: INCOMPLETE.** Reflection emits one fixed pattern, so a shared node always has exactly two parents, both APP, with `tA` in *function* position of both. Not constructible: fan-out > 2; **sharing in argument position** (the sharpest gap — exactly what optimal reduction exists to exploit); asymmetric/late sharing; cycles. Candidate closure is a **merge/coreference** step (dual of reflection: consume two pointers, yield one) — proposed only, see O9.
-
-## Ontology (§7) — reading as observation, ontology as theory
-
-| | |
-|---|---|
-| **reading** | the observation — bare applicative term, **no** abstractions |
-| **ontology** | the theory — a term **with** abstractions whose reduction replays the reading |
-| **reducer** | the test — the rule must actually fire |
-
-The correspondence is exact: **contraction ↔ R1** (fan/fan same wire, annihilate — the β-step); **reflection ↔ R4** (fan/fan different wires, duplicate). Notation `ont(G(t), P)`, with `P` corresponding elementwise to the reading's pointers. Each reading carries a **set** of ontologies = every hypothesis still consistent with it.
-
-**Questions** are the source of abstractions, and they are **already implemented**: the user builds a reading, presses `a` ("Ask question"), selects the *queried entity* →
+**Reflection** — user stays at C, selects `A -> B`, and reflects A as question
+against B as answer without moving to either:
 
 ```
-app.py: action_lambda_abstraction  ->  widgets.LambdaAbstractionModal
-    abs_term = LamAbs(var=selected_entity, body=reading_term)
-    persisted by term_utils.append_lambda_term
-    looked up by widgets._record_contains_iri:  term.var.iri == iri
+G(t1)  |->  app( app(t1,a), app(t1,b) )     with t1 SHARED by a fan-in
 ```
 
-Since `[(lam a) t] = [a]`, that lookup **is** "all questions of type A" — a finite existing query. A question is *a reading turned into a schema* by making one entity a parameter; substituting one during enrichment hypothesises "this position is an instance of that earlier generalised reading."
+`actPtr` becomes two pointers on the fan-in's **left-up/right-up aux ports** —
+`grey`/`black` in `_Compiler._fan_in`. **They designate the aux-port edges, i.e.
+the two occurrences of `t1`, not the enclosing app nodes.** This is the single
+most consequential detail in the spec (see sharing, below). Reflection is the
+only operation that shares and the only one that increases `|Pr|`.
 
-**Lifecycle per step: UPDATE (filter + advance), then ENRICH.**
+**Closing a pointer** — reflection's inverse. Close `p` iff it points to `t1`,
+`app(t1,a)` is a subgraph, `[t1]==[a]`, and `a` was added **by a reflection
+step**. Result replaces `app(t1,a)` by `t1`. The provenance condition is not
+visible in the graph and must be **recorded when reflection creates the
+variables** (O2).
 
-- **Enrichment** substitutes questions for variables sitting in applications, branching over `QUESTIONS(type)` at each pointer. **Terminates** because recursion is strictly on the shrinking pointer set `P − p`; a question is never substituted inside a question introduced in the same enrichment. Note the asymmetry: substituting in *function* position replaces `p` by a pointer to the question; in *argument* position `P` is unchanged (same argument/function principle).
-- **Update** applies R1 (contraction) or R4 (reflection) plus **all** bookkeeping (R2/R3/R5/R6), then advances pointers in step with the reading.
-- **Refutation:** the set is *replaced*, so any ontology where the rule does not fire is **discarded** — falsified by what the user did. **An empty set is meaningful**: the reading has no valid model. Surface it to the user; deliberately *not* an assertion failure.
+## Verified expressiveness (§7)
 
-### Two traps specific to the ontology layer
+Scope: applicative terms `t ::= x | (t t)`, no abstractions, plus sharing.
+Exhaustive enumeration to 6 leaves; the sharing construction traced on a DAG.
 
-1. **Reflection's sharing test is a precondition, by decision** — `G(toa)` must be *already* shared across both branches. This is **stricter than the reducer's own test**: `rules.py:rule4_fan_fan_diff` fires whenever two fans meet principal-to-principal on different main wires, and its *effect* is to replicate each onto the other's grey/black branches — the reducer **creates** duplication rather than requiring it. So `IS_SHARED_IN_BOTH` is an extra filter layered on `find_redexes` and must be implemented separately, not read off redex detection.
+- **Application shapes: COMPLETE** — but only because the operand may be a
+  **closed reading**. With entities only it fails: 4/5 at 4 leaves, 8/14 at 5,
+  16/42 at 6 (reflection helps — 5/5, 12/14, 28/42 — but doesn't close it). The
+  obstruction is **pointer reachability**: grafting an entity never *adds* a
+  pointer, so the user extends along a single spine. **Closing a reading is
+  therefore load-bearing, not a convenience.**
+- **Argument-position sharing: CONSTRUCTIBLE.** Reflect `C -> C` to stage
+  sharing, contract with **option 2** at each aux-port pointer to re-parent the
+  shared occurrence into argument position, then close both pointers to discard
+  the scaffolding. Yields `app(app(a,t), app(b,t))` with `t` shared. Reflection
+  is used as a **staging device**. Full construction in `reading_desc` §7.2.
+- **Still out of reach:** fan-out > 2 (a new reflection makes a new fan-in at
+  its own level, not a third parent — see O4); cyclic sharing (always a DAG);
+  late/arbitrary co-reference (§7.3(c), bears on O5).
 
-2. **Pointer stability under reduction is a hard blocker, not hypothetical.** Ontology pointers are held *across* R1/R4 and bookkeeping, and `optimal_lambda/rules.py` knows nothing about pointers — `_annihilate`, `_capture_ports`, `_finalize` rewire ends freely. Either extend the rules to carry pointers through, or re-derive them after each reduction from something stable (e.g. `SyntaxRole`/`iri` on fans). **This must be solved before the ontology layer can run at all.** (The reading layer itself never reduces — only the ontology layer does.)
+## Working conventions
+
+- **Verify against code, don't reason in your head.** `term_utils._term_type`
+  for typing, `optimal_lambda/rules.py` for rule behaviour, exhaustive
+  enumeration for expressiveness. Several conclusions here were corrected
+  exactly that way — including the discovery that argument-position sharing *is*
+  constructible, which an earlier draft had wrongly listed as impossible.
+- **Marked provenance:** `[ASSUMPTION]` = adopted to make the definition total.
+  Preserve these markers.
+- The reading layer **never reduces** — it only builds terms. Nothing in the
+  calculus calls `normalize` or any rule in `rules.py`.
+- Vocabulary: reading (open/closed) · pointer · actPtr · contraction (option
+  1/2) · reflection · closing a pointer · question/answer · staging.
 
 ## Open points to respect
 
-Full list in `notes/reading_desc` §9. The ones that will bite:
+Full list in `reading_desc` §9. **O1 and O3 are resolved** (re-opening mints one
+pointer at the root; closing the last pointer is legal). The ones that will bite:
+**O2** recording reflection provenance, needed before closing can be implemented
+at all; **O4** what the fan-in level means and whether closing one branch
+collapses the fan.
 
-- **O1** copy vs. share when grafting a saved reading (flag `SHARE_GRAFTED_READING`, defaulted to copy).
-- **O2/O3** reflection's `A`/`B`/`C` relation and whether its operands are fresh variables or entity constants — both *reconstructed*, the least certain part of the spec.
-- **O4** saving persists `(name, term)` only — neither pointer sets nor ontology sets — so init-2 and case 2 cannot be restored across sessions. Now load-bearing, not incidental.
-- **O10** ontology update for cases 2/4 — left open by decision (candidate: cartesian product of the two ontology sets).
-- **O11** ontology-set size bound: enrichment branches multiplicatively, refutation prunes, nothing guarantees the rates balance.
-- **O12** the reading↔ontology pointer correspondence, on which every update rule depends totally.
-
-## Working conventions for this material
-
-- **Verify against code, don't reason in your head.** `term_utils._term_type` for typing claims, `optimal_lambda/rules.py` for rule behaviour, exhaustive enumeration for expressiveness claims. Two of this session's conclusions were corrected exactly this way.
-- **Marked provenance:** `[ASSUMPTION]` = reconstructed to make the definition total; `[CLARIFIED]` = settled by Marek in discussion; `C1` = explicitly confirmed. Preserve these markers.
-- **Keep the numbering** (cases 1, 2, 4) so earlier notes still refer to the same cases. Retired items stay as omission/removal notes with their rationale, not deletions.
-- Vocabulary: reading · pointer · contraction (depart/descend/arrive) · reflection · question · ontology · enrichment · refutation · (K1)/(K2) · trivial reading · argument/function position.
+**The ontology layer** — a reading is the observation, an ontology is a model in
+which it is valid — was **defined 2026-08-14** and lives in `notes/reading_desc`
+§8. It has its own skill: **`ontology`**. Load that rather than reasoning about it
+from here. In brief: `ont(G(t), P)` with `P` corresponding elementwise to the
+reading's pointers, contraction ↔ **R1**, reflection ↔ **R4**, maintained by
+enrichment and refutation. Pointer stability under reduction — previously the hard
+blocker — **is solved** (§8.5).
