@@ -1,6 +1,6 @@
 ---
 name: reading
-description: The Reading calculus — this project's model of a user reading a knowledge graph as a typed applicative lambda term built bottom-up in a sharing graph. Covers the one contraction step (two options), the reflection step, closing a pointer, typing-as-location, and verified expressiveness results including how argument-position sharing is constructed. Use when reading, explaining, extending, implementing or debugging anything about readings, pointers, contraction, reflection, questions, open vs closed readings, or sharing.
+description: The Reading calculus — this project's model of a user reading a knowledge graph as a typed applicative lambda term built bottom-up in a sharing graph. Covers the one contraction step (two options), the reflection step and its type cast on shared occurrences, typing-as-location, and verified expressiveness results including how argument-position sharing is constructed. Use when reading, explaining, extending, implementing or debugging anything about readings, pointers, contraction, reflection, questions, open vs closed readings, or sharing.
 ---
 
 # The Reading Calculus
@@ -64,18 +64,18 @@ changes their number.
 **The two states are not two kinds of object.** A closed reading is *de facto
 equivalent to a reading with one pointer, to the root of its graph* — closing
 **collapses** the pointer set to the root. Hence: saving is **total** (closable
-from any state, empty `Pr` included); re-opening is well defined for every closed
-reading; and **no pointer set need be stored**, so the existing `(name, term)`
-persistence is complete by construction. *Scope:* this says what a closed reading
-**is**, not that the two are interchangeable everywhere — §4's steps act on an
-open reading, so a closed one must be re-opened before being stepped on.
+from any state); re-opening is well defined for every closed reading; and **no
+pointer set need be stored**, so the existing `(name, term)` persistence is
+complete by construction. *Scope:* this says what a closed reading **is**, not
+that the two are interchangeable everywhere — §4's steps act on an open reading,
+so a closed one must be re-opened before being stepped on.
 
 **Opening** (§3), two forms: a **type** A → `(G(a), {ptr to a})`, or an **already
 saved reading** → `(G(t), {ptr to G(t)})`. Both start with exactly one pointer.
 
-**`Pr` may be empty** — closing the last pointer is legal (O3 resolved). No step
-can then fire, but the reading is still savable: a **terminal** state, not a stuck
-one. Do not assert non-emptiness.
+**`Pr` never shrinks.** No operation removes a pointer — contraction re-points
+actPtr, reflection replaces it with two. So `Pr` grows monotonically and is never
+empty.
 
 A closed reading contributes only its **type** and graph when used later. This
 is why there is a single contraction case for entities and closed readings
@@ -100,40 +100,55 @@ places, and it is the one actPtr designates.
 against B as answer without moving to either:
 
 ```
-G(t1)  |->  app( app(t1,a), app(t1,b) )     with t1 SHARED by a fan-in
+G(t)  |->  app(t, t)      with t SHARED by a new fan-in
 ```
+
+**No fresh variables are emitted** — both branches *are* the shared subject.
 
 `actPtr` becomes two pointers on the fan-in's **left-up/right-up aux ports** —
 `grey`/`black` in `_Compiler._fan_in`. **They designate the aux-port edges, i.e.
-the two occurrences of `t1`, not the enclosing app nodes.** This is the single
-most consequential detail in the spec (see sharing, below). Reflection is the
-only operation that shares and the only one that increases `|Pr|`.
+the two occurrences of `t`, not the enclosing app node.** This is the single most
+consequential detail in the spec (see sharing, below).
 
-**Closing a pointer** — reflection's inverse. Close `p` iff it points to `t1`,
-`app(t1,a)` is a subgraph, `[t1]==[a]`, and `a` was added **by a reflection
-step**. Result replaces `app(t1,a)` by `t1`. The provenance condition is not
-visible in the graph and must be **recorded when reflection creates the
-variables** (O2).
+**Reflection CASTS the type.** The left-up edge is type **A**, the right-up edge
+type **B**, though both are one shared `t` whose own type was C. This
+**deliberately breaks §2's typing** — not `[app(a,b)]=[b]`, but the assumption
+that a *subgraph has a type at all*:
+
+- type at a pointer is well defined, as a property of the **occurrence** (I3);
+- `[t]` alone is no longer a function of the term, so **`term_utils._term_type`
+  is insufficient** for reflected material — it needs an occurrence argument (O1);
+- contraction's `[t1]==A` must be read **at the pointer's occurrence**.
+
+This matches GAL's own geometry: direction there is likewise recovered
+per-traversal, and the two occurrences are distinguished by the same grey/black
+branch that distinguishes their contexts.
+
+Reflection is the only operation that shares, the only one that increases `|Pr|`,
+and the only one that breaks the typing. **No operation removes a pointer** — `Pr`
+grows monotonically and is never empty.
 
 ## Verified expressiveness (§7)
 
 Scope: applicative terms `t ::= x | (t t)`, no abstractions, plus sharing.
 Exhaustive enumeration to 6 leaves; the sharing construction traced on a DAG.
 
-- **Application shapes: COMPLETE** — but only because the operand may be a
-  **closed reading**. With entities only it fails: 4/5 at 4 leaves, 8/14 at 5,
-  16/42 at 6 (reflection helps — 5/5, 12/14, 28/42 — but doesn't close it). The
-  obstruction is **pointer reachability**: grafting an entity never *adds* a
-  pointer, so the user extends along a single spine. **Closing a reading is
-  therefore load-bearing, not a convenience.**
-- **Argument-position sharing: CONSTRUCTIBLE.** Reflect `C -> C` to stage
-  sharing, contract with **option 2** at each aux-port pointer to re-parent the
-  shared occurrence into argument position, then close both pointers to discard
-  the scaffolding. Yields `app(app(a,t), app(b,t))` with `t` shared. Reflection
-  is used as a **staging device**. Full construction in `reading_desc` §7.2.
+- **Application shapes: COMPLETE**, and **reflection is what makes them so** —
+  5/5, 14/14, 42/42 with **entity operands alone**. The obstruction is **pointer
+  reachability**: contraction never *adds* a pointer, so alone it leaves the user
+  on a single spine. `app(t,t)` duplicates the whole pointed subterm and yields a
+  pointer on each copy, so both children can grow independently. **Closed-reading
+  operands are therefore NOT what makes the calculus shape-complete** — useful for
+  reusing finished work, but not load-bearing here.
+- **Argument-position sharing: CONSTRUCTIBLE.** Reflect to stage the sharing, then
+  contract with **option 2** at each aux-port pointer to re-parent the shared
+  occurrence into argument position: `app(t,t)` → `app(app(a,t), app(b,t))` with
+  `t` shared. Reflection is a **staging device**, and since it emits no
+  scaffolding there is nothing to discharge afterwards. Full construction in
+  `reading_desc` §7.2.
 - **Still out of reach:** fan-out > 2 (a new reflection makes a new fan-in at
-  its own level, not a third parent — see O4); cyclic sharing (always a DAG);
-  late/arbitrary co-reference (§7.3(c), bears on O5).
+  its own level, not a third parent — see O3); cyclic sharing (always a DAG);
+  late/arbitrary co-reference (§7.3(c), bears on O4).
 
 ## Working conventions
 
@@ -147,15 +162,16 @@ Exhaustive enumeration to 6 leaves; the sharing construction traced on a DAG.
 - The reading layer **never reduces** — it only builds terms. Nothing in the
   calculus calls `normalize` or any rule in `rules.py`.
 - Vocabulary: reading (open/closed) · pointer · actPtr · contraction (option
-  1/2) · reflection · closing a pointer · question/answer · staging.
+  1/2) · reflection · type cast · occurrence · question/answer · staging.
 
 ## Open points to respect
 
-Full list in `reading_desc` §9. **O1 and O3 are resolved** (re-opening mints one
-pointer at the root; closing the last pointer is legal). The ones that will bite:
-**O2** recording reflection provenance, needed before closing can be implemented
-at all; **O4** what the fan-in level means and whether closing one branch
-collapses the fan.
+Full list in `reading_desc` §10. The ones that will bite: **O1** restating the
+typing rules so `[t]` takes an occurrence (mechanical, not yet done, and
+`_term_type` is insufficient until it is); **O2** whether the reflection cast is
+constrained at all — nothing relates A and B to C, so reflection may currently
+retype a shared subterm to anything, which also qualifies §7.4's
+KG-realisability claim; **O3** what the fan-in level means for a reading.
 
 **The ontology layer** — a reading is the observation, an ontology is a model in
 which it is valid — was **defined 2026-08-14** and lives in `notes/reading_desc`

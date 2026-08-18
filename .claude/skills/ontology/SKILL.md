@@ -54,7 +54,7 @@ different ones.
 | **title** | the *breaking* — loss of sense (**negative** form) | the **reading** — contracted just like an entity |
 | **positive form** `G(lam a.t)` | the *form/context* of the breaking | **ontologies only** — invisible to a reading |
 
-So a reading is subjective and abstraction-free (invariant I7); an ontology is the
+So a reading is subjective and abstraction-free (invariant I6); an ontology is the
 **explicit** layer, built from positive forms. Reduction is the **explicit act of
 answering** the question — in the calculus rather than in the user's mind.
 
@@ -85,8 +85,17 @@ yielding another candidate. Grows the set.
   **function** position makes the abstraction a new position (`p` → `pqp`); in
   **argument** position `P` is unchanged.
 
-**Update** (§8.6–8.7) — apply R1 or R4 plus all silent reductions, and advance
-pointers in step with the reading. Shrinks the set by refutation.
+**Update** (§8.6–8.7) — advance pointers in step with the reading. Contraction now
+**forks** rather than filters (redefined 2026-08-18):
+
+- **R1 fires** — reduce (plus all silent reductions), advance the pointer. The
+  ontology's hypothesis paid off.
+- **R1 does not fire** — **keep the ontology anyway**, just advance the pointer. It
+  proposed nothing at this position; that is *silence*, not contradiction.
+
+Option 1 also handles a **closed-reading** operand: for each of `R1`'s own
+ontologies, substitute its term for the variable at that position and require R1 to
+fire — a cartesian product over the two sets.
 
 ## Pointer stability under reduction — SOLVED (§8.5)
 
@@ -139,10 +148,25 @@ means the same positions, not the same edge identities.
 
 ## Refutation, and the empty set
 
-Updates **replace** the set. An ontology in which the required rule does not fire
-is **discarded** — falsified by what the user just did. Two silent ways to be
-dropped: failing the outer structural test, and failing applicability. Neither is
-an error.
+Updates **replace** the set, so **an ontology is discarded by never being added** —
+there is no discard statement, and refutation's strength is exactly the strictness
+of the update rules' conditions.
+
+⚠️ **Since the 2026-08-18 redefinition, contraction refutes almost nothing.** §8.6
+now **keeps** an ontology in which R1 does *not* fire — distinguishing
+**contradicted** from merely **silent**, which is right in itself. But that was the
+gate that did the discarding, so the only one left is the outer structural test,
+which most enriched ontologies pass by construction. The set grows nearly
+monotonically.
+
+Two consequences to know before implementing:
+
+- **O10's cap is now a prerequisite**, not an optimisation — nothing balances
+  enrichment's growth.
+- The interpretation's claim that survivors are **better approximations** because
+  they "still fit" is weakened: if silence counts as fitting, survival no longer
+  tracks confirmation. **O11** proposes counting firings per ontology and evicting
+  by that count, making refutation a *ranking* rather than a filter. Unruled.
 
 **An empty set is MEANINGFUL:** no available explicit material can express what
 this user is doing — the reading has outrun the abstractions available to it.
@@ -155,16 +179,39 @@ fits, the approximation improves.
 
 ## Open points
 
-- **O8** — whether a closed reading carries its ontology set. §8.3 form (b) takes
+- **O9 — the reflection update rule is STALE.** ⚠️ Reflection was redefined
+  2026-08-15: the reading now builds `app(t,t)` with the branch types **cast onto
+  the two occurrences** of one shared `t`, emitting no fresh variables. §8.7 still
+  tests for a subtree `app(tb,tc)` with the types on separate operands — a shape
+  the reading no longer produces. **The rule must be restated against the new
+  form before it can be implemented.** Everything else in §8 (enrichment,
+  pointer stability, refutation, the contraction rules) is unaffected.
+- **O7** — whether a closed reading carries its ontology set. §8.3 form (b) takes
   "the ontologies of R1", but a closed reading is the graph alone (§1). Either
-  closing persists them or re-opening re-derives them by enrichment.
-- **O9** — the update when the contraction operand is a **closed reading or an
-  abstraction title** rather than an entity. Both carry their own ontology sets,
-  to be combined somehow. **Load-bearing**: operand grafting is what makes the
-  calculus shape-complete (§7.1).
-- **O10** — whether the set needs a size bound. Enrichment terminates but
-  branches over every matching abstraction at every pointer on every step;
-  refutation prunes, but nothing guarantees the rates balance.
+  closing persists them or re-opening re-derives them by enrichment. §8.6's
+  closed-reading case **needs** them, so this must be settled.
+- **O8 — partly resolved.** Option 1 now handles a closed-reading operand: pair
+  each current ontology with each of R1's, substitute R1's ontology-term for the
+  variable, require R1 to fire. Still open: whether **option 2** admits a closed
+  reading at all (no case is given, so it currently means entity-only); the
+  **abstraction title** operand (no case in either option — plausibly needs none,
+  being covered by enrichment substituting that title's own positive form, *without*
+  branching over all abstractions of the type, since the user named one); and
+  review notes **RN2/RN3/RN5** in §8.6.
+- **O10 — now a prerequisite.** Cap plus deterministic eviction. Enrichment
+  branches per pointer per step, option 1's closed-reading case multiplies by
+  `|R1.ontologies|`, and refutation no longer counterbalances.
+- **O11** — whether non-firing survival needs a confirmation count (above).
+
+## Review notes on §8.6 (unruled)
+
+§8.6 carries five marked review notes (numbered **RN1–RN5** to avoid collision
+with the reducer's rules R1–R6) from the 2026-08-18 definition. Read them
+before implementing that section: **RN1** non-firing survival vs refutation (above),
+**RN2** no fallthrough when `tb` is neither a variable nor one of R1's
+ontology-terms, **RN3** the "`tb` is an ontology of R1" test compares different
+graphs and needs restating, **RN4** the closed-reading case is a cartesian product,
+**RN5** the resulting pointer must designate the *post-reduction* material.
 
 ## Working conventions
 

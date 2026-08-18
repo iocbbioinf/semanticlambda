@@ -9,8 +9,8 @@ Points marked [ASSUMPTION] were not fixed by the specification; they are the
 reading adopted here so the definition is total. Correct them in place if wrong.
 
 Contents: §1 what a reading is · §2 typing · §3 the initial step · §4 the two
-steps and the closing of a pointer · §5 summary · §6 invariants · §7 what a
-reading can build · §8 ONTOLOGY · §9 worked examples · §10 open points.
+steps · §5 summary · §6 invariants · §7 what a reading can build · §8 ONTOLOGY ·
+§9 worked examples · §10 open points.
 
 §8 (ontology) formalises what the `reading-interpretation` skill describes;
 read that skill before working on §8.
@@ -42,7 +42,7 @@ re-opening (§3(b)) merely makes that root pointer explicit again. Three
 consequences, used throughout:
 
   - SAVING IS TOTAL. A reading may be closed from any state, whatever its
-    pointer set — including the empty one (§4.3).
+    pointer set.
   - RE-OPENING IS WELL DEFINED for every closed reading, and yields the single
     root pointer. It is not a special rule but an instance of the equivalence.
   - NO POINTER SET NEED BE STORED, because the pointer is recoverable from the
@@ -53,15 +53,15 @@ SCOPE OF THE EQUIVALENCE. It states what a closed reading IS, not that closed
 and open readings are interchangeable everywhere. The steps of §4 act on an OPEN
 reading, so a closed reading must be re-opened by §3(b) before it can be stepped
 on; and where a closed reading appears as an OPERAND of contraction (§4.1) it
-contributes its graph and type, never a position. Both uses are needed — see
-§7.1, where operand grafting is what makes the calculus shape-complete.
+contributes its graph and type, never a position.
 
 In an open reading, before each step the user selects one pointer from Pr. It is
 called the ACTUAL POINTER, actPtr. IT REPRESENTS THE PLACE WHERE THE USER STAYS.
 
-Pointers exist because of reflection. A reading acquires more than one pointer
-only by reflecting (§4.2), and returns to fewer only by closing a pointer
-(§4.3). Contraction (§4.1) neither creates nor destroys them.
+Pointers exist because of reflection: a reading acquires more than one pointer
+only by reflecting (§4.2), which replaces actPtr by two. Contraction (§4.1)
+re-points actPtr and neither creates nor destroys pointers. NO OPERATION REMOVES A
+POINTER, so Pr grows monotonically and is never empty.
 
 The shared graph is built BOTTOM-UP: every step replaces the subgraph at a
 pointer by a larger one containing it.
@@ -142,8 +142,8 @@ reading in the ordinary sense, and every step of §4 applies to it.
 4. The steps
 ------------
 
-There is EXACTLY ONE CONTRACTION STEP CASE and EXACTLY ONE REFLECTION STEP CASE.
-A pointer may additionally be CLOSED (§4.3).
+There is EXACTLY ONE CONTRACTION STEP CASE (with two options) and EXACTLY ONE
+REFLECTION STEP CASE. These are all the operations.
 
 Every step acts at exactly one pointer, actPtr, and leaves every other pointer
 of Pr untouched.
@@ -210,7 +210,7 @@ admit only one of them — both only when A == B.
 -------------------
 
     Reading R = (G(t), Pr)
-    actPtr points to G(t1), where [t1] == C
+    actPtr points to G(t), where [t] == C
     the user selects  A -> B
 
     interpreted as: the user stays at C. The user moves neither to A nor to B,
@@ -218,72 +218,72 @@ admit only one of them — both only when A == B.
     that question.
 
       Effect:
-          G(t2) is G(t) with G(t1) replaced by
-
-              G( app( app(t1, a), app(t1, b) ) )
-
-          where G(t1) IS SHARED BY A FAN-IN: it occurs twice in the term but
-          exists once in the graph. [a] == A and [b] == B.
+          the new reading is  G( app(t, t) ),  where t IS SHARED BY A NEW
+          FAN-IN: it occurs twice in the term but exists once in the graph.
 
           Pr1 = Pr - {actPtr}  union
                 { pointer to the edge at the LEFT-UP  aux port of the fan-in,
                   pointer to the edge at the RIGHT-UP aux port of the fan-in }
 
-          R1 = (G(t2), Pr1)
+          R1 = (G(app(t,t)), Pr1)
 
-[ASSUMPTION — operands] a and b are taken to be fresh VARIABLES of types A and
-B, matching contraction, rather than entity constants. Then [app(t1,a)] = A and
-[app(t1,b)] = B fall out of the ordinary rule.
+The step introduces NO fresh variables. Both branches ARE the shared subject t;
+nothing is placed above it.
 
-WHERE THE NEW POINTERS POINT, AND WHY IT MATTERS. They designate the EDGES AT
-THE FAN-IN'S AUXILIARY PORTS — that is, the two OCCURRENCES OF G(t1) — not the
-enclosing application nodes. A later contraction at such a pointer therefore
-grafts around the shared occurrence itself. This is what makes §7.2 work; it is
-the single most consequential detail of this step.
+REFLECTION CASTS THE TYPE OF THE SHARED TERM. t is shared, but the LEFT-UP edge is
+of type A and the RIGHT-UP edge is of type B. So one and the same G(t) reads as A
+through one occurrence and as B through the other, while its own type was C.
 
-Reflection is the only operation that SHARES, and the only one that INCREASES
-the number of pointers.
+  THIS BREAKS THE TYPING OF §2, deliberately. What breaks is not [app(a,b)] = [b]
+  but the tacit assumption that a SUBGRAPH HAS A TYPE AT ALL:
+
+    - TYPE AT A POINTER remains well defined (invariant I3): a pointer designates
+      an occurrence, and the occurrence carries the type.
+    - [t] ALONE is no longer a function of the term for shared material. The
+      normative `term_utils._term_type` computes from a term with no notion of
+      which occurrence one arrived through, so IT IS INSUFFICIENT for reflected
+      material and needs an occurrence argument.
+    - Contraction's precondition [t1] == A (§4.1) must therefore be read as a
+      condition on the POINTER'S OCCURRENCE, not on the subterm as such.
+
+  This aligns reading types with the geometry the reducer already has: in GAL an
+  edge carries no intrinsic direction either — direction is RECOVERED per
+  traversal from the context on the rightmost wire, and the two shared
+  occurrences are distinguished by exactly the fan branch (grey vs black) that
+  distinguishes their contexts. Type now behaves the same way: recovered per
+  occurrence, not stored. See the sibling skill
+  `understand-bus-optimal-reduction`.
+
+  [OPEN — O2] Nothing relates A and B to C. After the step C appears nowhere in
+  the term, so the cast is by fiat and reflection may retype a shared subterm to
+  anything. A legality test on arrows out of C (EXISTS_RELATION(C,A) and
+  EXISTS_RELATION(C,B)) is still available as a PRECONDITION, but nothing holds
+  the result to it, and §7.4's knowledge-graph-realisability claim needs
+  qualifying accordingly.
+
+WHERE THE NEW POINTERS POINT, AND WHY IT MATTERS. They designate the EDGES AT THE
+FAN-IN'S AUXILIARY PORTS — that is, the two OCCURRENCES OF t. A later contraction
+at such a pointer therefore acts on the shared occurrence itself: option 2 grafts
+AROUND it, which is what makes §7.2 work. This is the single most consequential
+detail of this step.
+
+Reflection is the only operation that SHARES, and the only one that INCREASES the
+number of pointers. Because app(t,t) DUPLICATES THE WHOLE POINTED SUBTERM and
+yields a pointer on each copy, it is also what supplies access to independent
+positions — see §7.1, where this, and not operand grafting, is what makes the
+calculus shape-complete.
+
+Pr NEVER SHRINKS: contraction re-points actPtr, reflection replaces it with two,
+and no operation removes a pointer. So Pr grows monotonically over a reading and
+is never empty.
 
 Correspondence to code: the sharing fan-in built by `_Compiler._fan_in`
 (`optimal_lambda/compile.py`) is an arity-3 INTERNAL fan marked on the OFFSET
 wire, with ports `principal` / `grey` / `black`. LEFT-UP and RIGHT-UP aux ports
-are `grey` and `black`; `principal` carries the shared subject G(t1). The OFFSET
+are `grey` and `black`; `principal` carries the shared subject t. The OFFSET
 placement is what makes the two uses DUPLICATE rather than annihilate when they
 meet the syntactic lambda/application fans on the COMMAND wire — see the sibling
 skill `understand-bus-optimal-reduction` §3.
-
-
-4.3 Closing a pointer
----------------------
-
-During a reading R = (G(t), Pr) the user may CLOSE a pointer p from Pr iff:
-
-    p points to G(t1), and
-    G(app(t1, a)) is a subgraph of G(t), and
-    [t1] == A  and  [a] == A, and
-    G(a) was added to the graph in a REFLECTION step.
-
-  Effect:
-      R1 = (G(t1), Pr1), where the term is obtained from t by replacing the
-      subgraph G(app(t1, a)) by G(t1).
-
-Closing is the inverse of reflection: reflection turns one pointer into two,
-closing removes one. It discards the scaffolding G(a) that reflection
-introduced, keeping what has since been built at that pointer.
-
-The provenance condition — G(a) added by a reflection step — is not visible in
-the graph and must be RECORDED when reflection creates a and b. See O2.
-
-[ASSUMPTION] The specification states the new reading as (G(t1), Pr1) without
-fixing Pr1. Taken here as Pr1 = Pr - {p}: the closed pointer is removed and the
-others are untouched, consistent with every other step acting at one pointer.
-
-CLOSING THE LAST POINTER IS LEGAL. Pr may become empty. [CLARIFIED 2026-08-13]
-Such a reading admits no further step, since every step of §4 acts at an actPtr —
-but it is a TERMINAL state, not a stuck one: the user can still SAVE (close) the
-reading, which is total (§1). Saving an empty-Pr reading is exactly the case the
-equivalence of §1 covers, the closed reading standing for one pointer at the
-root.
 
 
 5. Summary
@@ -291,17 +291,17 @@ root.
 
                contraction opt 1   contraction opt 2   reflection
   selects      G(t2), [t2]==B      G(t2), [t2]==B      A -> B
-  requires     [t1]==A             [t1]==A             [t1]==C
-  builds       app(t1,t2)          app(t2,t1)          app(app(t1,a),app(t1,b))
-                                                         with t1 SHARED
-  type after   B                   A (unchanged)       A and B on the branches
+  requires     [t1]==A             [t1]==A             [t]==C
+  builds       app(t1,t2)          app(t2,t1)          app(t, t)
+                                                         with t SHARED
+  type after   B                   A (unchanged)       A on the LEFT-UP edge,
+                                                         B on the RIGHT-UP edge
+                                                         (one shared t, CAST)
   pointers     actPtr re-pointed   actPtr re-pointed   actPtr -> two aux-port
                                                          pointers
   |Pr| changes 0                   0                   +1
   reading      A asks, B answers   B asks, A answers   C stays; A and B are
                                                          reflected as Q and A
-
-  Closing a pointer: |Pr| changes by -1, undoing one reflection branch.
 
   THE GOVERNING PRINCIPLE, from [app(a,b)] = [b]: the ARGUMENT determines the
   resulting type. Contraction option 1 puts the selected material in argument
@@ -309,8 +309,13 @@ root.
   type stays A. In both the user occupies two places; the type names the one the
   pointer designates.
 
+  REFLECTION IS THE EXCEPTION: it does not derive the branch types from the term
+  but CASTS them onto the two occurrences of one shared subject (§4.2). It is the
+  only operation that shares, the only one that increases |Pr|, and the only one
+  that breaks the typing of §2.
+
   Contraction relates TWO PLACES into one claim. Reflection forks ONE place into
-  two over a shared subject. Closing collapses a fork. Those are all the moves.
+  two over a shared subject. Those are all the moves.
 
 
 6. Invariants
@@ -320,23 +325,23 @@ root.
       re-establishes this for the pointers it touches.
 
   I2  Every step acts at exactly one pointer and leaves all others untouched.
-      Contraction re-points actPtr; reflection consumes it and adds two;
-      closing removes one.
+      Contraction re-points actPtr; reflection consumes it and adds two. No
+      operation removes a pointer, so Pr grows monotonically and is never empty.
 
-  I3  The type at a pointer is well defined: for a pointer to G(t1), [t1] is
-      computed by the three rules of §2.
+  I3  The type at a pointer is well defined — but as a property of the OCCURRENCE
+      the pointer designates, not of the subterm alone: reflection casts A and B
+      onto the two occurrences of one shared t (§4.2). For unreflected material
+      the three rules of §2 compute it.
 
-  I4  A contraction is legal only if the type precondition holds: [t1] == A,
-      with the selected G(t2) of type B. Which option is offered follows from
-      whether the user stays at the arrow's subject or its object.
+  I4  A contraction is legal only if the type precondition holds: [t1] == A at the
+      pointer's occurrence, with the selected G(t2) of type B. Which option is
+      offered follows from whether the user stays at the arrow's subject or its
+      object.
 
-  I5  Reflection never duplicates its subject: after the step exactly one G(t1)
-      exists in the graph, reached through the fan-in.
+  I5  Reflection never duplicates its subject: after the step exactly one t exists
+      in the graph, reached through the fan-in.
 
-  I6  Closing is legal only under the four conditions of §4.3, provenance
-      included.
-
-  I7  A reading contains no abstractions (§7).
+  I6  A reading contains no abstractions (§7).
 
 
 7. What a reading can build
@@ -349,54 +354,53 @@ tracing the construction on an explicit DAG.
 7.1 APPLICATION SHAPES: COMPLETE.
 
   Every binary-tree shape is reachable (Catalan: 1, 1, 2, 5, 14, 42 — none
-  missing up to 6 leaves), PROVIDED the selected G(t2) may be a closed reading
-  and not only an entity.
+  missing up to 6 leaves). This holds with ENTITY OPERANDS ALONE — a closed
+  reading is not required.
 
-  With ENTITIES ONLY the calculus is incomplete. First failure at 4 leaves,
-  exactly ((x y) (z w)); missing 1 of 5 at 4 leaves, 6 of 14 at 5, 26 of 42 at 6.
-  Adding reflection improves this (5/5, 12/14, 28/42) but does not close it.
+  WHAT MAKES IT COMPLETE IS REFLECTION. The obstruction is POINTER REACHABILITY,
+  not the rewrite rules: contraction re-points actPtr at the new application and
+  never ADDS a pointer, so contraction alone leaves the user on a single spine,
+  unable to grow both children of an application into compounds. Reflection breaks
+  that: app(t,t) DUPLICATES THE WHOLE POINTED SUBTERM and yields a pointer on each
+  copy, so both children can be developed independently.
 
-  The obstruction is POINTER REACHABILITY, not the rewrite rules: grafting an
-  entity re-points actPtr at the new application and never ADDS a pointer, so
-  from the initial step the user extends along a single spine and cannot grow
-  both children of an application into compounds.
+  Verified by exhaustive enumeration to 6 leaves: with entity operands only and
+  entity-only initial steps, reflection alone gives 5/5 at 4 leaves, 14/14 at 5,
+  42/42 at 6.
 
-  Grafting a closed reading supplies the missing access without any navigation
-  step: the user does not reach into an unread position, but brings a finished
-  reading of their own to the place where they already stay. THIS IS WHY CLOSING
-  A READING IS LOAD-BEARING rather than a convenience.
+  CLOSED READINGS AS OPERANDS ARE THEREFORE NOT WHAT MAKES THE CALCULUS
+  SHAPE-COMPLETE. They remain useful — they let a user bring finished work of
+  their own to the place where they already stay, without any navigation step
+  (§4.1) — but the expressiveness rests on reflection.
 
 7.2 SHARING IN ARGUMENT POSITION: CONSTRUCTIBLE.
 
-  Reflection emits its shared subject in FUNCTION position of both branches. It
-  does not follow that argument-position sharing is out of reach: contraction
-  option 2 can re-parent the shared occurrence, because the reflection pointers
-  designate the occurrences themselves (§4.2).
+  Reflection shares t across both branches, one occurrence in function and one in
+  argument position of app(t,t). Contraction option 2 then re-parents an
+  occurrence, because the reflection pointers designate the OCCURRENCES themselves
+  (§4.2).
 
-  Construction of G(t) with term  app(app(a,t), app(b,t)),  t shared, [t] == C:
+  Construction of G(t) with term  app(app(a,t), app(b,t)),  t shared:
 
     1) R  = (G(t), Pr),  actPtr points to t,  [t] == C
 
-    2) reflection C -> C:
-           R1 = ( G( app(app(t,c), app(t,c)) ), Pr1 )
+    2) reflection A -> B:
+           R1 = ( G( app(t, t) ), Pr1 )
        t is shared by the fan-in; the two new pointers designate the two
-       occurrences of t.
+       occurrences of t, typed A and B respectively.
 
     3) contraction option 2 at each of those two pointers, grafting a and b in
-       function position around the shared occurrence:
-           R2 = ( G( app( app(app(a,t), c), app(app(b,t), c) ) ), Pr2 )
+       FUNCTION position around the shared occurrence:
+           R2 = ( G( app( app(a,t), app(b,t) ) ), Pr2 )
        t remains shared, and now sits in ARGUMENT position of both app(a,t) and
        app(b,t).
 
-    4) close the pointers to app(a,t) and app(b,t) — legal since
-       [app(a,t)] == C == [c] and c was added by the reflection in step 2:
-           R3 = ( G( app(app(a,t), app(b,t)) ), Pr2 )
+  Verified by tracing on an explicit DAG: t has fan-out 2 throughout, and in R2
+  both occurrences are in argument position.
 
-  Verified: t has fan-out 2 throughout, and in R3 both occurrences are in
-  argument position.
-
-  Reflection here is a STAGING DEVICE. Reflecting C -> C creates sharing that is
-  not itself wanted; contraction re-parents it; closing removes the scaffolding.
+  Reflection here is a STAGING DEVICE — it creates the sharing, and contraction
+  option 2 re-parents it. Because reflection emits no scaffolding, nothing needs
+  discharging afterwards: the construction is just reflect, then contract twice.
   This is the pattern optimal reduction exists to exploit — a duplicated ARGUMENT
   that should be reduced once — so its constructibility matters.
 
@@ -407,7 +411,7 @@ tracing the construction on an explicit DAG.
         third parent to the existing one. Whether that distinction is
         semantically meaningful for a reading depends on what the fan-in level
         means here, as opposed to what it means for the reducer (where levels
-        keep independent sharings from interfering). See O4.
+        keep independent sharings from interfering). See O3.
 
     (b) cyclic sharing — every step grafts new material into a graph built
         bottom-up, so the result is always a DAG.
@@ -417,14 +421,21 @@ tracing the construction on an explicit DAG.
         reflection staged; it cannot join two positions that were never forked
         from a common subject. Whether this is wanted is a design decision: a
         user who can share only what they staged by reflection is a coherent,
-        and more constrained, notion. See O5.
+        and more constrained, notion. See O4.
 
 7.4 WHAT THE KNOWLEDGE GRAPH CONSTRAINS.
 
   Shape completeness concerns TREE SHAPES. Which LABELLED terms are reachable is
   separately constrained by the graph: every step needs an arrow that exists,
-  and by [app(a,b)] = [b] the type at a pointer is its rightmost leaf. The
-  reachable labelled terms are exactly the graph-realisable ones — by design.
+  and for UNREFLECTED material, by [app(a,b)] = [b], the type at a pointer is its
+  rightmost leaf. Those reachable labelled terms are the graph-realisable ones —
+  by design.
+
+  QUALIFICATION. Reflection CASTS types onto the two occurrences of a shared
+  subject (§4.2), and nothing in the resulting term relates them to the type the
+  user was standing at. So a reflected occurrence may carry a type no arrow
+  licensed, and the claim above holds only for material no reflection has retyped.
+  Whether to constrain the cast — e.g. to arrows out of C — is O2.
 
 
 8. Ontology
@@ -457,7 +468,7 @@ P corresponds ELEMENTWISE to the reading's own pointer set: each pointer of the
 reading has a counterpart in each ontology.
 
 The division of labour, from the interpretation: a READING is subjective and
-contains no abstractions (I7); an ONTOLOGY is the EXPLICIT layer and is built
+contains no abstractions (I6); an ONTOLOGY is the EXPLICIT layer and is built
 from the POSITIVE FORM of abstractions, G(lam a.t), which a reading never sees.
 Reduction is the explicit act of ANSWERING the question.
 
@@ -494,7 +505,7 @@ makes "all abstractions of type A" a finite, concrete lookup
 
     Then enrich (§8.4).
 
-[OPEN — O8] Form (b) presupposes that a closed reading carries its ontology set.
+[OPEN — O7] Form (b) presupposes that a closed reading carries its ontology set.
 By §1 a closed reading is the GRAPH ALONE, and §3(b) re-opens it with a single
 root pointer, so there is no stored ontology set to take. Either closing must
 also persist the ontologies, or re-opening must RE-DERIVE them (initialise from
@@ -603,7 +614,13 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
 8.6 Update on a contraction step  (A -> B at actPtr)
 -----------------------------------------------------
 
+  Redefined by Marek, 2026-08-18. The two changes from the earlier version: an
+  ontology in which RULE 1 does NOT fire is now KEPT rather than discarded, and
+  option 1 handles a CLOSED READING operand explicitly (closing O8 for option 1).
+
   OPTION 1 — the reader's position moves to B.
+              The user selects an entity B, or a closed reading R(G(tb)) with
+              [R(G(tb))] == B.
 
     newOntologies = {}
     for each ont(G(t), P) in ontologies:
@@ -611,12 +628,39 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
 
         if t contains a subtree app(ta, tb) with p pointing to ta,
            [ta] == A and [tb] == B:
-            if RULE 1 is applicable to G(t) at p:     # ta is an abstraction
-                let pb point to tb
-                apply rule 1, then all possible silent reductions (§8.5(3))
-                    -> G(t1)
+
+            if RULE 1 is NOT applicable to G(t) at p:        # ta not abstraction
                 newOntologies = newOntologies union
-                                { ont( G(t1), (P - {p}) union {pb} ) }
+                    { ont( G(t), (P - {p}) union {pointer to app(ta, tb)} ) }
+
+            if RULE 1 IS applicable to G(t) at p:            # ta is abstraction
+
+                if the user selected an ENTITY B:
+                    let pb point to tb
+                    apply rule 1, then all possible silent reductions (§8.5(3))
+                        -> G(t1)
+                    newOntologies = newOntologies union
+                                    { ont( G(t1), (P - {p}) union {pb} ) }
+
+                if the user selected a CLOSED READING R(G(tb1)),
+                   [R(G(tb1))] == B:
+
+                    if tb is a variable b:
+                        for each ont(G(tb2)) in the ontology set of R(G(tb1)):
+                            replace the variable b by G(tb2), then apply rule 1
+                            to the redex app(G(ta), G(tb2)), then all possible
+                            silent reductions (§8.5(3))    -> G(t1)
+                            newOntologies = newOntologies union
+                                { ont( G(t1), (P - {p}) union
+                                              {pointer to tb2} ) }
+
+                    if tb is NOT a variable:
+                        if tb is one of R(G(tb1))'s own ontology-terms:
+                            apply rule 1 to the redex app(G(ta), G(tb)), then all
+                            possible silent reductions (§8.5(3))    -> G(t1)
+                            newOntologies = newOntologies union
+                                { ont( G(t1), (P - {p}) union
+                                              {pointer to tb} ) }
 
     ontologies = newOntologies
     then enrich (§8.4)
@@ -629,7 +673,11 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
 
         if t contains a subtree app(ta, tb) with p pointing to tb,
            [ta] == A and [tb] == B:
-            if RULE 1 is applicable at the REDEX, which is at ta:
+
+            if RULE 1 is NOT applicable at app(ta, tb):      # ta not abstraction
+                newOntologies = newOntologies union { ont( G(t), P ) }
+
+            if RULE 1 IS applicable at the REDEX, which is at ta:
                 apply rule 1, then all possible silent reductions (§8.5(3))
                     -> G(t1)
                 newOntologies = newOntologies union { ont( G(t1), P ) }
@@ -641,18 +689,75 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
   whereas the abstraction — and hence the RULE 1 REDEX — is at ta. So the
   applicability test is at ta, NOT at p; only the surviving pointer is derived
   from p. (Option 1 is the case where the two coincide.) Second, P is carried
-  over UNCHANGED because the reader does not move (§4.1), but the pointers must
-  be REBASED onto G(t1): the graph has been rewritten, so "unchanged" means the
-  same positions, not the same edge identities.
+  over UNCHANGED in BOTH branches because the reader does not move (§4.1) — but
+  the pointers must be REBASED onto G(t1) where a reduction happened: "unchanged"
+  means the same positions, not the same edge identities.
 
-  [OPEN — O9] The update above assumes the contraction operand is an ENTITY. When
-  it is a CLOSED READING or an ABSTRACTION TITLE (§4.1), tb is a compound that
-  carries its own ontology set, and the two sets must be combined somehow. Not
-  settled. This matters because grafting closed readings is what makes the
-  calculus shape-complete (§7.1).
+  REVIEW NOTES ON THIS DEFINITION (2026-08-18). Numbered RN* to avoid
+  collision with the reducer's rules R1-R6. Recorded so they are not lost;
+  each needs a ruling.
+
+  (RN1) NON-FIRING SURVIVAL WEAKENS REFUTATION ALMOST TO NOTHING. Refutation is not
+       a separate operation — an ontology is discarded by never being added to
+       newOntologies (§8.8). Previously the RULE-1-applicable test was the gate
+       that did the discarding. Now both branches survive, so the only remaining
+       gate is the OUTER structural test, which most enriched ontologies pass by
+       construction. The set therefore grows nearly monotonically while enrichment
+       adds on every step, making O10 (no size bound) a certainty rather than a
+       worry.
+
+       It also weakens the interpretation's central claim, that survivors are
+       BETTER APPROXIMATIONS because they "still fit": if not-firing counts as
+       fitting, long survival no longer distinguishes an ontology whose
+       hypotheses kept paying off from one that never proposed anything.
+
+       SUGGESTED REMEDY (not applied): keep the distinction — it is right that
+       CONTRADICTED and MERELY SILENT differ — but RECORD which branch was taken,
+       e.g. a count of firings per ontology, and let the O10 cap evict by it.
+       Refutation then becomes a RANKING rather than a filter, which arguably
+       suits approximations better. The alternative is to rule that silence IS
+       fatal and restore the strict form.
+
+  (RN2) OPTION 1's CLOSED-READING CASE HAS NO FALLTHROUGH. If tb is not a variable
+       AND not one of R1's ontology-terms, neither inner branch fires and the
+       ontology is dropped — contradicting the non-firing branch just added.
+       Either add an else that keeps it, or state that this case refutes.
+
+  (RN3) "tb IS ONE OF R1's ONTOLOGY-TERMS" NEEDS RESTATING. tb is a subterm of the
+       CURRENT ontology's graph, so it cannot literally be an ontology of R1 —
+       those are different graphs. The intended test is presumably that tb ALREADY
+       IS one of R1's ontology-terms, having arrived by an earlier graft or
+       enrichment. As written it compares incomparable things.
+
+  (RN4) THE CLOSED-READING CASE IS A CARTESIAN PRODUCT. It pairs each current
+       ontology with each of R1's, so |newOntologies| may reach k*m at one step.
+       That is a legitimate decision but it is the explosive one, and it makes the
+       O10 cap a prerequisite rather than an optimisation.
+
+  (RN5) POINTER AFTER REDUCTION. Both closed-reading branches end with a "pointer
+       to tb2" / "pointer to tb", but rule 1 plus silent reductions may have
+       rewritten that material. The pointer must designate the RESULT at that
+       position, per the rebasing note above.
+
+  [OPEN — O8] Option 2's operand. The definition above gives no closed-reading
+  case for option 2, so option 2 currently admits ENTITY operands only. If that is
+  intended, it should be stated in §4.1 as a restriction on the step itself — and
+  it is a welcome simplification, since in option 2 the operand lands where the
+  redex is (at ta) rather than at a fresh position, which is the harder case to
+  combine. If option 2 may take a closed reading, the case is missing.
 
 8.7 Update on a reflection step  (A -> B at actPtr, [t_at_actPtr] == C)
 -----------------------------------------------------------------------
+
+  [OPEN — O9] THIS RULE IS STALE AND MUST BE RESTATED. It was written against the
+  earlier reflection, which built app(app(t,a), app(t,b)) with fresh variables a
+  and b carrying the branch types. Reflection now builds app(t,t) and CASTS A and
+  B onto the two OCCURRENCES of the shared t (§4.2), emitting no variables — so
+  the test below for a subtree app(tb,tc) with [tb]==A and [tc]==B looks for a
+  shape the reading no longer produces. The rule is retained only as the starting
+  point for that restatement; do not implement it as written. Everything else in
+  §8 — enrichment, pointer stability, refutation, the contraction updates — is
+  unaffected.
 
   Naming follows §4.2: the user stays at C and reflects A against B. Let toa be
   the subterm the ontology pointer designates.
@@ -693,15 +798,30 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
 8.8 Refutation, and the empty set
 ----------------------------------
 
-Every update rule REPLACES the ontology set with newOntologies. An ontology in
-which the required rule does NOT fire is therefore DISCARDED — falsified by what
-the user just did. The set shrinks by refutation and grows by enrichment (§8.4).
-This is the formal counterpart of the interpretation's "only instances that fit
-the rule remain, and survivors are better approximations".
+Every update rule REPLACES the ontology set with newOntologies, so AN ONTOLOGY IS
+DISCARDED BY NEVER BEING ADDED. There is no discard statement; refutation is a
+side effect of the update rules' conditions, and its strength is exactly their
+strictness.
 
-Note the two ways an ontology is dropped, both silent in the pseudocode above:
-failing the outer structural test (no such subtree), and failing the rule's
-applicability test. Neither is an error.
+WHAT NOW REFUTES, after the 2026-08-18 redefinition of §8.6:
+
+  - failing the OUTER STRUCTURAL TEST — no subtree app(ta,tb) with the required
+    types at the pointer. This is the only remaining gate for contraction.
+  - in §8.7 (reflection), failing rule 4's applicability or the already-shared
+    precondition — but that rule is itself stale (O9).
+
+WHAT NO LONGER REFUTES: an ontology in which RULE 1 does not fire. §8.6 now KEEPS
+it. The distinction being drawn is between an ontology CONTRADICTED by what the
+user did and one merely SILENT about it — proposing nothing at that position is
+not the same as being falsified there.
+
+CONSEQUENCE, which needs a ruling — see review note (RN1) in §8.6. With non-firing
+survival, contraction refutes almost nothing, while enrichment adds on every step;
+the set grows nearly monotonically and the O10 cap becomes a prerequisite. It also
+weakens the interpretation's claim that survivors are BETTER APPROXIMATIONS
+because they "still fit": if silence counts as fitting, survival no longer tracks
+confirmation. The suggested remedy is to count firings per ontology and let the
+cap evict by that count, making refutation a RANKING rather than a filter.
 
 AN EMPTY ONTOLOGY SET IS MEANINGFUL. It says NO AVAILABLE EXPLICIT MATERIAL CAN
 EXPRESS WHAT THIS USER IS DOING — the reading has outrun the abstractions
@@ -734,14 +854,16 @@ deliberately NOT an assertion failure.
         Protein asks; Ligand answers.
 
     reflection, Affinity -> Structure:
-        t  = app( app(l, aff), app(l, str) ),  l = app(app(g0,p0), l0), SHARED
+        t  = app( l, l ),  l = app(app(g0,p0), l0), SHARED by the new fan-in
         Pr = {ptr to left-up aux port, ptr to right-up aux port}
         The user stays at Ligand and reflects Affinity as question against
-        Structure as answer.
+        Structure as answer. The two occurrences of l are CAST to Affinity
+        (left-up) and Structure (right-up), though l's own type was Ligand.
 
     contraction, option 1, at the left-up pointer along Affinity -> Measurement:
-        that branch becomes app( app(l,aff), meas ); the right-up pointer is
-        untouched.
+        that occurrence becomes app(l, meas); the right-up pointer is untouched.
+        Legality is read at the OCCURRENCE, which carries Affinity — not at l,
+        whose own type is Ligand.
 
 9.2 Argument-position sharing.
 
@@ -751,52 +873,73 @@ deliberately NOT an assertion failure.
 10. Open points
 ---------------
 
-  O1  RESOLVED by §3(b), 2026-08-13: a closed reading re-opens with a single
-      pointer to the whole of its graph. Nothing further is open here. The
-      current persistence layer (`kg_store.load_readings_db` /
-      `save_readings_db`) stores (name, term) pairs and no pointer sets, which
-      is exactly what §3(b) needs — the pointer is minted on re-opening, not
-      restored.
+  O1  HOW THE TYPING RULES ACCOUNT FOR THE REFLECTION CAST (§4.2). Since a shared
+      subterm may read as A through one occurrence and B through another, [t] is
+      no longer a function of the term, and `term_utils._term_type` needs an
+      OCCURRENCE argument. §2's three rules cover unreflected material only. The
+      restatement is mechanical but has not been made.
 
-  O2  REFLECTION PROVENANCE must be recorded for §4.3's closing condition to be
-      checkable: the graph does not otherwise show that G(a) came from a
-      reflection. Mark the variables (or the fan) at creation.
+  O2  WHETHER THE REFLECTION CAST IS CONSTRAINED (§4.2, §7.4). Nothing relates A
+      and B to the type C the user was standing at, so reflection may retype a
+      shared subterm to anything. Candidate constraint: require arrows out of C,
+      i.e. EXISTS_RELATION(C,A) and EXISTS_RELATION(C,B). Bears directly on the
+      knowledge-graph-realisability claim of §7.4.
 
-  O3  RESOLVED 2026-08-13: closing the last pointer IS legal, leaving Pr empty.
-      No step can then fire, but the reading can still be saved, so an empty Pr
-      is a terminal state rather than a stuck one (§4.3, §1).
+  O3  THE FAN-IN LEVEL'S MEANING for a reading, bearing on §7.3(a): a further
+      reflection creates a NEW fan-in at its own level rather than adding a third
+      parent, so fan-out > 2 is not reachable. Whether that distinction is
+      semantically meaningful for a reading — as opposed to for the reducer, where
+      levels keep independent sharings from interfering — is open.
 
-  O4  THE FAN-IN LEVEL'S MEANING for a reading, bearing on §7.3(a), and on what
-      closing one branch of a reflection should do to the fan: leave it at its
-      level with one live use, or collapse it.
-
-  O5  WHETHER A MERGE / CO-REFERENCE STEP IS WANTED, to reach §7.3(c). It would
+  O4  WHETHER A MERGE / CO-REFERENCE STEP IS WANTED, to reach §7.3(c). It would
       consume two pointers and yield one — "these two things I have attended to
       separately are the same thing". It is NOT needed for argument-position
       sharing, which §7.2 constructs from the existing steps.
 
-  O6  WHETHER THE SELECTED G(t2) MUST BE JOINED BY AN ARROW THAT EXISTS in the
+  O5  WHETHER THE SELECTED G(t2) MUST BE JOINED BY AN ARROW THAT EXISTS in the
       knowledge graph when it is a closed reading rather than an entity. A
       closed reading is not an entity, so the existence check that applies to
       entity operands has no evident counterpart; only the type precondition is
       checked here.
 
-  O7  COPY VS. SHARE when a closed reading is grafted. Copying keeps closed
+  O6  COPY VS. SHARE when a closed reading is grafted. Copying keeps closed
       readings immutable; sharing makes later changes visible in every reading
       that grafted them. Copy is the safer default.
 
-  O8  WHETHER A CLOSED READING CARRIES ITS ONTOLOGY SET (§8.3). Initialisation
+  O7  WHETHER A CLOSED READING CARRIES ITS ONTOLOGY SET (§8.3). Initialisation
       form (b) takes "the ontologies of R1", but a closed reading is the graph
       alone (§1). Either closing persists them, or re-opening re-derives them
       from the root pointer by enrichment.
 
-  O9  HOW THE ONTOLOGY SET IS UPDATED WHEN THE CONTRACTION OPERAND IS A CLOSED
-      READING OR AN ABSTRACTION TITLE (§8.6). Both carry their own ontology sets,
-      which must be combined with the current one; the update rules as given
-      assume an entity operand. Load-bearing, since operand grafting is what
-      makes the calculus shape-complete (§7.1).
+  O8  PARTLY RESOLVED 2026-08-18 (§8.6). Option 1 now handles a CLOSED READING
+      operand: it pairs each current ontology with each of R1's, substituting R1's
+      ontology-term for the variable at that position and requiring rule 1 to fire.
+      Still open: (a) whether OPTION 2 admits a closed reading at all — the
+      definition gives no case for it, so option 2 currently means entity-only,
+      which if intended belongs in §4.1 as a restriction on the step; (b) the
+      ABSTRACTION TITLE operand, which has no case in either option and may need
+      none, being plausibly covered by enrichment substituting the title's own
+      positive form (but not branching over all abstractions of that type, since
+      the user named one); (c) review notes RN2, RN3 and RN5 in §8.6.
 
-  O10 WHETHER THE ONTOLOGY SET NEEDS A SIZE BOUND. Enrichment terminates (§8.4)
-      but branches over every abstraction of matching type at every pointer on
-      every step; refutation (§8.8) prunes it, but nothing guarantees the two
-      rates balance.
+  O9  HOW THE ONTOLOGY LAYER MIRRORS THE NEW REFLECTION (§8.7). The reflection
+      update rule still tests for a subtree app(tb,tc) with the branch types on
+      separate operands, which the reading no longer builds: reflection now emits
+      app(t,t) with the types CAST onto the two occurrences. The rule needs
+      restating against the new form.
+
+  O10 THE ONTOLOGY SET NEEDS A SIZE BOUND — now a PREREQUISITE, not an
+      optimisation. Enrichment terminates (§8.4) but branches over every
+      abstraction of matching type at every pointer on every step; option 1's
+      closed-reading case multiplies by |R1.ontologies| (§8.6 review note RN4); and
+      since the 2026-08-18 redefinition, contraction refutes almost nothing
+      (§8.8). Nothing balances the growth. A cap plus a deterministic eviction
+      policy is required; O11 proposes what to rank by.
+
+  O11 WHETHER NON-FIRING SURVIVAL NEEDS A CONFIRMATION COUNT. §8.6 now keeps an
+      ontology in which rule 1 does not fire, which is right in distinguishing
+      CONTRADICTED from SILENT but leaves contraction refuting almost nothing
+      (§8.8). Candidate: count firings per ontology and let O10's cap evict by that
+      count, so survival tracks confirmation and "better approximation" stays
+      measurable. The alternative is to rule that silence is fatal. See review note
+      R1 in §8.6.
