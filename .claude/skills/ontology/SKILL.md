@@ -11,7 +11,8 @@ An **ontology is a model in which a reading is valid**. Each reading carries a
 **Authoritative specification — read it, do not work from this summary alone:**
 
 - `notes/reading_desc` **§8** — the definition: what an ontology is, vocabulary,
-  initialisation, enrichment, pointer stability, both update rules, refutation.
+  initialisation, enrichment, pointer stability, both update rules (§8.6
+  contraction, §8.7 reflection), refutation.
 - `notes/reading_desc` §1–§7 — the reading calculus this layer is bound to.
 
 Sibling skills: **`reading`** (the formalism this layer sits on top of),
@@ -20,7 +21,8 @@ Sibling skills: **`reading`** (the formalism this layer sits on top of),
 BASE/OFFSET/COMMAND — the rules this layer actually fires),
 `optimal-lambda-reduction` (implementation roadmap, efficiency caveats).
 
-Definition given by Marek 2026-08-14. Provenance markers `[CLARIFIED]` /
+Definition given by Marek 2026-08-14; §8.6 redefined 2026-08-18 and §8.7
+restated 2026-08-19. Provenance markers `[CLARIFIED]` /
 `[OPEN]` in §8 are load-bearing — preserve them.
 
 ## The shape of it
@@ -84,6 +86,11 @@ yielding another candidate. Grows the set.
 - **Asymmetric by design**, following `[app(a,b)] = [b]`: substituting in
   **function** position makes the abstraction a new position (`p` → `pqp`); in
   **argument** position `P` is unchanged.
+- **It covers the abstraction-title operand.** When the reading contracts a
+  *title*, the ontology side needs no rule of its own — the title's counterpart is
+  that abstraction's positive form, and enrichment substitutes it on the same step.
+  ⚠️ A **named** title collapses the quantifier: substitute *that* abstraction, do
+  not branch over all of matching type.
 
 **Update** (§8.6–8.7) — advance pointers in step with the reading. Contraction now
 **forks** rather than filters (redefined 2026-08-18):
@@ -93,9 +100,22 @@ yielding another candidate. Grows the set.
 - **R1 does not fire** — **keep the ontology anyway**, just advance the pointer. It
   proposed nothing at this position; that is *silence*, not contradiction.
 
-Option 1 also handles a **closed-reading** operand: for each of `R1`'s own
-ontologies, substitute its term for the variable at that position and require R1 to
-fire — a cartesian product over the two sets.
+**Only option 1 takes a closed-reading operand** (option 2 is entity-only, §4.1):
+for each of `R1`'s own ontologies, substitute its term for the variable at that
+position and require R1 to fire — a cartesian product over the two sets.
+
+**Reflection (§8.7) also forks**, restated 2026-08-19 against the current
+`app(t,t)` reflection:
+
+- **`toc` is an abstraction** and R4 applies → **reduce**; the two new pointers
+  designate **nodes** among the four fans R4 creates.
+- **`toc` is not an abstraction** but a **sharing fan-in is already above it** (on
+  the different, more-left wire) → **nothing reduces**; `G(t)` is unchanged and the
+  two new pointers designate the **edges** at the existing fan-in's top ports.
+
+Both branches require the sharing to be **already present**, so an ontology with no
+fan-in above `toc` fails both and is **refuted**. Reflection therefore refutes
+*harder* than contraction, whose non-firing branch demands no structure of its own.
 
 ## Pointer stability under reduction — SOLVED (§8.5)
 
@@ -130,7 +150,7 @@ every step.
 ## Two traps in the update rules
 
 **1. Reflection's already-shared test is a SEPARATE, STRICTER filter.** "R4 is
-applicable" and "`G(toa)` is already shared in both branches" are **independent**
+applicable" and "`G(toc)` is already shared in both branches" are **independent**
 conditions. `rules.py:rule4_fan_fan_diff` fires whenever two fans meet
 principal-to-principal on different main wires, and its *effect* is to replicate
 each onto the other's branches — **the reducer CREATES duplication rather than
@@ -152,21 +172,28 @@ Updates **replace** the set, so **an ontology is discarded by never being added*
 there is no discard statement, and refutation's strength is exactly the strictness
 of the update rules' conditions.
 
-⚠️ **Since the 2026-08-18 redefinition, contraction refutes almost nothing.** §8.6
-now **keeps** an ontology in which R1 does *not* fire — distinguishing
-**contradicted** from merely **silent**, which is right in itself. But that was the
-gate that did the discarding, so the only one left is the outer structural test,
-which most enriched ontologies pass by construction. The set grows nearly
-monotonically.
+**The OUTER STRUCTURAL TEST is the strong gate**, and the 2026-08-18 redefinition
+leaves it untouched. It demands the ontology **already contain the material the
+reading is about to build** — an `app(ta,tb)` at the pointer with `[tb]` the
+contraction's target type. Since enrichment substitutes abstractions but **never
+adds applications**, an ontology passes only if some abstraction *body* supplies
+that argument position. Passing it every step is demanding, not a formality.
 
-Two consequences to know before implementing:
+**Worked counterexample** (RN1 in §8.6): reading `(a b)`, contracting `B -> C`.
+With abstractions `(lam a).(a d)`, `(lam b).(b e)`, `(lam c).(c f)`, the candidate
+`((lam b).(b e)) d` models `(a b)` but at the `B -> C` step the pointer designates
+the *whole* term, which has no enclosing application — outer test fails, **refuted**.
+No body supplies a `c`, so all candidates die and the set goes **empty**.
 
-- **O10's cap is now a prerequisite**, not an optimisation — nothing balances
-  enrichment's growth.
-- The interpretation's claim that survivors are **better approximations** because
-  they "still fit" is weakened: if silence counts as fitting, survival no longer
-  tracks confirmation. **O11** proposes counting firings per ontology and evicting
-  by that count, making refutation a *ranking* rather than a filter. Unruled.
+**What the non-firing branch actually costs** — a narrow leak. It matters only for
+ontologies that *already pass* the outer test: those have the right shape, and
+previously also needed `ta` to be an abstraction. Now they don't, so the rule admits
+ontologies with the right **shape** but no **hypothesis** at the pointer. Real but
+narrow, and keeping them is right — silence isn't contradiction.
+
+**O11** (unruled): whether to count firings per ontology so that "survivors are
+better approximations" tracks *confirmation* rather than mere survival. A ranking
+refinement, not a fix for a hole.
 
 **An empty set is MEANINGFUL:** no available explicit material can express what
 this user is doing — the reading has outrun the abstractions available to it.
@@ -179,29 +206,27 @@ fits, the approximation improves.
 
 ## Open points
 
-- **O9 — the reflection update rule is STALE.** ⚠️ Reflection was redefined
-  2026-08-15: the reading now builds `app(t,t)` with the branch types **cast onto
-  the two occurrences** of one shared `t`, emitting no fresh variables. §8.7 still
-  tests for a subtree `app(tb,tc)` with the types on separate operands — a shape
-  the reading no longer produces. **The rule must be restated against the new
-  form before it can be implemented.** Everything else in §8 (enrichment,
-  pointer stability, refutation, the contraction rules) is unaffected.
-- **O7** — whether a closed reading carries its ontology set. §8.3 form (b) takes
-  "the ontologies of R1", but a closed reading is the graph alone (§1). Either
-  closing persists them or re-opening re-derives them by enrichment. §8.6's
-  closed-reading case **needs** them, so this must be settled.
-- **O8 — partly resolved.** Option 1 now handles a closed-reading operand: pair
-  each current ontology with each of R1's, substitute R1's ontology-term for the
-  variable, require R1 to fire. Still open: whether **option 2** admits a closed
-  reading at all (no case is given, so it currently means entity-only); the
-  **abstraction title** operand (no case in either option — plausibly needs none,
-  being covered by enrichment substituting that title's own positive form, *without*
-  branching over all abstractions of the type, since the user named one); and
-  review notes **RN2/RN3/RN5** in §8.6.
-- **O10 — now a prerequisite.** Cap plus deterministic eviction. Enrichment
-  branches per pointer per step, option 1's closed-reading case multiplies by
-  `|R1.ontologies|`, and refutation no longer counterbalances.
-- **O11** — whether non-firing survival needs a confirmation count (above).
+- **O9 — RESOLVED** 2026-08-19: §8.7 is restated against the current `app(t,t)`
+  reflection (two branches, above).
+- **O7 — RESOLVED.** A closed reading **carries its ontology set**: ontologies are
+  stored on save, and closing drops only the pointer set (§1). Re-deriving by
+  enrichment was rejected — the stored ontologies are *survivors* of refutation over
+  that reading's whole construction, which enrichment cannot recover, proposing
+  candidates by type alone. **Implementation prerequisite:**
+  `kg_store.save_readings_db` holds `(name, term)` only and must be extended.
+- **O8 — RESOLVED.** All three operands are covered: **entity** (§8.6); **closed
+  reading** (§8.6, option 1 only — pair each current ontology with each of `R1`'s,
+  substitute, require R1 to fire); **abstraction title** (no case needed — enrichment
+  substitutes that title's own positive form, §8.4). Option 2 needs no
+  closed-reading case, being entity-only by intent (§4.1) — which is also why only
+  option 1 ever had a combining problem: its operand occupies a position the current
+  ontologies say nothing about, whereas option 2's would land in function position
+  exactly where the R1 redex is.
+- **O10** — whether a size bound is needed. Enrichment branches per pointer per
+  step and option 1's closed-reading case multiplies by `|R1.ontologies|` (RN4);
+  against that, the outer test refutes heavily. Whether the rates balance is
+  unsettled.
+- **O11** — whether to record confirmation counts, so survival tracks confirmation (above).
 
 ## Review notes on §8.6 (unruled)
 

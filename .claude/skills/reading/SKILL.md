@@ -55,7 +55,8 @@ it rather than reasoning in your head.
 ## A reading is a process
 
 **OPEN** while being created: `R = (G(t), Pr)` — a sharing graph plus a set of
-pointers to **edges**. **CLOSED** once saved: the graph **alone**, no pointers.
+pointers to **edges**. **CLOSED** once saved: `(G(t), ontologies)` — the graph and
+its ontology set. **The pointer set is the only thing closing drops.**
 
 Before each step the user selects one pointer, **actPtr** — *the place where the
 user stays*. Pointers exist only because of reflection; contraction never
@@ -64,11 +65,17 @@ changes their number.
 **The two states are not two kinds of object.** A closed reading is *de facto
 equivalent to a reading with one pointer, to the root of its graph* — closing
 **collapses** the pointer set to the root. Hence: saving is **total** (closable
-from any state); re-opening is well defined for every closed reading; and **no
-pointer set need be stored**, so the existing `(name, term)` persistence is
-complete by construction. *Scope:* this says what a closed reading **is**, not
-that the two are interchangeable everywhere — §4's steps act on an open reading,
-so a closed one must be re-opened before being stepped on.
+from any state), and re-opening is well defined for every closed reading. *Scope:*
+this says what a closed reading **is**, not that the two are interchangeable
+everywhere — §4's steps act on an open reading, so a closed one must be re-opened
+before being stepped on.
+
+⚠️ **Ontologies ARE stored on save** (O7, resolved) — they are survivors of
+refutation over that reading's whole construction, which enrichment cannot
+re-derive since it proposes candidates by type alone. Pointers need no storing (the
+root one is re-minted), but the ontology set does: `kg_store.save_readings_db`
+holds `(name, term)` only and **must be extended** before §8.3's initialisation or
+§8.6's closed-reading operand can run.
 
 **Opening** (§3), two forms: a **type** A → `(G(a), {ptr to a})`, or an **already
 saved reading** → `(G(t), {ptr to G(t)})`. Both start with exactly one pointer.
@@ -78,23 +85,29 @@ actPtr, reflection replaces it with two. So `Pr` grows monotonically and is neve
 empty.
 
 A closed reading contributes only its **type** and graph when used later. This
-is why there is a single contraction case for entities and closed readings
-alike: **there is never a pointer set to adopt or discard.**
+is why **option 1** treats entities and closed readings alike: **there is never a
+pointer set to adopt or discard.**
 
 ## The steps
 
 **Contraction** — one case, two options. Relates **two places**, both prepared
-beforehand: the selected operand (entity or closed reading, type B) and where
-the user stays (actPtr, type A). Not a movement — after it **the user stays at
-both places at once**.
+beforehand: the selected operand (type B) and where the user stays (actPtr, type
+A). Not a movement — after it **the user stays at both places at once**.
 
-| | builds | type after | reading |
-|---|---|---|---|
-| **option 1** | `app(t1, t2)` | **B** | A asks, B answers |
-| **option 2** | `app(t2, t1)` | **A** (unchanged) | B asks, A answers |
+| | operand | builds | type after | reading |
+|---|---|---|---|---|
+| **option 1** | entity **or closed reading** | `app(t1, t2)` | **B** | A asks, B answers |
+| **option 2** | **entity only** | `app(t2, t1)` | **A** (unchanged) | B asks, A answers |
 
 Option 2's unchanged type is not a failure to move: A is one of the two occupied
 places, and it is the one actPtr designates.
+
+**The options are not duals** — only option 1 accepts a closed reading (intended,
+not an omission): a closed reading may be what the user answers **with**, never
+what they ask **from**. Costs nothing formally — §7.1 stays complete, and §7.2 uses
+option 2 only with fresh entities — and it removes the harder half of the
+ontology-side combining problem, since option 2's operand would land in function
+position exactly where the R1 redex is.
 
 **Reflection** — user stays at C, selects `A -> B`, and reflects A as question
 against B as answer without moving to either:

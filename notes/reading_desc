@@ -28,12 +28,18 @@ A READING IS A PROCESS — the process of creating it. It has two states.
                Pr    a set of pointers to EDGES of that graph.
 
     CLOSED   once it is saved.
-             A closed reading consists of the sharing graph ALONE. It has no
-             pointer set.
+             A closed reading consists of the sharing graph and ITS ONTOLOGY SET
+             (§8). It has NO POINTER SET — that is the only thing closing drops.
+
+                 closed reading = ( G(t), ontologies )
 
 The lambda term t is the record of the path taken; G(t) is how it is held. By
 §2 a graph has a type, so a closed reading contributes a TYPE wherever it is
-used — that is all a later reading needs of it.
+used. The ontologies are carried because they are SURVIVORS — hypotheses that
+already passed refutation over the whole of that reading's construction (§8.8) —
+and re-deriving them by enrichment could not recover that, since enrichment
+proposes candidates by TYPE alone and knows nothing of what the reading confirmed.
+[CLARIFIED 2026-08-19]
 
 A CLOSED READING IS DE FACTO EQUIVALENT TO A READING WITH JUST ONE POINTER, TO
 THE ROOT OF ITS GRAPH G(t). The two states are therefore not two kinds of
@@ -46,8 +52,13 @@ consequences, used throughout:
   - RE-OPENING IS WELL DEFINED for every closed reading, and yields the single
     root pointer. It is not a special rule but an instance of the equivalence.
   - NO POINTER SET NEED BE STORED, because the pointer is recoverable from the
-    graph alone. This is why the existing (name, term) persistence is complete
-    by construction rather than merely adequate.
+    graph alone.
+
+  BUT THE ONTOLOGIES MUST BE STORED, and that is a real persistence requirement:
+  `kg_store.save_readings_db` currently holds (name, term) pairs only, which
+  suffices for the graph and the re-minted pointer but NOT for the ontology set.
+  Extending that schema is a prerequisite for §8.3's initialisation and for §8.6's
+  closed-reading operand, both of which read a closed reading's ontologies.
 
 SCOPE OF THE EQUIVALENCE. It states what a closed reading IS, not that closed
 and open readings are interchangeable everywhere. The steps of §4 act on an OPEN
@@ -155,7 +166,6 @@ of Pr untouched.
     Reading R = (G(t), Pr)
     actPtr points to G(t1), where [t1] == A
     the user selects some G(t2) with [t2] == B
-        (G(t2) is either an ENTITY or a CLOSED READING)
 
 CONTRACTION WORKS WITH TWO PLACES AND RELATES THEM. Both places are prepared
 before the step: one is given by the selected entity or by the type of the
@@ -163,9 +173,10 @@ selected closed reading (B), the other is where the user stays (A, at actPtr).
 The step is not a movement between them — it is the act of joining them into one
 claim. The user then stands at BOTH PLACES SIMULTANEOUSLY.
 
-The user selects one of two options.
+The user selects one of two options. THE TWO OPTIONS ADMIT DIFFERENT OPERANDS.
 
   OPTION 1 —  contract( G(t1), G(t2) )
+              G(t2) is an ENTITY or a CLOSED READING.
 
       interpreted as:  move from A to B, or
                        A is the question and B is the answer to it.
@@ -178,6 +189,7 @@ The user selects one of two options.
       Type at that pointer:  [app(t1,t2)] = [t2] = B.
 
   OPTION 2 —  contract( G(t2), G(t1) )
+              G(t2) is an ENTITY ONLY. [CLARIFIED 2026-08-19]
 
       interpreted as:  move from B to A, or
                        B is the question and A is the answer to it.
@@ -189,16 +201,33 @@ The user selects one of two options.
 
       Type at that pointer:  [app(t2,t1)] = [t1] = A — UNCHANGED.
 
-WHAT "MOVE FROM B TO A" MEANS IN OPTION 2. The user starts a new contraction
-either from an entity B or from a closed reading of type B. So the user stays at
-B, and moves to A, where the user also stays — at actPtr. IN THIS CASE THE USER
-STAYS AT TWO PLACES AT ONCE. The type reporting A is not a failure to move: A is
-one of the two places occupied, and it is the one the pointer designates.
+WHY OPTION 2 IS ENTITY-ONLY. Intended, not an omission. A closed reading may be
+what the user ANSWERS WITH (option 1, argument position) but never what they ASK
+FROM (option 2, function position). The two options are therefore NOT duals over a
+common operand domain, and the summary table of §5 shows that.
+
+  Costs nothing formally: application shapes remain COMPLETE (§7.1 — reflection is
+  what supplies pointer access, and option 1 still takes closed readings), and the
+  argument-position-sharing construction of §7.2 uses option 2 only with FRESH
+  ENTITIES, so it is unaffected.
+
+  It also removes the harder half of the ontology-side problem. In option 2 the
+  operand lands in function position, exactly where the rule-1 redex is, rather
+  than at a fresh position — so combining a grafted reading's ontology set there
+  would have had to reconcile two sets over the SAME material. Only option 1's
+  case remains, where the operand occupies a position the current ontologies say
+  nothing about (§8.6).
+
+WHAT "MOVE FROM B TO A" MEANS IN OPTION 2. The user starts a new contraction from
+an entity B. So the user stays at B, and moves to A, where the user also stays —
+at actPtr. IN THIS CASE THE USER STAYS AT TWO PLACES AT ONCE. The type reporting A
+is not a failure to move: A is one of the two places occupied, and it is the one
+the pointer designates.
 
 THE CLOSED READING CONTRIBUTES ONLY ITS TYPE. A closed reading has no pointer
-set (§1), so there is nothing to adopt from it and nothing to discard. This is
-why contraction is stated uniformly for entities and closed readings: the two
-differ only in how large a graph is grafted, never in what happens to Pr.
+set (§1), so there is nothing to adopt from it and nothing to discard. This is why
+option 1 is stated uniformly for entities and closed readings: the two differ only
+in how large a graph is grafted, never in what happens to Pr.
 
 The two options are the two ways one arrow can be used, distinguished by where
 the user stays. Option 1 applies when the user is at the arrow's subject; option
@@ -291,6 +320,8 @@ skill `understand-bus-optimal-reduction` §3.
 
                contraction opt 1   contraction opt 2   reflection
   selects      G(t2), [t2]==B      G(t2), [t2]==B      A -> B
+  operand      entity OR           ENTITY ONLY         (none — A and B are
+                 closed reading                          cast, not built)
   requires     [t1]==A             [t1]==A             [t]==C
   builds       app(t1,t2)          app(t2,t1)          app(t, t)
                                                          with t SHARED
@@ -308,6 +339,9 @@ skill `understand-bus-optimal-reduction` §3.
   position, so the type becomes B; option 2 puts it in function position, so the
   type stays A. In both the user occupies two places; the type names the one the
   pointer designates.
+
+  THE OPTIONS ARE NOT DUALS. Only option 1 accepts a closed reading (§4.1): a
+  closed reading may be what the user answers WITH, never what they ask FROM.
 
   REFLECTION IS THE EXCEPTION: it does not derive the branch types from the term
   but CASTS them onto the two occurrences of one shared subject (§4.2). It is the
@@ -505,11 +539,19 @@ makes "all abstractions of type A" a finite, concrete lookup
 
     Then enrich (§8.4).
 
-[OPEN — O7] Form (b) presupposes that a closed reading carries its ontology set.
-By §1 a closed reading is the GRAPH ALONE, and §3(b) re-opens it with a single
-root pointer, so there is no stored ontology set to take. Either closing must
-also persist the ontologies, or re-opening must RE-DERIVE them (initialise from
-the root pointer, then enrich). Not settled.
+FORM (b) IS WELL DEFINED: ONTOLOGIES ARE STORED WHEN A READING IS SAVED.
+[CLARIFIED 2026-08-19] Closing drops only the pointer set, not the ontologies
+(§1), so "the ontologies of R1" is a stored set, not something to re-derive.
+
+  The pointers of those inherited ontologies must correspond elementwise (§8.1) to
+  the re-opened reading's single ROOT pointer — the same collapse-to-root that
+  closing performed on the reading's own pointer set. An implementation may either
+  store each ontology's root pointer with it, or re-mint it on re-opening as §3(b)
+  does for the reading.
+
+  NOTE THE PERSISTENCE PREREQUISITE recorded in §1: the existing (name, term)
+  schema does not hold ontology sets, so it must be extended before this
+  initialisation or §8.6's closed-reading operand can run.
 
 8.4 Enrichment
 ---------------
@@ -563,6 +605,18 @@ principle of §5. In (a) the substituted abstraction becomes a NEW POSITION — 
 joins the set, replacing p. In (b) the abstraction replaces material in FUNCTION
 position, so the pointer set is left as P. Compare [app(a,b)] = [b].
 
+ENRICHMENT COVERS THE ABSTRACTION TITLE OPERAND. [CLARIFIED 2026-08-19] When the
+contraction operand is an abstraction TITLE (§4.1) rather than an entity, the
+ontology side needs NO case of its own in §8.6: the title's counterpart in the
+explicit layer is that abstraction's POSITIVE FORM (§8.2), and substituting it at
+the pointer is exactly what enrichment does. So the reading contracts the title,
+and enrichment supplies the positive form on the same step.
+
+  One consequence for implementers: where the user NAMED a specific abstraction,
+  enrichment must substitute THAT ONE, not branch over every abstraction of
+  matching type. The loops above quantify over all abstractions of a type because
+  nothing has been named; a title names one, so the quantifier collapses to it.
+
 8.5 Pointer stability under reduction
 --------------------------------------
 
@@ -584,6 +638,12 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
       After RULE 4, pointers to the LEFT and RIGHT abstraction (fan-in) nodes are
       added to P and the old pointer to the abstraction is removed. After RULE 1,
       the pointer outcome is as given in §8.6.
+
+      A POINTER MAY ALSO SIT ON A NON-ABSTRACTION, in which case no rule fires
+      there. The pointer is then advanced without any reduction: §8.6's non-firing
+      branch re-points it, and §8.7's non-firing branch replaces it with two
+      pointers on the top edges of the sharing fan-in that must already be above
+      it. Since nothing reduces, no stability question arises in those cases.
 
   (3) EVERYTHING ELSE REDUCES SILENTLY. All other rule applications leave the
       pointer set untouched. This includes rules 2, 3, 5 and 6 — the ones called
@@ -697,26 +757,39 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
   collision with the reducer's rules R1-R6. Recorded so they are not lost;
   each needs a ruling.
 
-  (RN1) NON-FIRING SURVIVAL WEAKENS REFUTATION ALMOST TO NOTHING. Refutation is not
-       a separate operation — an ontology is discarded by never being added to
-       newOntologies (§8.8). Previously the RULE-1-applicable test was the gate
-       that did the discarding. Now both branches survive, so the only remaining
-       gate is the OUTER structural test, which most enriched ontologies pass by
-       construction. The set therefore grows nearly monotonically while enrichment
-       adds on every step, making O10 (no size bound) a certainty rather than a
-       worry.
+  (RN1) WHAT NON-FIRING SURVIVAL COSTS — a narrow leak, not a general one.
+       [CORRECTED 2026-08-19 by Marek's counterexample; an earlier draft of this
+       note wrongly claimed refutation was weakened almost to nothing.]
 
-       It also weakens the interpretation's central claim, that survivors are
-       BETTER APPROXIMATIONS because they "still fit": if not-firing counts as
-       fitting, long survival no longer distinguishes an ontology whose
-       hypotheses kept paying off from one that never proposed anything.
+       THE OUTER STRUCTURAL TEST IS THE STRONG GATE, and it is untouched by the
+       redefinition. It requires the ontology TO ALREADY CONTAIN THE MATERIAL THE
+       READING IS ABOUT TO BUILD: an app(ta, tb) at the pointer with [tb] equal to
+       the contraction's target type. Enrichment (§8.4) substitutes abstractions
+       for variables but NEVER ADDS APPLICATIONS, so an ontology satisfies this
+       only if some abstraction BODY supplies the needed argument position.
+       Passing it at every step is therefore demanding, not a formality.
 
-       SUGGESTED REMEDY (not applied): keep the distinction — it is right that
-       CONTRADICTED and MERELY SILENT differ — but RECORD which branch was taken,
-       e.g. a count of firings per ontology, and let the O10 cap evict by it.
-       Refutation then becomes a RANKING rather than a filter, which arguably
-       suits approximations better. The alternative is to rule that silence IS
-       fatal and restore the strict form.
+       WORKED COUNTEREXAMPLE. Reading (a b); the user contracts B -> C, giving
+       ((a b) c). Available abstractions: (lam a).(a d), (lam b).(b e),
+       (lam c).(c f). The candidate ((lam b).(b e)) d is an ontology for (a b),
+       but at the B -> C step the pointer designates the WHOLE term, which has no
+       enclosing application — so the outer test fails and the ontology IS
+       REFUTED. None of the three bodies supplies a c in argument position, so
+       every candidate is refuted here and the set goes EMPTY (§8.8) — the reading
+       has outrun the available abstractions.
+
+       WHAT THE LEAK ACTUALLY IS. The non-firing branch matters only for
+       ontologies that ALREADY PASS the outer test. Those have the right shape at
+       the pointer; previously they additionally needed ta to be an abstraction.
+       Now they do not, so the rule admits ontologies with the right SHAPE but no
+       HYPOTHESIS at that position. That category is real but narrow, and keeping
+       it is the right call: proposing nothing at a position is SILENCE, not
+       contradiction.
+
+       STILL WORTH DECIDING (O11): whether to RECORD which branch was taken, e.g.
+       a count of firings per ontology, so that "survivors are better
+       approximations" (the interpretation's claim) tracks CONFIRMATION rather
+       than mere survival. That is a ranking refinement, not a fix for a hole.
 
   (RN2) OPTION 1's CLOSED-READING CASE HAS NO FALLTHROUGH. If tb is not a variable
        AND not one of R1's ontology-terms, neither inner branch fires and the
@@ -731,58 +804,87 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
 
   (RN4) THE CLOSED-READING CASE IS A CARTESIAN PRODUCT. It pairs each current
        ontology with each of R1's, so |newOntologies| may reach k*m at one step.
-       That is a legitimate decision but it is the explosive one, and it makes the
-       O10 cap a prerequisite rather than an optimisation.
+       That is a legitimate decision, but it is the one place the set can grow
+       multiplicatively, and it is what O10 has to weigh against the outer test's
+       heavy refutation.
 
   (RN5) POINTER AFTER REDUCTION. Both closed-reading branches end with a "pointer
        to tb2" / "pointer to tb", but rule 1 plus silent reductions may have
        rewritten that material. The pointer must designate the RESULT at that
        position, per the rebasing note above.
 
-  [OPEN — O8] Option 2's operand. The definition above gives no closed-reading
-  case for option 2, so option 2 currently admits ENTITY operands only. If that is
-  intended, it should be stated in §4.1 as a restriction on the step itself — and
-  it is a welcome simplification, since in option 2 the operand lands where the
-  redex is (at ta) rather than at a fresh position, which is the harder case to
-  combine. If option 2 may take a closed reading, the case is missing.
+  OPTION 2 HAS NO CLOSED-READING CASE BECAUSE THE STEP ADMITS NO SUCH OPERAND.
+  [CLARIFIED 2026-08-19] Option 2 is ENTITY-ONLY by intent — see §4.1, where the
+  restriction now belongs and is justified. So the absence above is correct and
+  complete, not a gap. It also means the only ontology-side combining problem is
+  option 1's, where the operand occupies a position the current ontologies say
+  nothing about; option 2 would have required reconciling two sets over the SAME
+  material, since its operand lands in function position exactly where the rule-1
+  redex is.
+
+  THE ABSTRACTION TITLE OPERAND NEEDS NO CASE HERE EITHER. [CLARIFIED 2026-08-19]
+  A title's counterpart in the explicit layer is that abstraction's positive form,
+  and substituting it at the pointer is what ENRICHMENT already does — see the note
+  at the end of §8.4, including the one caveat: a named title collapses
+  enrichment's quantifier to that single abstraction.
+
+  So every operand of §4.1 is now covered on the ontology side, and O8 is closed.
+  What remains for this section is review notes RN2, RN3 and RN5 above — corrections
+  to the pseudocode as written, not open design questions.
 
 8.7 Update on a reflection step  (A -> B at actPtr, [t_at_actPtr] == C)
 -----------------------------------------------------------------------
 
-  [OPEN — O9] THIS RULE IS STALE AND MUST BE RESTATED. It was written against the
-  earlier reflection, which built app(app(t,a), app(t,b)) with fresh variables a
-  and b carrying the branch types. Reflection now builds app(t,t) and CASTS A and
-  B onto the two OCCURRENCES of the shared t (§4.2), emitting no variables — so
-  the test below for a subtree app(tb,tc) with [tb]==A and [tc]==B looks for a
-  shape the reading no longer produces. The rule is retained only as the starting
-  point for that restatement; do not implement it as written. Everything else in
-  §8 — enrichment, pointer stability, refutation, the contraction updates — is
-  unaffected.
+  Restated by Marek, 2026-08-19, against the current reflection (§4.2), resolving
+  O9. The user stays at C and reflects A against B; toc is the subterm the ontology
+  pointer designates.
 
-  Naming follows §4.2: the user stays at C and reflects A against B. Let toa be
-  the subterm the ontology pointer designates.
+  Like §8.6 it has TWO BRANCHES — one where the rule fires and one where it does
+  not — but here the non-firing branch carries its own structural requirement: the
+  sharing fan-in must ALREADY be in place above toc.
 
     newOntologies = {}
     for each ont(G(t), P) in ontologies:
-        take p1 from P corresponding to actPtr in the reading;
-            let p1 point to toa
+        take p from P corresponding to actPtr in the reading;
+            let p point to toc
 
-        if toa is an abstraction
-           and RULE 4 is applicable at p1
-           and t contains a subtree app(tb, tc) with [tb] == A, [tc] == B,
-               [toa] == C
-           and G(toa) IS ALREADY SHARED as a subterm in both tb and tc:
+        if toc is an abstraction
+           and RULE 4 is applicable at p
+           and t contains a subtree app(ta, tb) with [ta] == A, [tb] == B,
+               [toc] == C
+           and G(toc) IS ALREADY SHARED as a subterm in both ta and tb:
             apply rule 4, then all possible silent reductions (§8.5(3))
                 -> G(t1)
             newOntologies = newOntologies union
-                { ont( G(t1), (P - {p1}) union
+                { ont( G(t1), (P - {p}) union
                               { pointer to the LEFT  abstraction fan-in node,
                                 pointer to the RIGHT abstraction fan-in node } ) }
+
+        if toc is NOT an abstraction
+           and above toc is a SHARING FAN-IN (on the different wire, on the left)
+           and t contains a subtree app(ta, tb) with [ta] == A, [tb] == B,
+               [toc] == C
+           and G(toc) IS ALREADY SHARED as a subterm in both ta and tb:
+            newOntologies = newOntologies union
+                { ont( G(t), (P - {p}) union
+                              { pointer to the TOP LEFT  fan-in edge,
+                                pointer to the TOP RIGHT fan-in edge } ) }
 
     ontologies = newOntologies
     then enrich (§8.4)
 
-  TWO SEPARATE TESTS, NOT ONE. "Rule 4 is applicable" and "G(toa) is already
+  NOTE THE ASYMMETRY BETWEEN THE BRANCHES, which is the point of the second one.
+  When toc is an abstraction the rule FIRES: rule 4 rewrites the graph, so the new
+  pointers designate NODES among the four fans it creates (§8.5). When toc is not
+  an abstraction NOTHING REDUCES: G(t) is unchanged and the new pointers designate
+  the EDGES at the existing fan-in's two top ports. So the second branch advances
+  the pointer set to mirror the reading's fork without performing any reduction —
+  the ontology has the required SHARING but proposes no hypothesis at that
+  position. This is the reflection counterpart of §8.6's non-firing branch
+  (contradicted vs merely silent), and unlike §8.6 it still demands real structure:
+  an ontology with no sharing fan-in above toc fails BOTH branches and is refuted.
+
+  TWO SEPARATE TESTS, NOT ONE. "Rule 4 is applicable" and "G(toc) is already
   shared in both" are INDEPENDENT conditions, and the second is STRICTER than the
   reducer's own. Verified against `rules.py:rule4_fan_fan_diff`: it fires whenever
   two fans meet principal-to-principal on DIFFERENT main wires, and its EFFECT is
@@ -793,7 +895,14 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
   it matches the interpretation: reflection reflects from WITHIN the contraction,
   so the sharing pre-exists.
 
-  Which nodes the two new pointers designate: see §8.5.
+  THE "DIFFERENT WIRE, ON THE LEFT" CONDITION in the second branch is the same
+  configuration §8.5(2) identifies as the rule-4 case: a fan-in on a more-left
+  wire than the syntactic fans, i.e. the OFFSET-marked sharing fan of
+  `_Compiler._fan_in`. It is what makes the two uses DUPLICATE rather than
+  annihilate.
+
+  Which nodes the two new pointers designate in the FIRING branch: see §8.5 — the
+  two copies of the abstraction's fan, identified by their `role` and `iri`.
 
 8.8 Refutation, and the empty set
 ----------------------------------
@@ -803,25 +912,32 @@ DISCARDED BY NEVER BEING ADDED. There is no discard statement; refutation is a
 side effect of the update rules' conditions, and its strength is exactly their
 strictness.
 
-WHAT NOW REFUTES, after the 2026-08-18 redefinition of §8.6:
+WHAT REFUTES, after the 2026-08-18 redefinition of §8.6:
 
-  - failing the OUTER STRUCTURAL TEST — no subtree app(ta,tb) with the required
-    types at the pointer. This is the only remaining gate for contraction.
-  - in §8.7 (reflection), failing rule 4's applicability or the already-shared
-    precondition — but that rule is itself stale (O9).
+  - failing the OUTER STRUCTURAL TEST — no subtree app(ta,tb) at the pointer with
+    the required types. THIS IS THE STRONG GATE. It demands that the ontology
+    ALREADY CONTAIN the material the reading is about to build, and since
+    enrichment substitutes abstractions but never adds applications (§8.4), an
+    ontology passes only if some abstraction BODY supplies the needed argument
+    position. Most candidates fail it as a reading proceeds — see the worked
+    counterexample in review note RN1 (§8.6), where every available abstraction is
+    refuted at a single step and the set goes empty.
+  - in §8.7 (reflection), failing BOTH branches: the ontology has neither an
+    abstraction at the pointer with rule 4 applicable, NOR an existing sharing
+    fan-in above toc. Reflection therefore refutes harder than contraction, since
+    both of its branches demand real structure — the required sharing must already
+    be present either way.
 
-WHAT NO LONGER REFUTES: an ontology in which RULE 1 does not fire. §8.6 now KEEPS
-it. The distinction being drawn is between an ontology CONTRADICTED by what the
-user did and one merely SILENT about it — proposing nothing at that position is
-not the same as being falsified there.
+WHAT NO LONGER REFUTES: an ontology which PASSES the outer test but in which RULE 1
+does not fire. §8.6 now KEEPS it. The distinction is between an ontology
+CONTRADICTED by what the user did and one merely SILENT about it — proposing
+nothing at a position is not the same as being falsified there. This admits
+ontologies with the right SHAPE but no HYPOTHESIS at the pointer: a real but narrow
+category (RN1).
 
-CONSEQUENCE, which needs a ruling — see review note (RN1) in §8.6. With non-firing
-survival, contraction refutes almost nothing, while enrichment adds on every step;
-the set grows nearly monotonically and the O10 cap becomes a prerequisite. It also
-weakens the interpretation's claim that survivors are BETTER APPROXIMATIONS
-because they "still fit": if silence counts as fitting, survival no longer tracks
-confirmation. The suggested remedy is to count firings per ontology and let the
-cap evict by that count, making refutation a RANKING rather than a filter.
+STILL TO DECIDE (O11): whether to record which branch was taken, so that the
+interpretation's "survivors are better approximations" tracks CONFIRMATION rather
+than mere survival. A ranking refinement, not a fix for a hole.
 
 AN EMPTY ONTOLOGY SET IS MEANINGFUL. It says NO AVAILABLE EXPLICIT MATERIAL CAN
 EXPRESS WHAT THIS USER IS DOING — the reading has outrun the abstractions
@@ -900,46 +1016,55 @@ deliberately NOT an assertion failure.
       knowledge graph when it is a closed reading rather than an entity. A
       closed reading is not an entity, so the existence check that applies to
       entity operands has no evident counterpart; only the type precondition is
-      checked here.
+      checked here. NARROWED 2026-08-19: this now concerns OPTION 1 ONLY, since
+      option 2 is entity-only (§4.1) and an entity operand always has an ordinary
+      incoming arrow B -> A to check (`kg_store.get_claims_for_object`).
 
-  O6  COPY VS. SHARE when a closed reading is grafted. Copying keeps closed
-      readings immutable; sharing makes later changes visible in every reading
-      that grafted them. Copy is the safer default.
+  O6  COPY VS. SHARE when a closed reading is grafted (option 1 only). Copying
+      keeps closed readings immutable; sharing makes later changes visible in every
+      reading that grafted them. Copy is the safer default.
 
-  O7  WHETHER A CLOSED READING CARRIES ITS ONTOLOGY SET (§8.3). Initialisation
-      form (b) takes "the ontologies of R1", but a closed reading is the graph
-      alone (§1). Either closing persists them, or re-opening re-derives them
-      from the root pointer by enrichment.
+  O7  RESOLVED 2026-08-19: A CLOSED READING CARRIES ITS ONTOLOGY SET. Ontologies
+      are stored when the reading is saved; closing drops only the pointer set
+      (§1). This is what §8.3's initialisation form (b) and §8.6's closed-reading
+      operand both read. Re-deriving them by enrichment was the alternative and is
+      rejected: the stored ontologies are SURVIVORS of refutation over that
+      reading's whole construction, which enrichment cannot recover, proposing
+      candidates by type alone.
 
-  O8  PARTLY RESOLVED 2026-08-18 (§8.6). Option 1 now handles a CLOSED READING
-      operand: it pairs each current ontology with each of R1's, substituting R1's
-      ontology-term for the variable at that position and requiring rule 1 to fire.
-      Still open: (a) whether OPTION 2 admits a closed reading at all — the
-      definition gives no case for it, so option 2 currently means entity-only,
-      which if intended belongs in §4.1 as a restriction on the step; (b) the
-      ABSTRACTION TITLE operand, which has no case in either option and may need
-      none, being plausibly covered by enrichment substituting the title's own
-      positive form (but not branching over all abstractions of that type, since
-      the user named one); (c) review notes RN2, RN3 and RN5 in §8.6.
+      IMPLEMENTATION PREREQUISITE, not an open question: `kg_store.save_readings_db`
+      holds (name, term) pairs only and must be extended to persist ontology sets.
 
-  O9  HOW THE ONTOLOGY LAYER MIRRORS THE NEW REFLECTION (§8.7). The reflection
-      update rule still tests for a subtree app(tb,tc) with the branch types on
-      separate operands, which the reading no longer builds: reflection now emits
-      app(t,t) with the types CAST onto the two occurrences. The rule needs
-      restating against the new form.
+  O8  RESOLVED. Every contraction operand is now accounted for on the ontology
+      side: ENTITY (§8.6, as before); CLOSED READING (§8.6, option 1 only — pair
+      each current ontology with each of R1's, substitute R1's ontology-term for the
+      variable, require rule 1 to fire; 2026-08-18); and ABSTRACTION TITLE (no case
+      needed — covered by enrichment substituting that title's own positive form,
+      §8.4; 2026-08-19). Option 2 needs no closed-reading case, being ENTITY-ONLY by
+      intent (§4.1). Review notes RN2, RN3 and RN5 in §8.6 remain as corrections to
+      make to that pseudocode; they are defects in the writing, not open design
+      questions.
 
-  O10 THE ONTOLOGY SET NEEDS A SIZE BOUND — now a PREREQUISITE, not an
-      optimisation. Enrichment terminates (§8.4) but branches over every
-      abstraction of matching type at every pointer on every step; option 1's
-      closed-reading case multiplies by |R1.ontologies| (§8.6 review note RN4); and
-      since the 2026-08-18 redefinition, contraction refutes almost nothing
-      (§8.8). Nothing balances the growth. A cap plus a deterministic eviction
-      policy is required; O11 proposes what to rank by.
+  O9  RESOLVED 2026-08-19 (§8.7). The reflection update is restated against the
+      current reflection, with two branches: toc an abstraction — rule 4 fires and
+      the pointers land on the new fan nodes; toc not an abstraction but with a
+      sharing fan-in already above it — no reduction, and the pointers land on the
+      existing fan-in's two top edges. An ontology lacking that fan-in fails both
+      branches and is refuted.
 
-  O11 WHETHER NON-FIRING SURVIVAL NEEDS A CONFIRMATION COUNT. §8.6 now keeps an
-      ontology in which rule 1 does not fire, which is right in distinguishing
-      CONTRADICTED from SILENT but leaves contraction refuting almost nothing
-      (§8.8). Candidate: count firings per ontology and let O10's cap evict by that
-      count, so survival tracks confirmation and "better approximation" stays
-      measurable. The alternative is to rule that silence is fatal. See review note
-      R1 in §8.6.
+  O10 WHETHER THE ONTOLOGY SET NEEDS A SIZE BOUND. Enrichment terminates (§8.4)
+      but branches over every abstraction of matching type at every pointer on
+      every step, and option 1's closed-reading case multiplies by |R1.ontologies|
+      (§8.6 review note RN4). Against that, the OUTER STRUCTURAL TEST refutes
+      heavily (§8.8) — a set can go empty in a few steps, as the counterexample in
+      RN1 shows. Whether the two rates balance in practice is not settled, so a cap
+      plus deterministic eviction may still be wanted; O11 proposes what to rank
+      by.
+
+  O11 WHETHER TO RECORD CONFIRMATION. §8.6 keeps an ontology in which rule 1 does
+      not fire — right, in distinguishing CONTRADICTED from SILENT. But then mere
+      survival no longer distinguishes an ontology whose hypotheses kept paying off
+      from one that stayed quiet, which is what the interpretation's "survivors are
+      better approximations" asserts. Candidate: count firings per ontology, rank by
+      it, and let any O10 cap evict by it. A refinement, not a fix for a hole — see
+      review note RN1 in §8.6.
