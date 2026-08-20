@@ -14,6 +14,9 @@ An **ontology is a model in which a reading is valid**. Each reading carries a
   initialisation, enrichment, pointer stability, both update rules (§8.6
   contraction, §8.7 reflection), refutation.
 - `notes/reading_desc` §1–§7 — the reading calculus this layer is bound to.
+- `notes/reading_alg` §5–§8 — pseudocode: the shape, the reduction discipline
+  (silence/approval), enrichment, both updates, refutation, and the driver that
+  keeps the set in step with the reading.
 
 Sibling skills: **`reading`** (the formalism this layer sits on top of),
 **`reading-interpretation`** (what it all *means* — **read this before touching
@@ -24,6 +27,20 @@ BASE/OFFSET/COMMAND — the rules this layer actually fires),
 Definition given by Marek 2026-08-14; §8.6 redefined 2026-08-18 and §8.7
 restated 2026-08-19. Provenance markers `[CLARIFIED]` /
 `[OPEN]` in §8 are load-bearing — preserve them.
+
+**IMPLEMENTED** 2026-08-20 in `ontology_state.py`, driven from `app.py`
+(`_ont_after_contraction` / `_ont_after_reflection`), surfaced by `o` →
+`ReadingOntologiesModal`. Note it works on **terms, not the bus graph**: rule 1
+applies exactly where an abstraction meets an application, firing it is beta at
+that position, and silent reductions have no term-level effect — so
+`optimal_lambda.normalize` is never called. That seam is documented at the top of
+`ontology_state.py`; revisit it if the layer ever needs context semantics.
+
+⚠️ **O12, found while implementing:** the bare init ontology is refuted by the
+FIRST contraction (the outer test needs an application it does not have), and
+enrichment cannot help at init either (both its cases need an enclosing
+application). So the set is non-trivially populated only from the *second*
+contraction on. Unruled — see O12 for the candidate fixes.
 
 ## The shape of it
 
@@ -128,10 +145,28 @@ the most useful thing in §8.
 2. **Only two pointered configurations** — a pointer designates an abstraction,
    and immediately above that edge is either a fan-in on the **same** wire (→
    **R1**) or on a **different, more-left** wire, the sharing node (→ **R4**).
-3. **Everything else reduces silently.** ⚠️ **The criterion is the ABSENCE OF A
-   POINTER, not the rule number.** R2/R3/R5/R6 are always silent, but **R1 and R4
-   are silent too when no pointer of `P` is involved**. "Bookkeeping = rules
-   2,3,5,6" is the common case, not the definition.
+3. **Which reductions are silent — a STRUCTURAL test on the marked wire**
+   (redefined 2026-08-19; it is *not* about where the pointer is):
+
+   | | silent? |
+   |---|---|
+   | **R2, R3, R5, R6** | **always** — delimiter shuffles, no syntactic content |
+   | **R1** | iff on a **non-rightmost** wire. On the rightmost wire the fans are the syntactic **λ and @** → a real **beta-step**, NOT silent |
+   | **R4** | iff the fan-out is **not** rightmost (a **sharing** node). A **rightmost** fan-out is an **abstraction** → the **reflection**, NOT silent |
+
+   **Every non-silent reduction must be approved by the user during reading.** That
+   is the entire coupling between the layers: rightmost-wire R1 *is* a contraction
+   the user made (§8.6); rightmost-fan-out R4 *is* a reflection they made (§8.7).
+   The ontology layer never fires either on its own initiative — which is what makes
+   it a *model of that reading* rather than an independent computation. A silent
+   cascade therefore can never run ahead of the reading.
+
+   **Why "rightmost" is the right test** — verified in code: a fan is syntactic
+   exactly when `main == width - 1`. `compile.py` builds λ/@ as `new_fan(2, 1, …)`
+   (width 2, main 1 → rightmost), while `_fan_in` builds sharing as
+   `new_fan(INITIAL_ROOT_WIDTH, OFFSET, …)` (width 3, main 1, rightmost is 2). Same
+   reason read-back follows the COMMAND/rightmost wire and branches only at
+   syntactic fans.
 
 **Where the two pointers land after R4** — verified by tracing a real firing, not
 inferred: `rule4_fan_fan_diff` **deletes both fans and creates four**. Two are

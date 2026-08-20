@@ -352,7 +352,142 @@ class BetaReductionModal(ModalScreen):
             self.notify("Already at initial term", severity="warning")
 
 
+class OntologyItem(ListItem):
+    """One ontology of the current reading — ont(G(t), P), §8.1."""
+
+    def __init__(self, ontology, index: int) -> None:
+        n_ptr = len(getattr(ontology, "pointers", {}) or {})
+        fired = getattr(ontology, "fired", 0)
+        # `fired` counts how often this model's hypotheses actually paid off —
+        # a confirmed survivor is a better approximation than a silent one (O11).
+        badge = (f"[green]✓{fired}[/green]" if fired else "[dim]·[/dim]")
+        display = (
+            f"{badge} [b]{index + 1}.[/b] {esc(str(ontology.term))}"
+            f"  [dim]|P|={n_ptr}[/dim]"
+        )
+        super().__init__(Label(display, markup=True))
+        self.ontology = ontology
+        self.index = index
+
+
+class OntologyDetailModal(ModalScreen):
+    """One ontology's whole term, rendered as a graph."""
+
+    CSS = ONTOLOGY_CSS
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Close"),
+        Binding("q", "dismiss", "Close"),
+    ]
+
+    def __init__(self, g: rdflib.Graph, ontology, index: int) -> None:
+        super().__init__()
+        self._g = g
+        self._o = ontology
+        self._index = index
+
+    def compose(self) -> ComposeResult:
+        term = self._o.term
+        claims = collect_edge_claims(self._g, term)
+        claims_by_edge: dict[tuple[str, str], list[str]] = {}
+        for c in claims:
+            claims_by_edge.setdefault((c["subj_iri"], c["obj_iri"]), []).append(
+                c["claim_text"])
+        ptrs = getattr(self._o, "pointers", {}) or {}
+        fired = getattr(self._o, "fired", 0)
+        with ScrollableContainer(id="ont-container"):
+            yield Static(
+                f"Ontology {self._index + 1}  [dim](rule fired {fired}×  |  "
+                f"|P|={len(ptrs)}  |  Esc close)[/dim]\n"
+                f"[dim]a model in which this reading is valid — its reduction "
+                f"replays the reading[/dim]",
+                id="ont-title", markup=True,
+            )
+            lines: list[str] = []
+            _render_lam_root(term, claims_by_edge, lines)
+            if ptrs:
+                lines.append("")
+                lines.append("[dim]pointers (reading pid → path):[/dim]")
+                for pid, path in sorted(ptrs.items()):
+                    lines.append(f"[dim]  {pid} → {list(path)}[/dim]")
+            yield Static("\n".join(lines), id="ont-body", markup=True)
+
+
+class ReadingOntologiesModal(ModalScreen):
+    """The ontologies of the ACTUAL reading — notes/reading_desc §8.
+
+    Each is a model in which the reading is valid: a term WITH abstractions whose
+    reduction replays the reading (contraction ↔ R1, reflection ↔ R4). Selecting
+    one renders its whole graph.
+    """
+
+    CSS = ONTOLOGY_CSS
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Close"),
+        Binding("q", "dismiss", "Close"),
+    ]
+
+    def __init__(self, g: rdflib.Graph, ontologies: list, has_reading: bool,
+                 stats: dict | None = None) -> None:
+        super().__init__()
+        self._g = g
+        self._ontologies = list(ontologies)
+        self._has_reading = has_reading
+        self._stats = stats or {}
+
+    def compose(self) -> ComposeResult:
+        n = len(self._ontologies)
+        st = self._stats
+        bits = [f"{k} {st[k]}" for k in ("fired", "silent", "grafted", "refuted",
+                                         "dropped") if st.get(k)]
+        detail = f"  [dim]({', '.join(bits)})[/dim]" if bits else ""
+        with ScrollableContainer(id="ont-container"):
+            yield Static(
+                f"Ontologies of the current reading: [b]{n}[/b]{detail}"
+                f"  [dim](Enter: show graph  |  Esc close)[/dim]",
+                id="ont-title", markup=True,
+            )
+            if not self._has_reading:
+                yield Static(
+                    "[dim]No reading in progress. Start one from an entity, then "
+                    "the models in which it is valid are listed here.[/dim]",
+                    id="ont-body", markup=True,
+                )
+                return
+            if not self._ontologies:
+                # An EMPTY SET IS MEANINGFUL (§8.8) — not an error.
+                yield Static(
+                    "[b]No valid model.[/b]\n\n"
+                    "[dim]No available explicit material can express what this "
+                    "reading is doing — it has outrun the abstractions available "
+                    "to it. This is a distinguished state, not a failure "
+                    "(reading_desc §8.8).\n\n"
+                    "An ontology is built from the POSITIVE FORM of saved "
+                    "abstractions ('Ask question', key a). Saving more of them "
+                    "gives the layer more models to propose.[/dim]",
+                    id="ont-body", markup=True,
+                )
+                return
+            lv = ListView(id="ont-body")
+            for i, o in enumerate(self._ontologies):
+                lv.append(OntologyItem(o, i))
+            yield lv
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        item = event.item
+        if isinstance(item, OntologyItem):
+            self.app.push_screen(
+                OntologyDetailModal(self._g, item.ontology, item.index))
+
+
 class OntologyModal(ModalScreen):
+    """Standalone demo of an ontology term — NOT tied to any reading.
+
+    Kept as-is under its own binding; the reading's real ontology set is
+    ReadingOntologiesModal above.
+    """
+
     CSS = ONTOLOGY_CSS
 
     BINDINGS = [
@@ -375,7 +510,7 @@ class OntologyModal(ModalScreen):
             claims_by_edge.setdefault(key, []).append(c["claim_text"])
         with ScrollableContainer(id="ont-container"):
             yield Static(
-                f"Ontology term  [dim]({hint})[/dim]",
+                f"Ontology demo term  [dim](standalone example — {hint})[/dim]",
                 id="ont-title", markup=True,
             )
             lines: list[str] = []
@@ -744,3 +879,166 @@ class NameReadingModal(ModalScreen):
         name = event.value.strip()
         if name:
             self.dismiss(name)
+
+
+# ── Reflection  (notes/reading_desc §4.2) ────────────────────────────────────
+
+REFLECTION_CSS = """
+Screen {
+    align: center middle;
+}
+#rf-container {
+    width: 80%;
+    height: 80%;
+    background: $surface;
+    border: thick $error;
+    padding: 1 2;
+    layout: vertical;
+}
+#rf-title {
+    text-style: bold;
+    color: $error;
+    padding-bottom: 1;
+}
+#rf-picked {
+    height: 2;
+    color: $text-muted;
+}
+#rf-search {
+    height: 3;
+    border: tall $error;
+    margin-bottom: 1;
+}
+#rf-results {
+    height: 1fr;
+    border: tall $panel-lighten-2;
+}
+"""
+
+
+class ReflectionModal(ModalScreen):
+    """Select the QUESTION entity A, then the ANSWER entity B  (§4.2).
+
+    Both must be ENTITIES — no reading may be chosen. Reflection grafts nothing,
+    so A and B are only types cast onto the two occurrences of the shared
+    subterm; a reading could contribute only its type, which is nothing an entity
+    does not already give.
+
+    Dismisses with (a_iri, a_label, b_iri, b_label), or None if cancelled.
+    """
+
+    CSS = REFLECTION_CSS
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Cancel"),
+    ]
+
+    def __init__(self, g: rdflib.Graph, stay_label: str) -> None:
+        super().__init__()
+        self._g = g
+        self._stay_label = stay_label
+        self._candidates: list[rdflib.URIRef] = []
+        self._a: tuple[str, str] | None = None      # (iri, label)
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="rf-container"):
+            yield Static("", id="rf-title", markup=True)
+            yield Static("", id="rf-picked", markup=True)
+            yield Input(placeholder="Search for an entity…", id="rf-search")
+            yield ListView(id="rf-results")
+
+    def on_mount(self) -> None:
+        self._refresh_title()
+        self.query_one("#rf-search", Input).focus()
+
+    def _refresh_title(self) -> None:
+        hint = "type to search  |  ↑↓  |  Enter select  |  Esc cancel"
+        stage = "QUESTION (A)" if self._a is None else "ANSWER (B)"
+        self.query_one("#rf-title", Static).update(
+            f"Reflection at [b]{esc(self._stay_label)}[/b]  [dim]({hint})[/dim]\n"
+            f"Select the {stage} entity:"
+        )
+        picked = self.query_one("#rf-picked", Static)
+        if self._a is None:
+            picked.update(
+                "[dim]The user stays where they are; A and B are reflected, "
+                "not entered.[/dim]"
+            )
+        else:
+            picked.update(f"question (A): [b]{esc(self._a[1])}[/b]  →  answer (B): …")
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        query = event.value.strip()
+        lv = self.query_one("#rf-results", ListView)
+        lv.clear()
+        self._candidates = []
+        if not query:
+            return
+        results = search_nodes(self._g, query, limit=8)
+        self._candidates = results
+        for node in results:
+            lv.append(NodeItem(node, node_label(self._g, node)))
+
+    def on_key(self, event: events.Key) -> None:
+        if event.key != "down":
+            return
+        lv = self.query_one("#rf-results", ListView)
+        inp = self.query_one("#rf-search", Input)
+        if inp.has_focus and self._candidates:
+            event.stop()
+            event.prevent_default()
+            lv.focus()
+            lv.call_after_refresh(setattr, lv, "index", 0)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        lv = self.query_one("#rf-results", ListView)
+        if self._candidates:
+            lv.focus()
+            lv.call_after_refresh(setattr, lv, "index", 0)
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        item = event.item
+        if not isinstance(item, NodeItem):
+            return
+        iri = str(item.node)
+        label = node_label(self._g, item.node)
+        if self._a is None:
+            self._a = (iri, label)
+            self._refresh_title()
+            inp = self.query_one("#rf-search", Input)
+            inp.value = ""
+            inp.focus()
+            self.query_one("#rf-results", ListView).clear()
+            self._candidates = []
+            return
+        self.dismiss((self._a[0], self._a[1], iri, label))
+
+
+class PointerItem(ListItem):
+    """One live position of the open reading — a member of Pr (§1).
+
+    Shows where the user stays, the reflected cast if any, and the subterm at
+    that position. The actPtr is marked.
+    """
+
+    def __init__(self, pointer, subterm_label: str, subterm_str: str,
+                 is_act: bool) -> None:
+        marker = "[b green]▶[/b green]" if is_act else " "
+        if pointer.origin == "reflect-left":
+            tag = "[magenta]Q[/magenta]"
+        elif pointer.origin == "reflect-right":
+            tag = "[magenta]A[/magenta]"
+        elif pointer.origin == "init":
+            tag = "[dim]·[/dim]"
+        else:
+            tag = "[dim]→[/dim]"
+        cast = ""
+        if pointer.cast_type:
+            cast = f"  [magenta]{esc(local_name(pointer.cast_type))}[/magenta]"
+        display = (
+            f"{marker} {tag} [b]{esc(subterm_label)}[/b]{cast}"
+            f"  [dim]{esc(subterm_str)}[/dim]"
+        )
+        super().__init__(Label(display, markup=True))
+        self.pointer = pointer
+        self.pid = pointer.pid

@@ -35,16 +35,64 @@ def save_lambda_db(records: list[dict]) -> None:
 
 
 def load_readings_db() -> list[tuple[str, LamTerm]]:
-    if READINGS_DB.exists():
-        data = json.loads(READINGS_DB.read_text())
-        return [(r["name"], lam_from_dict(r["term"])) for r in data]
-    return []
+    """Closed readings as (name, term).
+
+    Terms may contain sharing fan-ins, so decoding goes through the
+    sharing-aware loader when one is present (reading_state.lam_from_dict_shared);
+    plain terms still load with the base decoder. Records written before the
+    schema carried ontologies load unchanged — the ontology set is simply absent,
+    which `load_readings_ontologies` reports as an empty list.
+    """
+    if not READINGS_DB.exists():
+        return []
+    data = json.loads(READINGS_DB.read_text())
+    return [(r["name"], _decode_term(r["term"])) for r in data]
 
 
-def save_readings_db(readings: list[tuple[str, LamTerm]]) -> None:
+def load_readings_ontologies() -> dict[str, list[dict]]:
+    """name -> the reading's stored ontology set, as raw dicts.
+
+    Ontologies ARE stored when a reading is saved (reading_desc §1, O7): closing
+    drops only the pointer set. They are survivors of refutation over that
+    reading's whole construction, which enrichment cannot re-derive.
+
+    Returned raw so this module stays free of an ontology_state import; the
+    caller decodes with Ontology.from_dict.
+    """
+    if not READINGS_DB.exists():
+        return {}
+    data = json.loads(READINGS_DB.read_text())
+    return {r["name"]: r.get("ontologies", []) for r in data}
+
+
+def save_readings_db(readings: list[tuple[str, LamTerm]],
+                     ontologies: dict[str, list[dict]] | None = None) -> None:
+    """Persist closed readings, with their ontology sets when supplied (O7)."""
     READINGS_DB.parent.mkdir(parents=True, exist_ok=True)
-    data = [{"name": name, "term": lam_to_dict(term)} for name, term in readings]
+    onts = ontologies or {}
+    data = []
+    for name, term in readings:
+        rec = {"name": name, "term": _encode_term(term)}
+        if onts.get(name):
+            rec["ontologies"] = onts[name]
+        data.append(rec)
     READINGS_DB.write_text(json.dumps(data, indent=2))
+
+
+def _encode_term(term: LamTerm) -> dict:
+    try:
+        from reading_state import lam_to_dict_shared
+        return lam_to_dict_shared(term)
+    except ImportError:
+        return lam_to_dict(term)
+
+
+def _decode_term(d: dict) -> LamTerm:
+    try:
+        from reading_state import lam_from_dict_shared
+        return lam_from_dict_shared(d)
+    except ImportError:
+        return lam_from_dict(d)
 
 
 def local_name(iri: str) -> str:

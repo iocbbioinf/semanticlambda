@@ -240,11 +240,19 @@ admit only one of them — both only when A == B.
 
     Reading R = (G(t), Pr)
     actPtr points to G(t), where [t] == C
-    the user selects  A -> B
+    the user selects  A -> B,  where A and B are both ENTITIES
+        [CLARIFIED 2026-08-20] NO closed reading may be chosen for either.
 
     interpreted as: the user stays at C. The user moves neither to A nor to B,
     but REFLECTS A and B — reflecting A as the question and B as the answer to
     that question.
+
+  BOTH OPERANDS ARE ENTITIES, and this is not the same restriction as option 2's
+  (§4.1). There it is a choice about what may serve as an answer. Here it follows
+  from the step itself: reflection GRAFTS NOTHING, so A and B are only TYPES cast
+  onto the two occurrences (below). A closed reading could contribute only its
+  type, which is to say nothing an entity does not already contribute — so
+  admitting one would be meaningless rather than merely disallowed.
 
       Effect:
           the new reading is  G( app(t, t) ),  where t IS SHARED BY A NEW
@@ -274,6 +282,19 @@ through one occurrence and as B through the other, while its own type was C.
       material and needs an occurrence argument.
     - Contraction's precondition [t1] == A (§4.1) must therefore be read as a
       condition on the POINTER'S OCCURRENCE, not on the subterm as such.
+
+  BUT THE CAST DOES NOT DRIVE NAVIGATION. [CLARIFIED 2026-08-20] The legal moves
+  offered at a pointer are built from the SHARED SUBTERM'S OWN TYPE C, whichever of
+  the two occurrences is selected — not from that occurrence's cast type. So the
+  cast is RECORDED on the occurrence but does not decide which arrows are
+  available: after reflecting A -> B at a subterm of type C, both branches continue
+  from C.
+
+    Consequence to keep in view: A and B are then reflected WITHOUT being entered.
+    That is exactly §4.2's reading — the user "moves neither to A nor to B" — so the
+    cast records what was reflected, while C remains where the user stands and
+    therefore what they can see (K1). It also means the O2 question (whether the
+    cast is constrained by C) does not affect navigation either way.
 
   This aligns reading types with the geometry the reducer already has: in GAL an
   edge carries no intrinsic direction either — direction is RECOVERED per
@@ -617,8 +638,8 @@ and enrichment supplies the positive form on the same step.
   matching type. The loops above quantify over all abstractions of a type because
   nothing has been named; a title names one, so the quantifier collapses to it.
 
-8.5 Pointer stability under reduction
---------------------------------------
+8.5 Pointer stability, and which reductions are silent
+------------------------------------------------------
 
 The ontology layer is the only layer that REDUCES (the reading never does), so
 ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
@@ -631,9 +652,13 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
   (2) UNDER REDUCTION. Only two configurations are considered: a pointer of P
       points to an abstraction, and immediately above that edge is either
 
-        - a fan-in on the SAME wire            -> RULE 1 is applicable, or
+        - a fan-in on the SAME (RIGHTMOST) wire -> RULE 1 is applicable, or
         - a fan-in on a DIFFERENT (more-left)
-          wire, i.e. the SHARING node          -> RULE 4 is applicable.
+          wire, i.e. the SHARING node           -> RULE 4 is applicable.
+
+      In both configurations the reduction is NON-SILENT by (3) below — rule 1 on
+      the rightmost wire, and rule 4 against a rightmost abstraction fan-out — so
+      both require the user's approval, which is exactly what §8.6 and §8.7 supply.
 
       After RULE 4, pointers to the LEFT and RIGHT abstraction (fan-in) nodes are
       added to P and the old pointer to the abstraction is removed. After RULE 1,
@@ -645,15 +670,48 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
       pointers on the top edges of the sharing fan-in that must already be above
       it. Since nothing reduces, no stability question arises in those cases.
 
-  (3) EVERYTHING ELSE REDUCES SILENTLY. All other rule applications leave the
-      pointer set untouched. This includes rules 2, 3, 5 and 6 — the ones called
-      BOOKKEEPING — but ALSO rules 1 and 4 applied where no pointer of P is
-      involved. In that case the reduction simply does not influence the
-      ontology's pointer set.
+  (3) WHICH REDUCTIONS ARE SILENT — a STRUCTURAL criterion. [CLARIFIED 2026-08-19]
+      A silent reduction is performed by the machine without asking; it leaves the
+      pointer set untouched. Silence is decided by WHICH WIRE THE OPERATORS ARE
+      MARKED ON, not by whether a pointer happens to be nearby:
 
-      NOTE THE DEFINITION THIS GIVES: what makes a reduction silent is not the
-      RULE NUMBER but the ABSENCE OF A POINTER. "Bookkeeping = rules 2,3,5,6" is
-      the common case, not the criterion.
+        - RULES 2, 3, 5, 6 are ALWAYS silent. These are the delimiter shuffles
+          (bracket/croissant); they carry no syntactic content.
+
+        - RULE 1 is silent IFF it applies on a NON-RIGHTMOST wire. On the
+          RIGHTMOST wire the two fans are the syntactic λ and @ nodes, so the
+          reduction is a real beta-step — the explicit act of answering — and it
+          is NOT silent.
+
+        - RULE 4 is silent IFF the fan-out is NOT on the rightmost wire, i.e. it
+          is a SHARING node. When the fan-out IS on the rightmost wire it is an
+          ABSTRACTION node, the duplication is the reflection itself, and it is
+          NOT silent.
+
+      EVERY NON-SILENT REDUCTION MUST BE APPROVED BY THE USER DURING READING.
+      That is the whole coupling between the two layers: rule 1 on the rightmost
+      wire is a CONTRACTION the user performed (§8.6), rule 4 with a rightmost
+      fan-out is a REFLECTION the user performed (§8.7). The ontology layer may
+      never fire either on its own initiative; it fires them only in step with the
+      reading, which is what makes the ontology a MODEL OF THAT READING rather
+      than an independent computation.
+
+      WHY "RIGHTMOST" IS THE RIGHT TEST, verified against the code: a fan is
+      syntactic exactly when it is marked on its rightmost wire. `compile.py`
+      builds the λ and @ fans as `new_fan(2, 1, ...)` — width 2, main 1, so
+      main == width-1 — while `_fan_in` builds the sharing fan as
+      `new_fan(INITIAL_ROOT_WIDTH, OFFSET, ...)` — width 3, main 1, whose
+      rightmost slot is 2 (COMMAND). So the single test `main == width - 1`
+      separates "syntactic λ/@" from "sharing", and the two clauses above are one
+      criterion stated from the two sides. This is also why read-back follows the
+      COMMAND / rightmost wire and branches only at syntactic fans.
+
+      NOTE WHAT THIS REPLACES. An earlier draft made silence depend on the ABSENCE
+      OF A POINTER. That was weaker and less implementable: it made a rule's status
+      contingent on where attention happened to be, so the same rewrite could be
+      silent or not depending on the pointer set. The wire test is intrinsic to the
+      graph, decidable locally at the redex, and it is what actually distinguishes
+      bookkeeping from content.
 
   WHICH NODES "LEFT" AND "RIGHT" ARE, after rule 4. Verified against
   `rules.py:rule4_fan_fan_diff` by tracing an actual firing: the rule REMOVES
@@ -670,6 +728,13 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
   deleting them. Confirmed by trace: no new redex arises at the untouched
   anchors. So every reading step disturbs exactly the one pointer it acts at,
   preserving the elementwise correspondence of §8.1.
+
+  A SECOND REASON THERE IS NO CASCADE, from (3): a silent cascade can never
+  perform a beta-step or a reflection, because those are exactly the NON-SILENT
+  cases. So "then all possible silent reductions" in §8.6 and §8.7 cannot advance
+  the ontology past the reading — it can only shuffle delimiters and resolve
+  sharing that carries no syntactic content. The user's approval gates every
+  reduction that means anything.
 
 8.6 Update on a contraction step  (A -> B at actPtr)
 -----------------------------------------------------
@@ -1068,3 +1133,34 @@ deliberately NOT an assertion failure.
       better approximations" asserts. Candidate: count firings per ontology, rank by
       it, and let any O10 cap evict by it. A refinement, not a fix for a hole — see
       review note RN1 in §8.6.
+
+  O12 THE INITIAL ONTOLOGY CANNOT SURVIVE THE FIRST CONTRACTION. Found while
+      implementing §8, 2026-08-20; it is a tension in the definition, not a
+      coding matter.
+
+      Init (§8.3 form (a)) seeds ontologies = { ont(G(a), {p}) } — a BARE
+      VARIABLE. The first contraction then applies §8.6's outer structural test,
+      which demands the ontology ALREADY CONTAIN app(ta,tb) at the pointer. A
+      bare variable does not, so that ontology is refuted and, unless enrichment
+      has meanwhile produced a candidate that does, the set goes EMPTY on step
+      one of every reading.
+
+      But enrichment (§8.4) cannot help at init either: both its cases require
+      the pointed variable to sit IN AN APPLICATION, and at init there is no
+      application yet. So the seed ontology is refuted before anything can be
+      substituted into it.
+
+      The set therefore becomes non-trivially populated only from the SECOND
+      contraction onward, once the ontology carries an application for
+      enrichment to work on — and only if some abstraction BODY supplies the
+      shape the reading is about to build. Verified: an ontology
+      (lam A. app(A,B)) B does survive a contraction A -> B, rule 1 fires, and
+      `fired` increments.
+
+      Whether that is intended is open. Candidates, none adopted: seed the set
+      from the abstractions of type A directly rather than from the bare
+      variable; or exempt the first contraction from the outer test; or accept
+      that a reading has no model until it has built something, which is
+      defensible under the interpretation (a model of nothing is not yet a
+      model) but makes the empty-set signal fire on every reading's first step
+      and so blunts it.

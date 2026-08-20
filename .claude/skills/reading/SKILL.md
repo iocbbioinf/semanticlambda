@@ -9,11 +9,15 @@ This project models **a user reading a knowledge graph** as the incremental,
 bottom-up construction of a typed applicative lambda term held as a sharing
 graph.
 
-**Authoritative specification, do not duplicate — read this file:**
+**Authoritative specification, do not duplicate — read these files:**
 
-- `notes/reading_desc` — the prose spec (§1–§10): what a reading is, typing, the
-  steps, invariants, expressiveness, **§8 ontology**, worked examples, open
-  points.
+- `notes/reading_desc` — the **normative** prose spec (§1–§10): what a reading is,
+  typing, the steps, invariants, expressiveness, **§8 ontology**, worked examples,
+  open points.
+- `notes/reading_alg` — pseudocode implementing it end to end: data structures,
+  typing at an occurrence, both steps, the argument-sharing construction, the
+  **silence/approval boundary**, ontology maintenance, the **driver**, invariant
+  check, implementer notes. Where the two disagree, `reading_desc` wins.
 
 It was rewritten from scratch 2026-08-13 against Marek's specification of that
 date. **Earlier drafts are superseded and their history is not preserved** — if
@@ -21,10 +25,10 @@ you recall cases numbered 1/2/4/5, pointer adoption from grafted readings, or an
 ontology layer built on those cases, that material is gone. Do not reintroduce
 it.
 
-There is deliberately **no pseudocode companion**. A `notes/reading_alg` existed
-and was **deleted 2026-08-13** while the calculus is still settling — it is
-recoverable from git (`git show 4c879ac:notes/reading_alg`) but describes the
-superseded concept. Do not recreate it unless asked.
+`notes/reading_alg` was **rewritten from scratch 2026-08-20** against the current
+spec (an earlier version, describing the superseded concept, was deleted on
+08-13). It is the place to look for the driver loop and the silence criterion,
+which the prose leaves distributed across §4, §8.5 and §8.6.
 
 Sibling skills: **`reading-interpretation`** (what the operations MEAN — sense
 movement, the two sides of abstraction, subjectivity, why GAL locality matters;
