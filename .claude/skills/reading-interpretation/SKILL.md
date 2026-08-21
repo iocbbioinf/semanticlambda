@@ -5,8 +5,8 @@ description: The INTERPRETATION of the Reading calculus — what contraction, re
 
 # The Reading Calculus — Interpretation
 
-This skill records **what the reading calculus means**, as given by Marek across
-2026-08-13/14. The sibling skill `reading` and `notes/reading_desc` hold the
+This skill records **what the reading calculus means**, as given by Marek. The
+sibling skill `reading` and `notes/reading_desc` hold the
 **formalism**; this holds the account the formalism is a record of. When the two
 appear to conflict, the interpretation is the intent and the formalism is the
 approximation — but **do not silently change the formalism to match**; raise it.
@@ -148,7 +148,7 @@ ontology of `A -> B`.
 better and better.** Only instances that fit the reduction rule survive as
 ontologies for this reading; survivors are better approximations.
 
-**The formal definition now exists** (Marek, 2026-08-14): `notes/reading_desc` §8,
+**The formal definition exists**: `notes/reading_desc` §8,
 with its own skill **`ontology`**. This section remains the *intent* the
 definition formalises — read it first, then §8. Do not invent beyond either.
 

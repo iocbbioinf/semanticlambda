@@ -78,5 +78,275 @@
         }
       }
     }
+  },
+  {
+    "name": "Example 1",
+    "term": {
+      "type": "fan",
+      "principal": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#PCDB",
+            "label": "PCDB (Protein Conformational Database)"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AH_DB",
+            "label": "AH-DB (Apo-Holo DataBase)"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#HoloForm",
+          "label": "holo form"
+        }
+      },
+      "grey_ctx": {
+        "type": "hole"
+      },
+      "black_ctx": {
+        "type": "hole"
+      },
+      "grey_cast": "https://ahoj-db.org/kg#BindingPocket",
+      "black_cast": "https://ahoj-db.org/kg#LBSPredictor"
+    },
+    "ontologies": [
+      {
+        "term": {
+          "type": "fan",
+          "principal": {
+            "type": "app",
+            "func": {
+              "type": "app",
+              "func": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#PCDB",
+                "label": "PCDB (Protein Conformational Database)"
+              },
+              "arg": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#AH_DB",
+                "label": "AH-DB (Apo-Holo DataBase)"
+              }
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#HoloForm",
+              "label": "holo form"
+            }
+          },
+          "grey_ctx": {
+            "type": "hole"
+          },
+          "black_ctx": {
+            "type": "hole"
+          },
+          "grey_cast": "https://ahoj-db.org/kg#BindingPocket",
+          "black_cast": "https://ahoj-db.org/kg#LBSPredictor"
+        },
+        "pointers": {
+          "1": [
+            0
+          ],
+          "2": [
+            1
+          ]
+        },
+        "fired": 0,
+        "is_reading": true
+      },
+      {
+        "term": {
+          "type": "app",
+          "func": {
+            "type": "fan",
+            "principal": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#HoloForm",
+                "label": "holo form"
+              },
+              "body": {
+                "type": "app",
+                "func": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#HoloForm",
+                  "label": "holo form"
+                },
+                "arg": {
+                  "type": "abs",
+                  "var": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#BindingPocket",
+                    "label": "binding pocket"
+                  },
+                  "body": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#BindingPocket",
+                    "label": "binding pocket"
+                  }
+                }
+              }
+            },
+            "grey_ctx": {
+              "type": "hole"
+            },
+            "black_ctx": {
+              "type": "hole"
+            },
+            "grey_cast": "https://ahoj-db.org/kg#BindingPocket",
+            "black_cast": "https://ahoj-db.org/kg#LBSPredictor"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        },
+        "pointers": {
+          "1": [
+            0,
+            0
+          ],
+          "2": [
+            0,
+            1
+          ]
+        },
+        "fired": 2,
+        "is_reading": false
+      }
+    ]
+  },
+  {
+    "name": "Example 2",
+    "term": {
+      "type": "fan",
+      "principal": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AH_DB",
+            "label": "AH-DB (Apo-Holo DataBase)"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#HoloForm",
+            "label": "holo form"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#BindingPocket",
+          "label": "binding pocket"
+        }
+      },
+      "grey_ctx": {
+        "type": "hole"
+      },
+      "black_ctx": {
+        "type": "hole"
+      },
+      "grey_cast": "https://ahoj-db.org/kg#UnifiedBindingSite",
+      "black_cast": "https://ahoj-db.org/kg#Ligand"
+    },
+    "ontologies": [
+      {
+        "term": {
+          "type": "fan",
+          "principal": {
+            "type": "app",
+            "func": {
+              "type": "app",
+              "func": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#AH_DB",
+                "label": "AH-DB (Apo-Holo DataBase)"
+              },
+              "arg": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#HoloForm",
+                "label": "holo form"
+              }
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#BindingPocket",
+              "label": "binding pocket"
+            }
+          },
+          "grey_ctx": {
+            "type": "hole"
+          },
+          "black_ctx": {
+            "type": "hole"
+          },
+          "grey_cast": "https://ahoj-db.org/kg#UnifiedBindingSite",
+          "black_cast": "https://ahoj-db.org/kg#Ligand"
+        },
+        "pointers": {
+          "1": [
+            0
+          ],
+          "2": [
+            1
+          ]
+        },
+        "fired": 0,
+        "is_reading": true
+      },
+      {
+        "term": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          },
+          "arg": {
+            "type": "fan",
+            "principal": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#BindingPocket",
+                "label": "binding pocket"
+              },
+              "body": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#BindingPocket",
+                "label": "binding pocket"
+              }
+            },
+            "grey_ctx": {
+              "type": "hole"
+            },
+            "black_ctx": {
+              "type": "hole"
+            },
+            "grey_cast": "https://ahoj-db.org/kg#UnifiedBindingSite",
+            "black_cast": "https://ahoj-db.org/kg#Ligand"
+          }
+        },
+        "pointers": {
+          "1": [
+            1,
+            0
+          ],
+          "2": [
+            1,
+            1
+          ]
+        },
+        "fired": 3,
+        "is_reading": false
+      }
+    ]
   }
 ]

@@ -24,11 +24,9 @@ Sibling skills: **`reading`** (the formalism this layer sits on top of),
 BASE/OFFSET/COMMAND — the rules this layer actually fires),
 `optimal-lambda-reduction` (implementation roadmap, efficiency caveats).
 
-Definition given by Marek 2026-08-14; §8.6 redefined 2026-08-18 and §8.7
-restated 2026-08-19. Provenance markers `[CLARIFIED]` /
-`[OPEN]` in §8 are load-bearing — preserve them.
+`[OPEN]` markers in §8 are load-bearing — preserve them.
 
-**IMPLEMENTED** 2026-08-20 in `ontology_state.py`, driven from `app.py`
+**IMPLEMENTED** in `ontology_state.py`, driven from `app.py`
 (`_ont_after_contraction` / `_ont_after_reflection`), surfaced by `o` →
 `ReadingOntologiesModal`. Note it works on **terms, not the bus graph**: rule 1
 applies exactly where an abstraction meets an application, firing it is beta at
@@ -36,11 +34,11 @@ that position, and silent reductions have no term-level effect — so
 `optimal_lambda.normalize` is never called. That seam is documented at the top of
 `ontology_state.py`; revisit it if the layer ever needs context semantics.
 
-⚠️ **O12, found while implementing:** the bare init ontology is refuted by the
-FIRST contraction (the outer test needs an application it does not have), and
-enrichment cannot help at init either (both its cases need an enclosing
-application). So the set is non-trivially populated only from the *second*
-contraction on. Unruled — see O12 for the candidate fixes.
+⚠️ **O9:** the bare init ontology is refuted by the FIRST contraction (the outer
+test needs an application it does not have), and enrichment cannot help at init
+either (both its cases need an enclosing application). So the set is non-trivially
+populated only from the *second* contraction on. **Unruled** — see O9, which traces
+it to an ambiguity in *when* §8.6's outer test is read.
 
 ## The shape of it
 
@@ -62,6 +60,17 @@ ontology.
 
 **The reading never reduces. Only this layer does.** That asymmetry is the whole
 reason pointer stability (below) is a problem here and nowhere else.
+
+**THE READING IS A MEMBER OF ITS OWN SET** (§8.1b, `reading_ontology`). It
+qualifies trivially — it contains exactly the material the user built — but it
+**never fires**, since a reading has no abstractions (I6). So it is the degenerate
+model: never contradicted, never explanatory, `fired` always 0.
+
+It is maintained by **mirroring** the reading after each step, NOT by §8.6/§8.7 —
+those test a *candidate* against a step, and this member *is* the step. Keep it out
+of the update rules (`strip_reading_ontology` before, `sync_reading_ontology`
+after). Consequence: the set is never empty while a reading exists, so **the §8.8
+signal is "no candidate besides the reading"**, not "empty".
 
 ## Reading vs ontology: opposite sides of the visibility line
 
@@ -109,8 +118,8 @@ yielding another candidate. Grows the set.
   ⚠️ A **named** title collapses the quantifier: substitute *that* abstraction, do
   not branch over all of matching type.
 
-**Update** (§8.6–8.7) — advance pointers in step with the reading. Contraction now
-**forks** rather than filters (redefined 2026-08-18):
+**Update** (§8.6–8.7) — advance pointers in step with the reading. Contraction
+**forks** rather than filters:
 
 - **R1 fires** — reduce (plus all silent reductions), advance the pointer. The
   ontology's hypothesis paid off.
@@ -121,8 +130,7 @@ yielding another candidate. Grows the set.
 for each of `R1`'s own ontologies, substitute its term for the variable at that
 position and require R1 to fire — a cartesian product over the two sets.
 
-**Reflection (§8.7) also forks**, restated 2026-08-19 against the current
-`app(t,t)` reflection:
+**Reflection (§8.7) also forks**:
 
 - **`toc` is an abstraction** and R4 applies → **reduce**; the two new pointers
   designate **nodes** among the four fans R4 creates.
@@ -146,7 +154,7 @@ the most useful thing in §8.
    and immediately above that edge is either a fan-in on the **same** wire (→
    **R1**) or on a **different, more-left** wire, the sharing node (→ **R4**).
 3. **Which reductions are silent — a STRUCTURAL test on the marked wire**
-   (redefined 2026-08-19; it is *not* about where the pointer is):
+   (it is *not* about where the pointer is):
 
    | | silent? |
    |---|---|
@@ -207,8 +215,7 @@ Updates **replace** the set, so **an ontology is discarded by never being added*
 there is no discard statement, and refutation's strength is exactly the strictness
 of the update rules' conditions.
 
-**The OUTER STRUCTURAL TEST is the strong gate**, and the 2026-08-18 redefinition
-leaves it untouched. It demands the ontology **already contain the material the
+**The OUTER STRUCTURAL TEST is the strong gate.** It demands the ontology **already contain the material the
 reading is about to build** — an `app(ta,tb)` at the pointer with `[tb]` the
 contraction's target type. Since enrichment substitutes abstractions but **never
 adds applications**, an ontology passes only if some abstraction *body* supplies
@@ -226,13 +233,14 @@ previously also needed `ta` to be an abstraction. Now they don't, so the rule ad
 ontologies with the right **shape** but no **hypothesis** at the pointer. Real but
 narrow, and keeping them is right — silence isn't contradiction.
 
-**O11** (unruled): whether to count firings per ontology so that "survivors are
+**O8** (unruled): whether to count firings per ontology so that "survivors are
 better approximations" tracks *confirmation* rather than mere survival. A ranking
 refinement, not a fix for a hole.
 
-**An empty set is MEANINGFUL:** no available explicit material can express what
-this user is doing — the reading has outrun the abstractions available to it.
-**Surface it to the user; never make it an assertion failure.**
+**A set holding only the reading is MEANINGFUL:** no available explicit material
+accounts for what this user is doing — the reading has outrun the abstractions
+available to it. **Surface it; never make it an assertion failure.** (The set itself
+is never empty while a reading exists, §8.1b.)
 
 This is the formal counterpart of the interpretation's *"only instances that fit
 the rule remain, and survivors are better approximations"*. The set shrinks by
@@ -241,9 +249,7 @@ fits, the approximation improves.
 
 ## Open points
 
-- **O9 — RESOLVED** 2026-08-19: §8.7 is restated against the current `app(t,t)`
-  reflection (two branches, above).
-- **O7 — RESOLVED.** A closed reading **carries its ontology set**: ontologies are
+- **Closed readings carry their ontology set.** A closed reading **carries its ontology set**: ontologies are
   stored on save, and closing drops only the pointer set (§1). Re-deriving by
   enrichment was rejected — the stored ontologies are *survivors* of refutation over
   that reading's whole construction, which enrichment cannot recover, proposing
@@ -257,16 +263,16 @@ fits, the approximation improves.
   option 1 ever had a combining problem: its operand occupies a position the current
   ontologies say nothing about, whereas option 2's would land in function position
   exactly where the R1 redex is.
-- **O10** — whether a size bound is needed. Enrichment branches per pointer per
+- **O7** — whether a size bound is needed. Enrichment branches per pointer per
   step and option 1's closed-reading case multiplies by `|R1.ontologies|` (RN4);
   against that, the outer test refutes heavily. Whether the rates balance is
   unsettled.
-- **O11** — whether to record confirmation counts, so survival tracks confirmation (above).
+- **O8** — whether to record confirmation counts, so survival tracks confirmation (above).
 
 ## Review notes on §8.6 (unruled)
 
 §8.6 carries five marked review notes (numbered **RN1–RN5** to avoid collision
-with the reducer's rules R1–R6) from the 2026-08-18 definition. Read them
+with the reducer's rules R1–R6). Read them
 before implementing that section: **RN1** non-firing survival vs refutation (above),
 **RN2** no fallthrough when `tb` is neither a variable nor one of R1's
 ontology-terms, **RN3** the "`tb` is an ontology of R1" test compares different

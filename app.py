@@ -30,7 +30,7 @@ from widgets import (
     LambdaBrowserModal, NameReadingModal,
 )
 from reading_state import (
-    PointerSet, LamFan, subterm_at, replace_at,
+    PointerSet, LamFan, EntityRegistry, subterm_at, replace_at,
     lam_to_dict_shared, lam_from_dict_shared,
 )
 import ontology_state as ont_layer
@@ -164,7 +164,7 @@ class KGBrowser(App):
         self.current_node: Optional[rdflib.URIRef] = None
         self._nav_stack: list[rdflib.URIRef] = []
         self.readings: list[tuple[str, LamTerm]] = load_readings_db()
-        # closed readings keep their ontology sets (§1, O7): name -> [raw dict]
+        # closed readings keep their ontology sets (§1): name -> [raw dict]
         self.reading_ontologies: dict[str, list] = load_readings_ontologies()
         self._current_term: Optional[LamTerm] = None    # term being built; None = bare current_node
         # Pr — the open reading's pointer set (reading_desc §1). None until a
@@ -173,6 +173,9 @@ class KGBrowser(App):
         # the entity each pointer stands at, by pid: navigation uses the shared
         # subterm's own type, never the reflected cast (§4.2, clarified 08-20)
         self._pointer_nodes: dict[int, rdflib.URIRef] = {}
+        # one LamVar per entity, so an entity the user REUSES is one shared node
+        # in the reading's graph rather than a fresh variable each time (§1).
+        self._entities = EntityRegistry()
         # the reading's ontology set — models in which it is valid (§8).
         self._ontologies: list = []
         self._ont_stats: dict = {}
@@ -241,10 +244,18 @@ class KGBrowser(App):
         """Return _current_term if set, else LamVar for the current node."""
         if self._current_term is not None:
             return self._current_term
-        return LamVar(
-            iri=str(self.current_node),
-            label=node_label(self.g, self.current_node),
-        )
+        return self._entity_var(self.current_node)
+
+    def _entity_var(self, node, label: str | None = None) -> LamVar:
+        """The reading's variable for an entity — the SAME object on reuse.
+
+        An entity used twice in one reading is one entity, so it is one node in
+        the sharing graph (§1). Sharing here is by identity, not by a fan:
+        reflection's fan carries two casts over one subject, whereas entity reuse
+        has nothing to cast — it is simply the same place turning up again.
+        """
+        iri = str(node)
+        return self._entities.get(iri, label or node_label(self.g, node))
 
     # ── Pointer set  (reading_desc §1, §4) ────────────────────────────────────
 
@@ -252,16 +263,35 @@ class KGBrowser(App):
         """Open a reading: Pr = exactly one pointer, at the root (§3)."""
         self._pointers = PointerSet.initial()
         self._pointer_nodes = {}
+        self._entities = EntityRegistry()
         act = self._pointers.act()
         if act is not None:
             self._pointer_nodes[act.pid] = node
             # init form (a): ontologies = { ont(G(a), {p}) }, then enrich (§8.3)
-            root = LamVar(iri=str(node), label=node_label(self.g, node))
+            root = self._entity_var(node)
             self._ontologies = ont_layer.init_from_type(root, act.pid)
             self._ontologies, dropped = ont_layer.cap(self._ontologies)
+            # The §8.3(a) seed and the reading's own member have the same term at
+            # init but different roles, so BOTH stay: the seed is a CANDIDATE, to
+            # be enriched and tested by §8.6/§8.7; the reading's member is a
+            # MIRROR, never tested (§8.1b). Dropping the seed as a duplicate
+            # would leave the set with nothing enrichment could add to, and since
+            # enrichment only ever grows what is already there, the set would
+            # stay closed for the whole reading.
+            # the reading is a member of its own ontology set, from the outset
+            self._ontologies = ont_layer.sync_reading_ontology(
+                self._ontologies, root, {act.pid: ()})
             self._ont_stats = {"init": len(self._ontologies), "dropped": dropped}
 
     # ── Ontology set  (reading_desc §8) ───────────────────────────────────────
+
+    def _ont_pointer_paths(self) -> dict:
+        """The reading's own pointer paths, keyed by pid — for its mirror in the
+        ontology set, whose pointers correspond to the reading's trivially."""
+        ps = self._pointers
+        if ps is None:
+            return {}
+        return {p.pid: p.path for p in ps.pointers}
 
     def _ont_type_at(self, term, path):
         """Type at a position — the typing of §2, used by the ontology rules."""
@@ -276,7 +306,7 @@ class KGBrowser(App):
         """Init form (b): take the closed reading's STORED ontologies (§8.3).
 
         Not re-derived — they are survivors of refutation over that reading's
-        whole construction (O7). Their pointers collapse to the single root
+        whole construction (§1). Their pointers collapse to the single root
         pointer, mirroring what closing did to the reading's own set.
         """
         stored = self._operand_ontologies(name)
@@ -291,16 +321,27 @@ class KGBrowser(App):
 
     def _ont_after_contraction(self, pid: int, option: int,
                                a_iri: str, b_iri: str,
-                               operand_onts=None) -> None:
+                               operand_onts=None, operand=None) -> None:
         """UPDATE then ENRICH, in step with the reading's contraction (§8.6)."""
-        if not self._ontologies:
-            return
+        # the reading's own mirror is not a hypothesis to be tested: keep it out
+        # of the update rules and refresh it afterwards.
+        candidates = ont_layer.strip_reading_ontology(self._ontologies)
+        # A contraction also PROPOSES models: for each saved abstraction of the
+        # type at the pointer, app(q, operand) — a rule-1 redex whose firing IS
+        # this contraction. Done here rather than at init because the operand is
+        # only known once the user has chosen it.
+        if operand is not None:
+            candidates = candidates + ont_layer.candidates_for_contraction(
+                pid, self._ont_pointer_paths().get(pid, ()),
+                a_iri, b_iri, operand)
         self._ontologies, stats = ont_layer.after_contraction(
-            self._ontologies, pid, option, a_iri, b_iri,
+            candidates, pid, option, a_iri, b_iri,
             self._ont_type_at, operand_onts,
         )
         self._ontologies = ont_layer.enrich(self._ontologies)
         self._ontologies, dropped = ont_layer.cap(self._ontologies)
+        self._ontologies = ont_layer.sync_reading_ontology(
+            self._ontologies, self._current_term_as_lam(), self._ont_pointer_paths())
         stats["dropped"] = dropped
         stats["total"] = len(self._ontologies)
         self._ont_stats = stats
@@ -309,31 +350,35 @@ class KGBrowser(App):
     def _ont_after_reflection(self, pid: int, left_pid: int, right_pid: int,
                               a_iri: str, b_iri: str, c_iri: str) -> None:
         """UPDATE then ENRICH, in step with the reading's reflection (§8.7)."""
-        if not self._ontologies:
-            return
+        candidates = ont_layer.strip_reading_ontology(self._ontologies)
         self._ontologies, stats = ont_layer.after_reflection(
-            self._ontologies, pid, left_pid, right_pid,
+            candidates, pid, left_pid, right_pid,
             a_iri, b_iri, c_iri, self._ont_type_at,
         )
         self._ontologies = ont_layer.enrich(self._ontologies)
         self._ontologies, dropped = ont_layer.cap(self._ontologies)
+        self._ontologies = ont_layer.sync_reading_ontology(
+            self._ontologies, self._current_term_as_lam(), self._ont_pointer_paths())
         stats["dropped"] = dropped
         stats["total"] = len(self._ontologies)
         self._ont_stats = stats
         self._report_ontologies()
 
     def _report_ontologies(self) -> None:
-        """Surface the state of the set — an EMPTY set is MEANINGFUL (§8.8).
+        """Surface the state of the set.
 
-        It says no available explicit material can express what this user is
-        doing: the reading has outrun its abstractions. That is a distinguished
-        state to be shown, never an error.
+        The reading is itself a member (see `ontology_state.reading_ontology`),
+        so while a reading exists the set is never empty. What matters now is how
+        many CANDIDATE models remain besides it: none means no available explicit
+        material accounts for what the user is doing — the §8.8 signal, which the
+        reading's own mirror does not mask because it never fires.
         """
         st = self._ont_stats or {}
-        if not self._ontologies:
+        candidates = [o for o in self._ontologies if not o.is_reading]
+        if not candidates:
             self.notify(
-                "No valid model: this reading has outrun the available "
-                "abstractions (§8.8) — press o",
+                "Only the reading itself models this reading — no candidate "
+                "model accounts for it yet (press o)",
                 severity="warning", timeout=8,
             )
             return
@@ -344,7 +389,10 @@ class KGBrowser(App):
         if st.get("dropped"):
             bits.append(f"capped −{st['dropped']}")
         detail = f"  ({', '.join(bits)})" if bits else ""
-        self.notify(f"Ontologies: {len(self._ontologies)}{detail}")
+        self.notify(f"Ontologies: {len(self._ontologies)}"
+                    f" ({len(candidates)} candidate"
+                    f"{'' if len(candidates)==1 else 's'} + the reading)"
+                    f"{detail}")
 
     def _ensure_pointers(self) -> PointerSet:
         """Pr, created on the first step of a reading (§3: one pointer, at root)."""
@@ -380,7 +428,7 @@ class KGBrowser(App):
         """The entity actPtr stands at — what the claims panels are built from.
 
         This is the SHARED SUBTERM'S OWN type, never a reflected cast (§4.2,
-        clarified 2026-08-20): after reflecting A -> B at a subterm of type C,
+        §4.2): after reflecting A -> B at a subterm of type C,
         both branches continue from C.
         """
         ps = self._pointers
@@ -600,8 +648,16 @@ class KGBrowser(App):
                   land_node: rdflib.URIRef, operand_onts=None) -> None:
         """Apply a contraction at actPtr.
 
-        option 1 — app(t1, operand): the reader moves to B, [app] = [operand].
-        option 2 — app(operand, t1): the reader stays at A, type unchanged.
+        BOTH OPTIONS BUILD app(t1, t2) with [t1] == A and [t2] == B (§4.1). They
+        differ only in which of the two actPtr designates:
+
+          option 1 — actPtr is at t1 [A]; the operand is t2 [B].
+                     app(t1, operand) — the reader MOVES to B.
+          option 2 — actPtr is at t2 [B]; the operand is t1 [A].
+                     app(operand, t2) — the reader STAYS at B, type unchanged.
+
+        So A and B name positions in the built term, not the option — which is
+        what makes §8.6's type test uniform across both.
 
         Both act ONLY at actPtr and leave every other pointer designating the
         same material (§4.1, I2). `land_node` is the entity the pointer stands at
@@ -609,10 +665,16 @@ class KGBrowser(App):
         """
         ps = self._ensure_pointers()
         act = ps.act()
-        t1 = self._act_subterm()
-        new_sub = LamApp(t1, operand) if option == 1 else LamApp(operand, t1)
+        stayed = self._act_subterm()
+        if option == 1:
+            # actPtr is t1 [A]; the operand is t2 [B]
+            t1, t2 = stayed, operand
+        else:
+            # actPtr is t2 [B]; the operand is t1 [A]
+            t1, t2 = operand, stayed
+        new_sub = LamApp(t1, t2)
         a_iri = _term_type(t1)
-        b_iri = _term_type(operand)
+        b_iri = _term_type(t2)
         self._replace_act_subterm(new_sub)
         if act is not None:
             ps.after_contraction(act, option)
@@ -620,7 +682,8 @@ class KGBrowser(App):
             # the ontology layer moves in step: this contraction IS the user's
             # approval of a rule-1 firing (§8.5(3), §8.6).
             self._ont_after_contraction(act.pid, option, a_iri, b_iri,
-                                        operand_onts=operand_onts)
+                                        operand_onts=operand_onts,
+                                        operand=operand)
 
     # ── Events ────────────────────────────────────────────────────────────────
 
@@ -715,7 +778,7 @@ class KGBrowser(App):
             self._push_term_snapshot()
             # option 1: A asks, B answers — the reader moves to B
             self._contract(
-                LamVar(iri=str(next_node), label=cd["object_label"]),
+                self._entity_var(next_node, cd["object_label"]),
                 option=1, land_node=next_node,
             )
             self._show_node_and_claims(next_node)
@@ -728,7 +791,7 @@ class KGBrowser(App):
                 return
             self._push_term_snapshot()
             self._contract(
-                LamVar(iri=str(next_node), label=md["object_label"]),
+                self._entity_var(next_node, md["object_label"]),
                 option=1, land_node=next_node,
             )
             self._show_node_and_claims(next_node)
@@ -741,9 +804,10 @@ class KGBrowser(App):
                 return
             self._push_term_snapshot()
             stay_node = self._act_node()
-            # option 2: B asks, A answers — the reader stays put
+            # option 2: A asks, B answers — the reader was already at B and
+            # stays; the selected A goes into function position behind it (§4.1)
             self._contract(
-                LamVar(iri=str(a_node), label=cd["subject_label"]),
+                self._entity_var(a_node, cd["subject_label"]),
                 option=2, land_node=stay_node,
             )
             self._show_node_and_claims(stay_node, push_stack=False)
@@ -854,7 +918,7 @@ class KGBrowser(App):
             if not name:
                 return
             self.readings.append((name, term))
-            # closing drops the POINTER SET only — the ontologies are kept (O7)
+            # closing drops the POINTER SET only — the ontologies are kept (§1)
             self.reading_ontologies[name] = [
                 o.to_dict() for o in self._ontologies
             ]
@@ -982,6 +1046,7 @@ class KGBrowser(App):
         self._current_term = None
         self._pointers = None
         self._pointer_nodes.clear()
+        self._entities = EntityRegistry()
         self._ontologies = []
         self._ont_stats = {}
         self._term_history.clear()

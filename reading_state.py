@@ -15,10 +15,11 @@ reached through, because reflection CASTS a type onto an occurrence: one shared
 subterm may read as A through one occurrence and B through the other. The cast is
 recorded on the pointer.
 
-  NAVIGATION USES THE SHARED SUBTERM'S OWN TYPE, not the cast [CLARIFIED
-  2026-08-20, §4.2]. `nav_type` is what the claims panels are built from;
-  `cast_type` records what was reflected. Keeping them separate is deliberate —
-  see `Pointer` below.
+  NAVIGATION USES THE SHARED SUBTERM'S OWN TYPE, not the cast (§4.2).
+  `cast_type` on a Pointer records what was reflected onto that
+  occurrence; the claims panels are built from the entity the pointer stands at,
+  which the app tracks separately (`_pointer_nodes`). Keeping the two apart is
+  deliberate.
 """
 
 from __future__ import annotations
@@ -188,19 +189,45 @@ def lam_to_dict_shared(t) -> dict:
     return lam_to_dict(t)
 
 
-def lam_from_dict_shared(d: dict):
-    """Deserialise a term that may contain LamFan nodes (sharing preserved)."""
+def lam_from_dict_shared(d: dict, registry: "EntityRegistry | None" = None):
+    """Deserialise a term that may contain LamFan nodes.
+
+    ENTITY SHARING IS REBUILT, not merely preserved. A reused entity is written
+    once per occurrence (a leaf carries no structure worth de-duplicating on
+    disk), so identity has to be restored on load: every occurrence of one IRI is
+    resolved through a single registry, giving back ONE node reached from each
+    place it was used (§1). Without this a saved reading loses its entity sharing
+    and renders as if the user had used distinct entities.
+
+    Compound sharing needs no such reconstruction — it is carried structurally by
+    LamFan, which stores its subject once (§4.2).
+    """
+    reg = EntityRegistry() if registry is None else registry
     kind = d.get("type")
     if kind == "hole":
         return HOLE
     if kind == "fan":
-        return LamFan.from_dict(d)
+        return LamFan(
+            principal=lam_from_dict_shared(d["principal"], reg),
+            grey_ctx=lam_from_dict_shared(d.get("grey_ctx", {"type": "hole"}), reg),
+            black_ctx=lam_from_dict_shared(d.get("black_ctx", {"type": "hole"}), reg),
+            grey_cast=d.get("grey_cast"),
+            black_cast=d.get("black_cast"),
+        )
     if kind == "app":
-        return LamApp(func=lam_from_dict_shared(d["func"]),
-                      arg=lam_from_dict_shared(d["arg"]))
+        return LamApp(func=lam_from_dict_shared(d["func"], reg),
+                      arg=lam_from_dict_shared(d["arg"], reg))
     if kind == "abs":
-        return LamAbs(var=LamVar.from_dict(d["var"]),
-                      body=lam_from_dict_shared(d["body"]))
+        # The BINDER AND ITS OCCURRENCES MUST BE ONE NODE. Types are entities
+        # here, so an abstraction's parameter is the same entity as the
+        # occurrences it binds — resolving all of them through the registry keeps
+        # `abs.var is <each occurrence>`, which is what makes "does this question
+        # share the entity it asks about" answerable at all. Building the binder
+        # separately would leave it connected to nothing.
+        var = reg.get(d["var"]["iri"], d["var"].get("label", d["var"]["iri"]))
+        return LamAbs(var=var, body=lam_from_dict_shared(d["body"], reg))
+    if kind == "var":
+        return reg.get(d["iri"], d.get("label", d["iri"]))
     return lam_from_dict(d)
 
 
@@ -307,6 +334,46 @@ class Pointer:
         return self.cast_type is not None
 
 
+class EntityRegistry:
+    """One LamVar per ENTITY, for the lifetime of one reading.
+
+    A reading's graph is a SHARING graph (§1). An entity the user reuses across
+    contraction steps is ONE entity, so it must be ONE node in that graph, reached
+    from every place it was used — not a fresh variable each time.
+
+    Reflection shares by an explicit fan (§4.2), because there the sharing is the
+    step's whole content: one subject viewed under two casts. Entity reuse is
+    different — there is nothing to cast and no fork, only the same entity turning
+    up again — so it is shared by IDENTITY: the registry hands back the same
+    LamVar object, and the term records one node reached twice.
+
+    Consequences:
+      - the renderer draws such an entity ONCE, with a share mark, since
+        `term_utils._find_shared` detects sharing by object identity;
+      - `lam_to_dict_shared` still writes it out once per occurrence, so identity
+        sharing of a LEAF does not survive saving. That is acceptable: a leaf
+        carries no structure, and re-reading it under one registry restores the
+        sharing. Compound sharing is what needs the fan, and has it.
+    """
+
+    def __init__(self) -> None:
+        self._vars: dict[str, LamVar] = {}
+
+    def get(self, iri: str, label: str) -> LamVar:
+        """The variable for `iri` — the SAME object every time."""
+        v = self._vars.get(iri)
+        if v is None:
+            v = LamVar(iri=iri, label=label)
+            self._vars[iri] = v
+        return v
+
+    def __contains__(self, iri: str) -> bool:
+        return iri in self._vars
+
+    def __len__(self) -> int:
+        return len(self._vars)
+
+
 @dataclass
 class PointerSet:
     """Pr, plus which member is actPtr (§1: selected before each step)."""
@@ -363,16 +430,18 @@ class PointerSet:
     def after_contraction(self, act: Pointer, option: int) -> None:
         """Re-point actPtr at the new application node (§4.1).
 
-        The term at act.path has been replaced by app(t1, t2) (option 1) or
-        app(t2, t1) (option 2). The pointer keeps its PATH — the new application
-        sits exactly where the old subterm did — so nothing moves in the tree.
+        The term at act.path has been replaced by app(t1, t2) — BOTH options build
+        that shape, differing only in which side the operand went (reading_desc
+        §4.1). The pointer keeps its PATH: the new application sits exactly where
+        the old subterm did, so nothing moves in the tree.
 
         What DOES change is every OTHER pointer whose path ran THROUGH this
-        position: the material there is now one level deeper, under branch 0
-        (option 1, t1 in function position) or branch 1 (option 2, t1 in
-        argument position). Their paths are rebased so they keep designating the
-        same material — invariant I1/I2: other pointers are untouched AS
-        POSITIONS, which in a rebuilt term means their paths must be fixed up.
+        position: the material there is now one level deeper. The stayed-at
+        subterm went under branch 0 in option 1 (it is t1, the function side) and
+        under branch 1 in option 2 (it is t2, the argument side). Their paths are
+        rebased so they keep designating the same material — invariant I1/I2:
+        other pointers are untouched AS POSITIONS, which in a rebuilt term means
+        their paths must be fixed up.
         """
         branch = 0 if option == 1 else 1
         n = len(act.path)

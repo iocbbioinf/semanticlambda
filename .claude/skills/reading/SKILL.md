@@ -19,15 +19,10 @@ graph.
   **silence/approval boundary**, ontology maintenance, the **driver**, invariant
   check, implementer notes. Where the two disagree, `reading_desc` wins.
 
-It was rewritten from scratch 2026-08-13 against Marek's specification of that
-date. **Earlier drafts are superseded and their history is not preserved** — if
-you recall cases numbered 1/2/4/5, pointer adoption from grafted readings, or an
-ontology layer built on those cases, that material is gone. Do not reintroduce
-it.
-
-`notes/reading_alg` was **rewritten from scratch 2026-08-20** against the current
-spec (an earlier version, describing the superseded concept, was deleted on
-08-13). It is the place to look for the driver loop and the silence criterion,
+**The notes state the current concepts only — they do not track their history.**
+If you recall cases numbered 1/2/4/5, pointer adoption from grafted readings, or
+an ontology layer built on those, that material is gone; do not reintroduce it.
+`reading_alg` is where to look for the driver loop and the silence criterion,
 which the prose leaves distributed across §4, §8.5 and §8.6.
 
 Sibling skills: **`reading-interpretation`** (what the operations MEAN — sense
@@ -74,12 +69,11 @@ this says what a closed reading **is**, not that the two are interchangeable
 everywhere — §4's steps act on an open reading, so a closed one must be re-opened
 before being stepped on.
 
-⚠️ **Ontologies ARE stored on save** (O7, resolved) — they are survivors of
-refutation over that reading's whole construction, which enrichment cannot
-re-derive since it proposes candidates by type alone. Pointers need no storing (the
-root one is re-minted), but the ontology set does: `kg_store.save_readings_db`
-holds `(name, term)` only and **must be extended** before §8.3's initialisation or
-§8.6's closed-reading operand can run.
+⚠️ **Ontologies ARE stored on save** — they are survivors of refutation over that
+reading's whole construction, which enrichment cannot re-derive since it proposes
+candidates by type alone. Pointers need no storing (the root one is re-minted), but
+the ontology set does: `save_readings_db` takes it as a second argument and
+`load_readings_ontologies` reads it back.
 
 **Opening** (§3), two forms: a **type** A → `(G(a), {ptr to a})`, or an **already
 saved reading** → `(G(t), {ptr to G(t)})`. Both start with exactly one pointer.
@@ -94,17 +88,26 @@ pointer set to adopt or discard.**
 
 ## The steps
 
-**Contraction** — one case, two options. Relates **two places**, both prepared
-beforehand: the selected operand (type B) and where the user stays (actPtr, type
-A). Not a movement — after it **the user stays at both places at once**.
+**Contraction** — one case, two options. Relates **two places**: the selected
+operand and where the user stays (actPtr).
 
-| | operand | builds | type after | reading |
-|---|---|---|---|---|
-| **option 1** | entity **or closed reading** | `app(t1, t2)` | **B** | A asks, B answers |
-| **option 2** | **entity only** | `app(t2, t1)` | **A** (unchanged) | B asks, A answers |
+**Both options build `app(t1, t2)` with `[t1]==A` and `[t2]==B`.** They differ only
+in *which one actPtr designates* — so **A and B name positions in the term, not the
+option**:
 
-Option 2's unchanged type is not a failure to move: A is one of the two occupied
-places, and it is the one actPtr designates.
+| | actPtr at | operand | builds | type after | reader |
+|---|---|---|---|---|---|
+| **option 1** | `t1` [A] | `t2` [B] — entity **or closed reading** | `app(t1,t2)` | **B** | **moves** to B |
+| **option 2** | `t2` [B] | `t1` [A] — **entity only** | `app(t1,t2)` | **B** (unchanged) | **stays** at B |
+
+**Both read the same way: A asks, B answers.** The asymmetry is not in the question
+but in where the user stood when it was put. Option 2's unchanged type is not a
+failure to act — the act was putting the question; the answer is where the user
+already was.
+
+⚠️ **Don't swap those letters.** Writing option 2 as `app(t2,t1)` makes §8.6's
+ontology-side type test (`[ta]==A and [tb]==B`, stated once for both options)
+unsatisfiable, refuting every ontology at every option-2 step.
 
 **The options are not duals** — only option 1 accepts a closed reading (intended,
 not an omission): a closed reading may be what the user answers **with**, never
@@ -141,7 +144,13 @@ This matches GAL's own geometry: direction there is likewise recovered
 per-traversal, and the two occurrences are distinguished by the same grey/black
 branch that distinguishes their contexts.
 
-Reflection is the only operation that shares, the only one that increases `|Pr|`,
+**Two kinds of sharing, different mechanisms.** An **entity the user reuses** is one
+node reached from every place it was used — shared by identity, no fan, nothing cast,
+and the positions stay independent (contracting at one occurrence leaves the others
+alone). **Reflection** shares a *subject* under two casts, and that sharing is the
+step's whole content, so it needs the explicit fan.
+
+Reflection is the only operation that shares A SUBJECT, the only one that increases `|Pr|`,
 and the only one that breaks the typing. **No operation removes a pointer** — `Pr`
 grows monotonically and is never empty.
 
@@ -191,7 +200,7 @@ retype a shared subterm to anything, which also qualifies §7.4's
 KG-realisability claim; **O3** what the fan-in level means for a reading.
 
 **The ontology layer** — a reading is the observation, an ontology is a model in
-which it is valid — was **defined 2026-08-14** and lives in `notes/reading_desc`
+which it is valid — lives in `notes/reading_desc`
 §8. It has its own skill: **`ontology`**. Load that rather than reasoning about it
 from here. In brief: `ont(G(t), P)` with `P` corresponding elementwise to the
 reading's pointers, contraction ↔ **R1**, reflection ↔ **R4**, maintained by

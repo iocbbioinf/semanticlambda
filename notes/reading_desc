@@ -1,12 +1,11 @@
 READING — description
 =====================
 
-Specification given by Marek, 2026-08-13. Written from scratch; it supersedes
-all earlier drafts of this document and does not preserve their case numbering,
-their open points, or their history.
+Specification of the Reading calculus, given by Marek.
 
 Points marked [ASSUMPTION] were not fixed by the specification; they are the
 reading adopted here so the definition is total. Correct them in place if wrong.
+Points marked [OPEN] are unsettled and must not be resolved silently in code.
 
 Contents: §1 what a reading is · §2 typing · §3 the initial step · §4 the two
 steps · §5 summary · §6 invariants · §7 what a reading can build · §8 ONTOLOGY ·
@@ -39,7 +38,6 @@ used. The ontologies are carried because they are SURVIVORS — hypotheses that
 already passed refutation over the whole of that reading's construction (§8.8) —
 and re-deriving them by enrichment could not recover that, since enrichment
 proposes candidates by TYPE alone and knows nothing of what the reading confirmed.
-[CLARIFIED 2026-08-19]
 
 A CLOSED READING IS DE FACTO EQUIVALENT TO A READING WITH JUST ONE POINTER, TO
 THE ROOT OF ITS GRAPH G(t). The two states are therefore not two kinds of
@@ -76,6 +74,24 @@ POINTER, so Pr grows monotonically and is never empty.
 
 The shared graph is built BOTTOM-UP: every step replaces the subgraph at a
 pointer by a larger one containing it.
+
+AN ENTITY THE USER REUSES IS ONE NODE. G(t) is a SHARING graph, so an entity that
+turns up again in a later contraction is not a second variable of the same name: it
+is the same node, reached from every place it was used. Two kinds of sharing arise,
+and they are not the same mechanism:
+
+    ENTITY REUSE     the same entity used at several positions. Shared because it
+                     IS one entity; nothing is cast and no position forks. There
+                     is no fan — the node is simply reached more than once.
+
+    REFLECTION       one SUBJECT viewed under two casts (§4.2). The sharing is the
+                     step's whole content, so it is carried by an explicit fan-in
+                     whose two aux ports are the reader's new positions.
+
+  Sharing an entity does NOT tie the positions together: contracting at one
+  occurrence leaves the others as they were. What is shared is the entity, not the
+  context built around it — so the graph records one node with several parents,
+  each parent free to grow independently.
 
 
 2. Types are entities
@@ -164,18 +180,27 @@ of Pr untouched.
 --------------------
 
     Reading R = (G(t), Pr)
-    actPtr points to G(t1), where [t1] == A
-    the user selects some G(t2) with [t2] == B
 
 CONTRACTION WORKS WITH TWO PLACES AND RELATES THEM. Both places are prepared
 before the step: one is given by the selected entity or by the type of the
-selected closed reading (B), the other is where the user stays (A, at actPtr).
-The step is not a movement between them — it is the act of joining them into one
-claim. The user then stands at BOTH PLACES SIMULTANEOUSLY.
+selected closed reading, the other is where the user stays (actPtr).
 
-The user selects one of two options. THE TWO OPTIONS ADMIT DIFFERENT OPERANDS.
+BOTH OPTIONS BUILD G(app(t1, t2)), with [t1] == A and [t2] == B. They differ only
+in WHICH of the two actPtr designates: t1 in option 1, t2 in option 2. So A and B
+name POSITIONS in the built term, not the option, and the contraction reads the
+same way either way — A asks, B answers. What differs is where the user stood
+when the question was put, and hence whether the type moves.
 
-  OPTION 1 —  contract( G(t1), G(t2) )
+  This matters beyond §4.1: it is what lets the ontology-side type test of §8.6 be
+  stated ONCE for both options.
+
+The user selects one of two options.
+
+  OPTION 1 —  
+      actPtr points to G(t1), where [t1] == A
+      the user selects some G(t2) with [t2] == B
+
+      contract( G(t1), G(t2) )
               G(t2) is an ENTITY or a CLOSED READING.
 
       interpreted as:  move from A to B, or
@@ -188,18 +213,22 @@ The user selects one of two options. THE TWO OPTIONS ADMIT DIFFERENT OPERANDS.
 
       Type at that pointer:  [app(t1,t2)] = [t2] = B.
 
-  OPTION 2 —  contract( G(t2), G(t1) )
-              G(t2) is an ENTITY ONLY. [CLARIFIED 2026-08-19]
+  OPTION 2 —  
+      actPtr points to G(t2), where [t1] == B
+      the user selects some G(t1) with [t1] == A
+  
+      contract( G(t1), G(t2) )
+              G(t1) is an ENTITY ONLY.
 
-      interpreted as:  move from B to A, or
-                       B is the question and A is the answer to it.
+      interpreted as:  New contraction starts at A and move to B. The user stays before this step at B and after it, it still stays at B.
+                       A is the question and B is the answer to it.
 
       Effect:
-          G(t3) is G(t) with G(t1) replaced by G(app(t2, t1)).
-          Pr1   = Pr - {actPtr}  union  {pointer to G(app(t2, t1))}
+          G(t3) is G(t) with G(t2) replaced by G(app(t1, t2)).
+          Pr1   = Pr - {actPtr}  union  {pointer to G(app(t1, t2))}
           R1    = (G(t3), Pr1)
 
-      Type at that pointer:  [app(t2,t1)] = [t1] = A — UNCHANGED.
+      Type at that pointer:  [app(t1,t2)] = [t2] = B — UNCHANGED.
 
 WHY OPTION 2 IS ENTITY-ONLY. Intended, not an omission. A closed reading may be
 what the user ANSWERS WITH (option 1, argument position) but never what they ASK
@@ -218,11 +247,15 @@ common operand domain, and the summary table of §5 shows that.
   case remains, where the operand occupies a position the current ontologies say
   nothing about (§8.6).
 
-WHAT "MOVE FROM B TO A" MEANS IN OPTION 2. The user starts a new contraction from
-an entity B. So the user stays at B, and moves to A, where the user also stays —
-at actPtr. IN THIS CASE THE USER STAYS AT TWO PLACES AT ONCE. The type reporting A
-is not a failure to move: A is one of the two places occupied, and it is the one
-the pointer designates.
+WHY OPTION 2's TYPE IS UNCHANGED. The contraction runs A -> B either way, but in
+option 2 the user was ALREADY at B and stays there: the selected A is placed in
+function position, becoming context behind the position the user occupies. So the
+type reporting B is not a failure to act — the act was putting the question, and
+the answer is where the user already stood.
+
+  Both options therefore read the same way — A asks, B answers — and differ only
+  in where the user stood when the question was put. That is why §5's table can
+  state one type rule for both.
 
 THE CLOSED READING CONTRIBUTES ONLY ITS TYPE. A closed reading has no pointer
 set (§1), so there is nothing to adopt from it and nothing to discard. This is why
@@ -230,9 +263,10 @@ option 1 is stated uniformly for entities and closed readings: the two differ on
 in how large a graph is grafted, never in what happens to Pr.
 
 The two options are the two ways one arrow can be used, distinguished by where
-the user stays. Option 1 applies when the user is at the arrow's subject; option
-2 when the user is at its object. A given arrow and pointer therefore generally
-admit only one of them — both only when A == B.
+the user stays. Option 1 applies when the user is at the arrow's SUBJECT (A) and
+moves along it; option 2 when the user is at its OBJECT (B) and reaches back to
+the subject. A given arrow and pointer therefore generally admit only one of them
+— both only when A == B.
 
 
 4.2 Reflection step
@@ -240,8 +274,7 @@ admit only one of them — both only when A == B.
 
     Reading R = (G(t), Pr)
     actPtr points to G(t), where [t] == C
-    the user selects  A -> B,  where A and B are both ENTITIES
-        [CLARIFIED 2026-08-20] NO closed reading may be chosen for either.
+    the user selects  A -> B,  where A and B are both ENTITIES NO closed reading may be chosen for either.
 
     interpreted as: the user stays at C. The user moves neither to A nor to B,
     but REFLECTS A and B — reflecting A as the question and B as the answer to
@@ -283,7 +316,7 @@ through one occurrence and as B through the other, while its own type was C.
     - Contraction's precondition [t1] == A (§4.1) must therefore be read as a
       condition on the POINTER'S OCCURRENCE, not on the subterm as such.
 
-  BUT THE CAST DOES NOT DRIVE NAVIGATION. [CLARIFIED 2026-08-20] The legal moves
+  BUT THE CAST DOES NOT DRIVE NAVIGATION. The legal moves
   offered at a pointer are built from the SHARED SUBTERM'S OWN TYPE C, whichever of
   the two occurrences is selected — not from that occurrence's cast type. So the
   cast is RECORDED on the occurrence but does not decide which arrows are
@@ -339,27 +372,34 @@ skill `understand-bus-optimal-reduction` §3.
 5. Summary
 ----------
 
+  BOTH CONTRACTION OPTIONS BUILD app(t1, t2), with [t1] == A and [t2] == B. They
+  differ only in WHICH of the two actPtr designates — so A and B name POSITIONS
+  in the built term, not the option.
+
                contraction opt 1   contraction opt 2   reflection
-  selects      G(t2), [t2]==B      G(t2), [t2]==B      A -> B
+  actPtr at    t1  [A]             t2  [B]             t  [C]
+  selects      t2, [t2]==B         t1, [t1]==A         A -> B
   operand      entity OR           ENTITY ONLY         (none — A and B are
                  closed reading                          cast, not built)
-  requires     [t1]==A             [t1]==A             [t]==C
-  builds       app(t1,t2)          app(t2,t1)          app(t, t)
+  builds       app(t1,t2)          app(t1,t2)          app(t, t)
                                                          with t SHARED
-  type after   B                   A (unchanged)       A on the LEFT-UP edge,
+  type after   B                   B (unchanged)       A on the LEFT-UP edge,
                                                          B on the RIGHT-UP edge
                                                          (one shared t, CAST)
   pointers     actPtr re-pointed   actPtr re-pointed   actPtr -> two aux-port
                                                          pointers
   |Pr| changes 0                   0                   +1
-  reading      A asks, B answers   B asks, A answers   C stays; A and B are
-                                                         reflected as Q and A
+  reading      A asks, B answers   A asks, B answers   C stays; A and B are
+                 reader MOVES        reader STAYS        reflected as Q and A
 
   THE GOVERNING PRINCIPLE, from [app(a,b)] = [b]: the ARGUMENT determines the
-  resulting type. Contraction option 1 puts the selected material in argument
-  position, so the type becomes B; option 2 puts it in function position, so the
-  type stays A. In both the user occupies two places; the type names the one the
-  pointer designates.
+  resulting type, so both options leave the type at B — what differs is whether
+  the reader was already there. Option 1's actPtr was at A and moves to B; option
+  2's was at B and stays, the operand becoming context in function position
+  behind it.
+
+  BOTH OPTIONS READ THE SAME WAY: A asks, B answers. The asymmetry is not in the
+  question but in where the user stood when it was put.
 
   THE OPTIONS ARE NOT DUALS. Only option 1 accepts a closed reading (§4.1): a
   closed reading may be what the user answers WITH, never what they ask FROM.
@@ -496,7 +536,7 @@ tracing the construction on an explicit DAG.
 8. Ontology
 -----------
 
-Definition given by Marek, 2026-08-14. The INTERPRETATION of this layer — an
+The INTERPRETATION of this layer — an
 ontology as an approximation of a hidden, subjective intention — is recorded in
 the `reading-interpretation` skill and is not repeated here. Read it first: it is
 what this section is a formalisation of.
@@ -526,6 +566,33 @@ The division of labour, from the interpretation: a READING is subjective and
 contains no abstractions (I6); an ONTOLOGY is the EXPLICIT layer and is built
 from the POSITIVE FORM of abstractions, G(lam a.t), which a reading never sees.
 Reduction is the explicit act of ANSWERING the question.
+
+8.1b The reading is a member of its own ontology set
+-----------------------------------------------------
+
+THE ACTUAL READING IS ALWAYS A MEMBER OF ITS OWN SET OF ONTOLOGIES, and it is
+kept in step with the reading after every step.
+
+It qualifies trivially: an ontology is a model in which the reading is valid, and
+the reading contains exactly the material the user built, so every structural
+condition on that material holds by construction.
+
+  IT NEVER FIRES. A reading contains no abstractions (I6), so nothing in it can
+  reduce: no R1, no R4. It is therefore the DEGENERATE model — it never
+  contradicts what the user did and never accounts for it either. Under O8's
+  ranking it sorts below any model whose hypotheses actually paid off.
+
+  IT IS MAINTAINED BY MIRRORING, not by §8.6/§8.7. Those rules test a CANDIDATE
+  model against a step; this member IS the step, so there is nothing to test.
+  After each reading step it is simply refreshed from the reading's current term
+  and pointer set. It must be kept OUT of the update rules — running it through
+  them would ask whether the reading models itself, which it does by definition.
+
+  CONSEQUENCE FOR THE EMPTY SET (§8.8). While a reading exists its set is never
+  empty, so emptiness no longer signals "no valid model". What carries that
+  signal is the absence of any CANDIDATE besides the reading itself: nothing
+  available accounts for what the user is doing. The reading's own member does not
+  mask that signal, because it never fires.
 
 8.2 Vocabulary: which side of an abstraction
 ---------------------------------------------
@@ -560,8 +627,7 @@ makes "all abstractions of type A" a finite, concrete lookup
 
     Then enrich (§8.4).
 
-FORM (b) IS WELL DEFINED: ONTOLOGIES ARE STORED WHEN A READING IS SAVED.
-[CLARIFIED 2026-08-19] Closing drops only the pointer set, not the ontologies
+FORM (b) IS WELL DEFINED: ONTOLOGIES ARE STORED WHEN A READING IS SAVED. Closing drops only the pointer set, not the ontologies
 (§1), so "the ontologies of R1" is a stored set, not something to re-derive.
 
   The pointers of those inherited ontologies must correspond elementwise (§8.1) to
@@ -626,7 +692,7 @@ principle of §5. In (a) the substituted abstraction becomes a NEW POSITION — 
 joins the set, replacing p. In (b) the abstraction replaces material in FUNCTION
 position, so the pointer set is left as P. Compare [app(a,b)] = [b].
 
-ENRICHMENT COVERS THE ABSTRACTION TITLE OPERAND. [CLARIFIED 2026-08-19] When the
+ENRICHMENT COVERS THE ABSTRACTION TITLE OPERAND. When the
 contraction operand is an abstraction TITLE (§4.1) rather than an entity, the
 ontology side needs NO case of its own in §8.6: the title's counterpart in the
 explicit layer is that abstraction's POSITIVE FORM (§8.2), and substituting it at
@@ -642,7 +708,7 @@ and enrichment supplies the positive form on the same step.
 ------------------------------------------------------
 
 The ontology layer is the only layer that REDUCES (the reading never does), so
-ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
+ontology pointers must survive rule applications.
 
   (1) UNDER ENRICHMENT. If p points to a and a is replaced by the positive form
       lamA with [a] == [lamA], then the new ontology's pointer set contains a
@@ -670,7 +736,7 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
       pointers on the top edges of the sharing fan-in that must already be above
       it. Since nothing reduces, no stability question arises in those cases.
 
-  (3) WHICH REDUCTIONS ARE SILENT — a STRUCTURAL criterion. [CLARIFIED 2026-08-19]
+  (3) WHICH REDUCTIONS ARE SILENT — a STRUCTURAL criterion.
       A silent reduction is performed by the machine without asking; it leaves the
       pointer set untouched. Silence is decided by WHICH WIRE THE OPERATORS ARE
       MARKED ON, not by whether a pointer happens to be nearby:
@@ -706,12 +772,6 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
       criterion stated from the two sides. This is also why read-back follows the
       COMMAND / rightmost wire and branches only at syntactic fans.
 
-      NOTE WHAT THIS REPLACES. An earlier draft made silence depend on the ABSENCE
-      OF A POINTER. That was weaker and less implementable: it made a rule's status
-      contingent on where attention happened to be, so the same rewrite could be
-      silent or not depending on the pointer set. The wire test is intrinsic to the
-      graph, decidable locally at the redex, and it is what actually distinguishes
-      bookkeeping from content.
 
   WHICH NODES "LEFT" AND "RIGHT" ARE, after rule 4. Verified against
   `rules.py:rule4_fan_fan_diff` by tracing an actual firing: the rule REMOVES
@@ -739,9 +799,8 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
 8.6 Update on a contraction step  (A -> B at actPtr)
 -----------------------------------------------------
 
-  Redefined by Marek, 2026-08-18. The two changes from the earlier version: an
-  ontology in which RULE 1 does NOT fire is now KEPT rather than discarded, and
-  option 1 handles a CLOSED READING operand explicitly (closing O8 for option 1).
+  TWO BRANCHES PER ONTOLOGY: one where RULE 1 fires and one where it does not.
+  The non-firing ontology is KEPT — that is SILENCE, not contradiction.
 
   OPTION 1 — the reader's position moves to B.
               The user selects an entity B, or a closed reading R(G(tb)) with
@@ -790,7 +849,7 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
     ontologies = newOntologies
     then enrich (§8.4)
 
-  OPTION 2 — the reader stays at A; B becomes context behind it.
+  OPTION 2 —
 
     newOntologies = {}
     for each ont(G(t), P) in ontologies:
@@ -799,8 +858,8 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
         if t contains a subtree app(ta, tb) with p pointing to tb,
            [ta] == A and [tb] == B:
 
-            if RULE 1 is NOT applicable at app(ta, tb):      # ta not abstraction
-                newOntologies = newOntologies union { ont( G(t), P ) }
+            if RULE 1 is NOT applicable at app(ta, tb):      # ta not abstraction                
+                newOntologies = newOntologies union { ont( G(t), (P - {p}) union {pointer to G(app(ta, tb))} ) }
 
             if RULE 1 IS applicable at the REDEX, which is at ta:
                 apply rule 1, then all possible silent reductions (§8.5(3))
@@ -810,6 +869,7 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
     ontologies = newOntologies
     then enrich (§8.4)
 
+
   NOTE ON OPTION 2, TWO POINTS. First, the pointer p designates tb, the ARGUMENT,
   whereas the abstraction — and hence the RULE 1 REDEX — is at ta. So the
   applicability test is at ta, NOT at p; only the surviving pointer is derived
@@ -818,16 +878,12 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
   the pointers must be REBASED onto G(t1) where a reduction happened: "unchanged"
   means the same positions, not the same edge identities.
 
-  REVIEW NOTES ON THIS DEFINITION (2026-08-18). Numbered RN* to avoid
-  collision with the reducer's rules R1-R6. Recorded so they are not lost;
-  each needs a ruling.
+  REVIEW NOTES ON THIS DEFINITION. Numbered RN* to avoid collision with the
+  reducer's rules R1-R6. Each needs a ruling.
 
   (RN1) WHAT NON-FIRING SURVIVAL COSTS — a narrow leak, not a general one.
-       [CORRECTED 2026-08-19 by Marek's counterexample; an earlier draft of this
-       note wrongly claimed refutation was weakened almost to nothing.]
 
-       THE OUTER STRUCTURAL TEST IS THE STRONG GATE, and it is untouched by the
-       redefinition. It requires the ontology TO ALREADY CONTAIN THE MATERIAL THE
+       THE OUTER STRUCTURAL TEST IS THE STRONG GATE. It requires the ontology TO ALREADY CONTAIN THE MATERIAL THE
        READING IS ABOUT TO BUILD: an app(ta, tb) at the pointer with [tb] equal to
        the contraction's target type. Enrichment (§8.4) substitutes abstractions
        for variables but NEVER ADDS APPLICATIONS, so an ontology satisfies this
@@ -851,7 +907,7 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
        it is the right call: proposing nothing at a position is SILENCE, not
        contradiction.
 
-       STILL WORTH DECIDING (O11): whether to RECORD which branch was taken, e.g.
+       STILL WORTH DECIDING (O8): whether to RECORD which branch was taken, e.g.
        a count of firings per ontology, so that "survivors are better
        approximations" (the interpretation's claim) tracks CONFIRMATION rather
        than mere survival. That is a ranking refinement, not a fix for a hole.
@@ -870,7 +926,7 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
   (RN4) THE CLOSED-READING CASE IS A CARTESIAN PRODUCT. It pairs each current
        ontology with each of R1's, so |newOntologies| may reach k*m at one step.
        That is a legitimate decision, but it is the one place the set can grow
-       multiplicatively, and it is what O10 has to weigh against the outer test's
+       multiplicatively, and it is what O7 has to weigh against the outer test's
        heavy refutation.
 
   (RN5) POINTER AFTER REDUCTION. Both closed-reading branches end with a "pointer
@@ -878,8 +934,7 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
        rewritten that material. The pointer must designate the RESULT at that
        position, per the rebasing note above.
 
-  OPTION 2 HAS NO CLOSED-READING CASE BECAUSE THE STEP ADMITS NO SUCH OPERAND.
-  [CLARIFIED 2026-08-19] Option 2 is ENTITY-ONLY by intent — see §4.1, where the
+  OPTION 2 HAS NO CLOSED-READING CASE BECAUSE THE STEP ADMITS NO SUCH OPERAND. Option 2 is ENTITY-ONLY by intent — see §4.1, where the
   restriction now belongs and is justified. So the absence above is correct and
   complete, not a gap. It also means the only ontology-side combining problem is
   option 1's, where the operand occupies a position the current ontologies say
@@ -887,21 +942,21 @@ ontology pointers must survive rule applications. [CLARIFIED 2026-08-14]
   material, since its operand lands in function position exactly where the rule-1
   redex is.
 
-  THE ABSTRACTION TITLE OPERAND NEEDS NO CASE HERE EITHER. [CLARIFIED 2026-08-19]
+  THE ABSTRACTION TITLE OPERAND NEEDS NO CASE HERE EITHER.
   A title's counterpart in the explicit layer is that abstraction's positive form,
   and substituting it at the pointer is what ENRICHMENT already does — see the note
   at the end of §8.4, including the one caveat: a named title collapses
   enrichment's quantifier to that single abstraction.
 
-  So every operand of §4.1 is now covered on the ontology side, and O8 is closed.
-  What remains for this section is review notes RN2, RN3 and RN5 above — corrections
-  to the pseudocode as written, not open design questions.
+  EVERY OPERAND OF §4.1 IS COVERED on the ontology side: entity and closed reading
+  by §8.6 above, abstraction title by enrichment. What remains for this section is
+  review notes RN2, RN3 and RN5 — corrections to the pseudocode as written, not
+  open design questions.
 
 8.7 Update on a reflection step  (A -> B at actPtr, [t_at_actPtr] == C)
 -----------------------------------------------------------------------
 
-  Restated by Marek, 2026-08-19, against the current reflection (§4.2), resolving
-  O9. The user stays at C and reflects A against B; toc is the subterm the ontology
+  The user stays at C and reflects A against B; toc is the subterm the ontology
   pointer designates.
 
   Like §8.6 it has TWO BRANCHES — one where the rule fires and one where it does
@@ -977,7 +1032,7 @@ DISCARDED BY NEVER BEING ADDED. There is no discard statement; refutation is a
 side effect of the update rules' conditions, and its strength is exactly their
 strictness.
 
-WHAT REFUTES, after the 2026-08-18 redefinition of §8.6:
+WHAT REFUTES:
 
   - failing the OUTER STRUCTURAL TEST — no subtree app(ta,tb) at the pointer with
     the required types. THIS IS THE STRONG GATE. It demands that the ontology
@@ -993,21 +1048,24 @@ WHAT REFUTES, after the 2026-08-18 redefinition of §8.6:
     both of its branches demand real structure — the required sharing must already
     be present either way.
 
-WHAT NO LONGER REFUTES: an ontology which PASSES the outer test but in which RULE 1
-does not fire. §8.6 now KEEPS it. The distinction is between an ontology
+WHAT DOES NOT REFUTE: an ontology which PASSES the outer test but in which RULE 1
+does not fire. §8.6 KEEPS it. The distinction is between an ontology
 CONTRADICTED by what the user did and one merely SILENT about it — proposing
 nothing at a position is not the same as being falsified there. This admits
 ontologies with the right SHAPE but no HYPOTHESIS at the pointer: a real but narrow
 category (RN1).
 
-STILL TO DECIDE (O11): whether to record which branch was taken, so that the
+STILL TO DECIDE (O8): whether to record which branch was taken, so that the
 interpretation's "survivors are better approximations" tracks CONFIRMATION rather
 than mere survival. A ranking refinement, not a fix for a hole.
 
-AN EMPTY ONTOLOGY SET IS MEANINGFUL. It says NO AVAILABLE EXPLICIT MATERIAL CAN
-EXPRESS WHAT THIS USER IS DOING — the reading has outrun the abstractions
-available to it. It is a distinguished state to be SURFACED to the user, and
-deliberately NOT an assertion failure.
+THE SIGNAL IS THE ABSENCE OF CANDIDATES, NOT AN EMPTY SET. Since the reading is
+itself a member (§8.1b), the set is never empty while a reading exists. What is
+MEANINGFUL is a set holding only the reading's own mirror: NO AVAILABLE EXPLICIT
+MATERIAL ACCOUNTS FOR WHAT THIS USER IS DOING — the reading has outrun the
+abstractions available to it. It is a distinguished state to be SURFACED to the
+user, and deliberately NOT an assertion failure. The reading's own member cannot
+mask it, since that member never fires.
 
 
 9. Worked examples
@@ -1023,8 +1081,9 @@ deliberately NOT an assertion failure.
         Pr = {ptr(p0)}
 
     contraction, option 2, with the entity Gene along Gene -> Protein:
-        the user stays at Gene and at Protein simultaneously; actPtr designates
-        Protein.
+        actPtr is at Protein — the arrow's OBJECT — so the user reaches back to
+        its subject. Gene (t1) goes into function position; the user stays at
+        Protein (t2) and the type does not move.
         t  = app(g0, p0)                     [t] = Protein — unchanged
         Pr = {ptr(app(g0,p0))}
         Gene asks; Protein answers.
@@ -1054,11 +1113,14 @@ deliberately NOT an assertion failure.
 10. Open points
 ---------------
 
+Numbered O1..O9. Resolved questions are not listed here — where a decision was
+made it is stated in the section it governs.
+
   O1  HOW THE TYPING RULES ACCOUNT FOR THE REFLECTION CAST (§4.2). Since a shared
       subterm may read as A through one occurrence and B through another, [t] is
-      no longer a function of the term, and `term_utils._term_type` needs an
-      OCCURRENCE argument. §2's three rules cover unreflected material only. The
-      restatement is mechanical but has not been made.
+      not a function of the term, and `term_utils._term_type` needs an OCCURRENCE
+      argument. §2's three rules cover unreflected material only. The restatement
+      is mechanical but has not been made.
 
   O2  WHETHER THE REFLECTION CAST IS CONSTRAINED (§4.2, §7.4). Nothing relates A
       and B to the type C the user was standing at, so reflection may retype a
@@ -1077,66 +1139,36 @@ deliberately NOT an assertion failure.
       separately are the same thing". It is NOT needed for argument-position
       sharing, which §7.2 constructs from the existing steps.
 
-  O5  WHETHER THE SELECTED G(t2) MUST BE JOINED BY AN ARROW THAT EXISTS in the
-      knowledge graph when it is a closed reading rather than an entity. A
-      closed reading is not an entity, so the existence check that applies to
-      entity operands has no evident counterpart; only the type precondition is
-      checked here. NARROWED 2026-08-19: this now concerns OPTION 1 ONLY, since
-      option 2 is entity-only (§4.1) and an entity operand always has an ordinary
-      incoming arrow B -> A to check (`kg_store.get_claims_for_object`).
+  O5  WHETHER THE SELECTED G(t1) MUST BE JOINED BY AN ARROW THAT EXISTS in the
+      knowledge graph when it is a closed reading rather than an entity. Concerns
+      OPTION 1 ONLY: option 2 is entity-only (§4.1), and an entity operand always
+      has an ordinary arrow to check. A closed reading is not an entity, so the
+      existence check has no evident counterpart; only the type precondition is
+      checked.
 
   O6  COPY VS. SHARE when a closed reading is grafted (option 1 only). Copying
       keeps closed readings immutable; sharing makes later changes visible in every
       reading that grafted them. Copy is the safer default.
 
-  O7  RESOLVED 2026-08-19: A CLOSED READING CARRIES ITS ONTOLOGY SET. Ontologies
-      are stored when the reading is saved; closing drops only the pointer set
-      (§1). This is what §8.3's initialisation form (b) and §8.6's closed-reading
-      operand both read. Re-deriving them by enrichment was the alternative and is
-      rejected: the stored ontologies are SURVIVORS of refutation over that
-      reading's whole construction, which enrichment cannot recover, proposing
-      candidates by type alone.
-
-      IMPLEMENTATION PREREQUISITE, not an open question: `kg_store.save_readings_db`
-      holds (name, term) pairs only and must be extended to persist ontology sets.
-
-  O8  RESOLVED. Every contraction operand is now accounted for on the ontology
-      side: ENTITY (§8.6, as before); CLOSED READING (§8.6, option 1 only — pair
-      each current ontology with each of R1's, substitute R1's ontology-term for the
-      variable, require rule 1 to fire; 2026-08-18); and ABSTRACTION TITLE (no case
-      needed — covered by enrichment substituting that title's own positive form,
-      §8.4; 2026-08-19). Option 2 needs no closed-reading case, being ENTITY-ONLY by
-      intent (§4.1). Review notes RN2, RN3 and RN5 in §8.6 remain as corrections to
-      make to that pseudocode; they are defects in the writing, not open design
-      questions.
-
-  O9  RESOLVED 2026-08-19 (§8.7). The reflection update is restated against the
-      current reflection, with two branches: toc an abstraction — rule 4 fires and
-      the pointers land on the new fan nodes; toc not an abstraction but with a
-      sharing fan-in already above it — no reduction, and the pointers land on the
-      existing fan-in's two top edges. An ontology lacking that fan-in fails both
-      branches and is refuted.
-
-  O10 WHETHER THE ONTOLOGY SET NEEDS A SIZE BOUND. Enrichment terminates (§8.4)
+  O7  WHETHER THE ONTOLOGY SET NEEDS A SIZE BOUND. Enrichment terminates (§8.4)
       but branches over every abstraction of matching type at every pointer on
-      every step, and option 1's closed-reading case multiplies by |R1.ontologies|
-      (§8.6 review note RN4). Against that, the OUTER STRUCTURAL TEST refutes
-      heavily (§8.8) — a set can go empty in a few steps, as the counterexample in
-      RN1 shows. Whether the two rates balance in practice is not settled, so a cap
-      plus deterministic eviction may still be wanted; O11 proposes what to rank
-      by.
+      every step, and option 1's closed-reading case multiplies by the operand's
+      own set (§8.6 review note RN4). Against that, the OUTER STRUCTURAL TEST
+      refutes heavily (§8.8) — a set can go empty in a few steps, as the
+      counterexample in RN1 shows. Whether the two rates balance in practice is
+      not settled, so a cap plus deterministic eviction may still be wanted; O8
+      proposes what to rank by.
 
-  O11 WHETHER TO RECORD CONFIRMATION. §8.6 keeps an ontology in which rule 1 does
+  O8  WHETHER TO RECORD CONFIRMATION. §8.6 keeps an ontology in which rule 1 does
       not fire — right, in distinguishing CONTRADICTED from SILENT. But then mere
       survival no longer distinguishes an ontology whose hypotheses kept paying off
       from one that stayed quiet, which is what the interpretation's "survivors are
       better approximations" asserts. Candidate: count firings per ontology, rank by
-      it, and let any O10 cap evict by it. A refinement, not a fix for a hole — see
+      it, and let any O7 cap evict by it. A refinement, not a fix for a hole — see
       review note RN1 in §8.6.
 
-  O12 THE INITIAL ONTOLOGY CANNOT SURVIVE THE FIRST CONTRACTION. Found while
-      implementing §8, 2026-08-20; it is a tension in the definition, not a
-      coding matter.
+  O9  THE INITIAL ONTOLOGY CANNOT SURVIVE THE FIRST CONTRACTION — a tension in the
+      definition, not a coding matter.
 
       Init (§8.3 form (a)) seeds ontologies = { ont(G(a), {p}) } — a BARE
       VARIABLE. The first contraction then applies §8.6's outer structural test,
@@ -1150,17 +1182,45 @@ deliberately NOT an assertion failure.
       application yet. So the seed ontology is refuted before anything can be
       substituted into it.
 
-      The set therefore becomes non-trivially populated only from the SECOND
-      contraction onward, once the ontology carries an application for
-      enrichment to work on — and only if some abstraction BODY supplies the
-      shape the reading is about to build. Verified: an ontology
-      (lam A. app(A,B)) B does survive a contraction A -> B, rule 1 fires, and
-      `fired` increments.
+      AT ROOT IS AN AMBIGUITY IN §8.6's OUTER TEST: WHEN is it read?
 
-      Whether that is intended is open. Candidates, none adopted: seed the set
-      from the abstractions of type A directly rather than from the bare
-      variable; or exempt the first contraction from the outer test; or accept
-      that a reading has no model until it has built something, which is
-      defensible under the interpretation (a model of nothing is not yet a
-      model) but makes the empty-set signal fire on every reading's first step
-      and so blunts it.
+        (i)  against the ontology BEFORE the step. The test then demands that the
+             ontology ALREADY CONTAIN the application the reading is about to
+             build, and it is a genuine structural filter: most candidates die on
+             shape. The seed, a bare variable, fails it — hence this open point.
+             THIS IS WHAT §8.8 STATES AND WHAT THE IMPLEMENTATION DOES.
+
+        (ii) against the ontology AFTER the step, the contraction extending the
+             ontology's term as well as the reading's. The seed then becomes
+             app(a,b), the test passes, rule 1 does not apply (no abstraction),
+             and it lands in the NON-FIRING branch — surviving as silent with its
+             pointer advanced. Under (ii) a reflection-free reading is trivially
+             an ontology of itself, and this open point dissolves.
+
+      Evidence pulls both ways. For (ii): the non-firing branch re-points to
+      app(ta, tb), which only makes sense if the ontology acquired that
+      application — if its term were untouched there would be no new node to
+      point at. For (i): the worked counterexample of RN1 refutes
+      ((lam b).(b e)) d at a B -> C step because "the pointer designates the WHOLE
+      term, which has no enclosing application" — a test applied BEFORE any
+      extension; under (ii) that candidate would have been extended and passed.
+
+      The choice decides what an ontology IS. Under (ii) every ontology mirrors
+      the reading's shape and differs only in where abstractions were substituted,
+      so refutation only ever means "the abstraction I hypothesised here did not
+      reduce as needed". Under (i) shape itself is falsifiable.
+
+      NOTE ALSO, IF (ii) IS EVER CHOSEN: §8.7 has no counterpart. Reflection
+      requires the ontology to ALREADY have an abstraction at the pointer, or a
+      sharing fan already above it, and refutes otherwise. Choosing (ii) for
+      contraction leaves reflection still emptying the set, so the same question
+      would have to be answered for §8.7 — and answering it "yes" would remove
+      the property that reflection refutes harder than contraction.
+
+      Other candidates, if the ambiguity is settled as (i): seed the set from the
+      abstractions of type A directly rather than from the bare variable — note
+      the seed must be an abstraction APPLIED to the first operand, since a bare
+      LamAbs has no app(ta,tb) at the pointer either; or exempt the first
+      contraction from the outer test; or accept that a reading has no model until
+      it has built something, which is defensible under the interpretation but
+      makes the empty-set signal fire on every reading's first step.

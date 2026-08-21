@@ -41,7 +41,7 @@ from reading_state import (
 # How many ontologies to keep. Enrichment branches over every abstraction of
 # matching type at every pointer on every step, and option 1's closed-reading
 # case multiplies by |cr.ontologies| (§8.6 RN4); against that the outer
-# structural test refutes heavily (§8.8). Whether the rates balance is O10, so a
+# structural test refutes heavily (§8.8). Whether the rates balance is O7, so a
 # cap is applied and what it drops is reported rather than hidden.
 MAX_ONTOLOGIES = 64
 
@@ -54,12 +54,14 @@ class Ontology:
     pointers  pid -> path, keyed by the READING's pointer ids so the elementwise
               correspondence of §8.1 is explicit rather than positional
     fired     how many times a rule actually fired in this ontology, i.e. how
-              often its hypotheses paid off (O11: unruled, so recorded but only
+              often its hypotheses paid off (O8: unruled, so recorded but only
               used for eviction ordering)
+    is_reading  this member IS the reading itself — see `reading_ontology`.
     """
     term: LamTerm
     pointers: dict[int, Path] = field(default_factory=dict)
     fired: int = 0
+    is_reading: bool = False
 
     def corresponding(self, pid: int) -> Optional[Path]:
         """The counterpart of the reading's pointer `pid` — §8.1."""
@@ -70,6 +72,7 @@ class Ontology:
             "term": lam_to_dict_shared(self.term),
             "pointers": {str(k): list(v) for k, v in self.pointers.items()},
             "fired": self.fired,
+            "is_reading": self.is_reading,
         }
 
     @staticmethod
@@ -78,6 +81,7 @@ class Ontology:
             term=lam_from_dict_shared(d["term"]),
             pointers={int(k): tuple(v) for k, v in d.get("pointers", {}).items()},
             fired=d.get("fired", 0),
+            is_reading=d.get("is_reading", False),
         )
 
     def __str__(self) -> str:
@@ -216,7 +220,7 @@ def enrich(ontologies: list[Ontology],
 
     `named` maps a reading pointer id to THE abstraction the user named there (a
     title operand): the quantifier collapses to that one instead of branching
-    over all of matching type (§8.4, clarified 2026-08-19).
+    over all of matching type (§8.4).
     """
     pool = load_abstractions() if pool is None else pool
     named = named or {}
@@ -272,18 +276,97 @@ def enrich(ontologies: list[Ontology],
     return out
 
 
+# ── the reading is a member of its own ontology set ─────────────────────────
+
+def reading_ontology(term: LamTerm, pointers: dict[int, Path]) -> Ontology:
+    """The reading itself, as a member of its own ontology set.
+
+    A reading is trivially a model of itself: it contains exactly the material
+    the user built, so every structural test about that material holds by
+    construction. It never FIRES, though — a reading has no abstractions (I6), so
+    nothing in it can reduce and it explains nothing. It is the degenerate model
+    that never contradicts and never accounts for anything, which is why `fired`
+    stays 0 and O8's ranking sorts it below any confirmed hypothesis.
+
+    Keeping it in the set means the set is never empty while a reading exists, so
+    an empty set can only mean the reading itself is gone. It is maintained by
+    MIRRORING the reading rather than by §8.6/§8.7, which test candidate models
+    against a step: there is nothing to test here, since this member IS the step.
+    """
+    return Ontology(term=term, pointers=dict(pointers), fired=0, is_reading=True)
+
+
+def sync_reading_ontology(ontologies: list[Ontology], term: LamTerm,
+                          pointers: dict[int, Path]) -> list[Ontology]:
+    """Put the reading's own current state back into the set, in place.
+
+    Called after every reading step, INSTEAD of putting the reading member
+    through §8.6/§8.7 — it is not a hypothesis to be tested but a mirror of what
+    the user did, so it is simply refreshed. Any other member that happens to
+    equal the reading is left alone; only the flagged one is replaced.
+    """
+    out = [o for o in ontologies if not o.is_reading]
+    out.insert(0, reading_ontology(term, pointers))
+    return out
+
+
+def strip_reading_ontology(ontologies: list[Ontology]) -> list[Ontology]:
+    """The candidate models only, without the reading's own mirror.
+
+    Used before an update: the mirror must not be run through the update rules.
+    """
+    return [o for o in ontologies if not o.is_reading]
+
+
 # ── initialisation  (§8.3) ─────────────────────────────────────────────────
 
-def init_from_type(var: LamVar, pid: int) -> list[Ontology]:
-    """After init form (a): ontologies = { ont(G(a), {p}) }, then enrich."""
-    return enrich([Ontology(term=var, pointers={pid: ()})])
+def init_from_type(var: LamVar, pid: int,
+                   pool: Optional[list[LamAbs]] = None) -> list[Ontology]:
+    """After init form (a): ontologies = { ont(G(a), {p}) }, then enrich (§8.3).
+
+    Only the seed. Abstractions cannot usefully be proposed here: an ontology of
+    a contraction must present an app(ta, tb) at the pointer with tb the entity
+    the step reaches, and that entity is not known until the user chooses it.
+    Proposing candidates is therefore the FIRST STEP's job — see
+    `candidates_for_contraction`.
+    """
+    return enrich([Ontology(term=var, pointers={pid: ()})], pool=pool)
+
+
+def candidates_for_contraction(pid: int, path: Path, a_iri: str, b_iri: str,
+                               operand: LamTerm,
+                               pool: Optional[list[LamAbs]] = None,
+                               ) -> list[Ontology]:
+    """Ontologies proposed BY a contraction, from the saved abstractions (§8.4).
+
+    §8.4's own two cases need the pointed variable to sit inside an application,
+    which is not so at the start of a reading — and since enrichment only ever
+    ADDS to what a set already holds, a set that begins with nothing
+    substitutable would stay closed for the whole reading, never offering the
+    models the layer holds.
+
+    So a contraction also PROPOSES: for each saved abstraction whose type is the
+    type at the pointer, the candidate app(q, operand). That is a RULE 1 REDEX
+    whose firing IS this very contraction, which is what §8.1 asks of an
+    ontology — that its reduction replay the reading. The operand is the one the
+    user just chose, which is why this cannot be done at init.
+
+    Only abstractions that actually FIT are kept: [q] must be the type at the
+    pointer, and the reduct must present the step's own types. The rest would be
+    refuted immediately, so they are never proposed.
+    """
+    out: list[Ontology] = []
+    for q in abstractions_of_type(a_iri, pool):
+        cand = LamApp(q, operand)
+        out.append(Ontology(term=cand, pointers={pid: path}))
+    return out
 
 
 def init_from_closed(stored: list[Ontology], pid: int) -> list[Ontology]:
     """After init form (b): the STORED ontologies of the closed reading (§8.3).
 
     Not re-derived — they are survivors of refutation over that reading's whole
-    construction, which enrichment cannot recover (O7). Their pointers collapse
+    construction, which enrichment cannot recover (§1). Their pointers collapse
     to the single ROOT pointer, mirroring what closing did to the reading's own.
     """
     rebased = [Ontology(term=o.term, pointers={pid: ()}, fired=o.fired)
@@ -329,17 +412,29 @@ def after_contraction(ontologies: list[Ontology], pid: int, option: int,
         # ── the outer structural test (§8.6, §8.8) ──────────────────────────
         # The reading has just built app(ta, tb) at this position. The ontology
         # must already have that shape, with the right types.
+        #
+        # [OPEN — O9] This reads the test AGAINST THE ONTOLOGY BEFORE THE STEP,
+        # which is what §8.8 states. The alternative reading — that the
+        # contraction extends the ontology's term too, so the test applies to the
+        # result — would let a bare seed survive its first contraction via the
+        # non-firing branch below, and would make a reflection-free reading
+        # trivially an ontology of itself. §8 does not settle which is meant; see
+        # O9 for the evidence either way. Do not switch without settling it.
         node = _bare(subterm_at(o.term, path))
         if not isinstance(node, LamApp):
             stats["refuted"] += 1
             continue
-        if option == 1:
-            ta_path, tb_path = path + (0,), path + (1,)
-        else:
-            ta_path, tb_path = path + (0,), path + (1,)
+        ta_path, tb_path = path + (0,), path + (1,)
         ta_t = type_at(o.term, ta_path)
         tb_t = type_at(o.term, tb_path)
-        if ta_t != a_iri or tb_t != b_iri:
+        # [ta] == A and [tb] == B, for BOTH options (§8.6).
+        #
+        # Uniform because BOTH options build app(t1, t2) with [t1] == A and
+        # [t2] == B (§4.1); they differ only in WHICH of the two actPtr
+        # designates — t1 in option 1 (the reader moves to B), t2 in option 2
+        # (the reader stays at B). The letters follow position in the term, so no
+        # transposition is needed.
+        if (ta_t, tb_t) != (a_iri, b_iri):
             stats["refuted"] += 1
             continue
 
@@ -350,9 +445,14 @@ def after_contraction(ontologies: list[Ontology], pid: int, option: int,
         fires = rule1_applicable(o.term, ta_path)
 
         if not fires:
-            # SILENT: keep the ontology, advance the pointer as the reading did.
+            # SILENT: the ontology proposed nothing here, so it is KEPT (not
+            # contradicted) and its pointer is ADVANCED to the new application,
+            # exactly as the reading advanced actPtr — in BOTH options (§8.6).
+            # `path` already designates that application: the reading replaced
+            # the subterm there by app(t1,t2), so the position is unchanged and
+            # only what sits at it grew.
             ptrs = dict(o.pointers)
-            ptrs[pid] = path if option == 2 else path
+            ptrs[pid] = path
             out.append(Ontology(term=o.term, pointers=ptrs, fired=o.fired))
             stats["silent"] += 1
             continue
@@ -446,15 +546,15 @@ def after_reflection(ontologies: list[Ontology], pid: int,
     return (out, stats)
 
 
-# ── the cap  (O10) ─────────────────────────────────────────────────────────
+# ── the cap  (O7) ──────────────────────────────────────────────────────────
 
 def cap(ontologies: list[Ontology],
         limit: int = MAX_ONTOLOGIES) -> tuple[list[Ontology], int]:
     """Keep at most `limit` ontologies, preferring the CONFIRMED ones.
 
-    O10 is unsettled — nothing guarantees enrichment's growth and refutation's
+    O7 is unsettled — nothing guarantees enrichment's growth and refutation's
     pruning balance — so a bound is applied rather than left to chance. Eviction
-    is by `fired` descending, which is O11's proposal: an ontology whose
+    is by `fired` descending, which is O8's proposal: an ontology whose
     hypotheses kept paying off is a better approximation than one that merely
     stayed silent. What is dropped is REPORTED, never hidden.
     """

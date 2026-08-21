@@ -52,7 +52,7 @@ prose leaves distributed:
     ClosedReading := record {                  # reading_desc §1
                      graph      : Graph
                      term       : Term
-                     ontologies : set[Ontology]   # STORED on save (O7 resolved)
+                     ontologies : set[Ontology]   # STORED on save (§1)
                      name       : str
                    }                              # NO pointer set
 
@@ -62,6 +62,14 @@ prose leaves distributed:
                      pointers : set[Pointer]   # corresponds ELEMENTWISE to the
                    }                           # reading's own pointer set
 
+    EntityRegistry := iri -> Var, one per OPEN READING. An entity the user reuses
+                   must be the SAME node in the reading's graph (reading_desc §1),
+                   so every variable is minted through this rather than freshly at
+                   each use. Reflection's sharing is different and uses a fan (§3.2).
+                   DESERIALISATION ALSO THREADS ONE: a reused leaf is written once
+                   per occurrence, so identity must be REBUILT on load or a saved
+                   reading loses its entity sharing.
+
     Store       := closed readings, addressable by name.
     AStore      := saved abstractions, queryable BY BOUND-VARIABLE TYPE.
 
@@ -69,9 +77,9 @@ A reading is a PROCESS: OPEN while built, CLOSED once saved. A closed reading is
 de facto a reading with one pointer at its graph root, so closing collapses the
 pointer set and re-opening re-mints it.
 
-    PERSISTENCE NOTE. `kg_store.save_readings_db` holds (name, term) pairs only.
-    That suffices for graph and term but NOT for the ontology set, which §7.1 and
-    §3.1 both read. Extending the schema is a prerequisite, not optional.
+    PERSISTENCE NOTE. `kg_store.save_readings_db` takes the ontology sets as a
+    second argument and `load_readings_ontologies` reads them back — needed
+    because §7.1 and §3.1 both read a closed reading's ontologies.
 
 
 1. Typing  —  [t] at an occurrence
@@ -110,7 +118,7 @@ Two forms. Both yield exactly ONE pointer, so the steps of §3 apply from the
 outset.
 
     function INIT_FROM_TYPE(A: Entity) -> OpenReading:
-        a = fresh Var of type A                       # [a] == A
+        a = R.entities.get(A)                         # [a] == A
         G = compile_term(a)                           # optimal_lambda.compile
         p = POINTER_TO_ROOT_EDGE(G)
         R = OpenReading(graph=G, term=a, pointers={p}, ontologies={})
@@ -146,8 +154,8 @@ a closed reading may be what the user answers WITH, never what they ask FROM.
 
     function OPERAND(sel) -> (Graph, Term, Entity):
         if sel is an Entity B:
-            v = fresh Var of type B
-            return (compile_term(v), v, B)
+            v = R.entities.get(B)          # NOT a fresh Var: an entity reused
+            return (compile_term(v), v, B) # across steps is ONE shared node (§1)
         if sel is a ClosedReading cr:                      # option 1 only
             if SHARE_GRAFTED_READING:
                 return (SHARED_REF(cr.graph), cr.term, TYPE_OF(cr.term))
@@ -160,16 +168,28 @@ a closed reading may be what the user answers WITH, never what they ask FROM.
             v = fresh Var of type TYPE_OF_TITLE(title)
             return (compile_term(v), v, TYPE_OF_TITLE(title))
 
+    BOTH OPTIONS BUILD App(t1, t2) with [t1] == A and [t2] == B (reading_desc
+    §4.1). They differ only in which of the two actPtr designates, so A and B name
+    POSITIONS in the built term rather than the option:
+
+        option 1   actPtr at t1 [A],  operand is t2 [B]   -> reader MOVES to B
+        option 2   actPtr at t2 [B],  operand is t1 [A]   -> reader STAYS at B
+
+    Both read A asks, B answers. Getting this backwards makes the ontology-side
+    type test of reading_desc §8.6 unsatisfiable for option 2 — see the note there.
+
     function LEGAL_CONTRACT(R, actPtr, sel, option) -> bool:
-        A = TYPE_AT(R, actPtr)
-        B = TYPE_OF_OPERAND(sel)
         if option == 1:
-            # the user stays at the arrow's SUBJECT: A asks, B answers
+            # actPtr is at the arrow's SUBJECT and moves along it
+            A = TYPE_AT(R, actPtr)
+            B = TYPE_OF_OPERAND(sel)
             return sel is not an Entity or EXISTS_RELATION(A, B)
         else:
             require sel is an Entity                       # option 2: §4.1
-            # the user stays at the arrow's OBJECT: B asks, A answers
-            return EXISTS_RELATION(B, A)
+            # actPtr is at the arrow's OBJECT and reaches back to the subject
+            B = TYPE_AT(R, actPtr)
+            A = TYPE_OF_OPERAND(sel)
+            return EXISTS_RELATION(A, B)
 
     # [OPEN — O5] For a closed-reading or title operand there is no entity
     # endpoint, so only the type precondition is checked. Option 2 is unaffected,
@@ -177,26 +197,31 @@ a closed reading may be what the user answers WITH, never what they ask FROM.
 
     procedure CONTRACT(R, actPtr, sel, option):
         require LEGAL_CONTRACT(R, actPtr, sel, option)
-        t1 = SUBTERM_AT(R, actPtr)                # TYPE_AT(R, actPtr) == A
-        (gSel, tSel, B) = OPERAND(sel)
+        stayed = SUBTERM_AT(R, actPtr)
+        (gSel, tSel, selType) = OPERAND(sel)
 
-        if option == 1:                           # A asks, B answers
-            t3  = App(t1, tSel)                   # operand in ARGUMENT position
-            new = App_node(G(t1), gSel)
-        else:                                     # B asks, A answers
-            t3  = App(tSel, t1)                   # operand in FUNCTION position
-            new = App_node(gSel, G(t1))
+        if option == 1:
+            (t1, t2) = (stayed, tSel)             # operand in ARGUMENT position
+            (g1, g2) = (G(stayed), gSel)
+        else:
+            (t1, t2) = (tSel, stayed)             # operand in FUNCTION position
+            (g1, g2) = (gSel, G(stayed))
+        A = TYPE_OF(t1)
+        B = TYPE_OF(t2)
 
-        REPLACE_SUBGRAPH(R.graph, at=actPtr, old=G(t1), new=new)
-        R.term = REPLACE_SUBTERM(R.term, t1, t3)
+        t3  = App(t1, t2)
+        new = App_node(g1, g2)
+
+        REPLACE_SUBGRAPH(R.graph, at=actPtr, old=G(stayed), new=new)
+        R.term = REPLACE_SUBTERM(R.term, stayed, t3)
         REBIND(actPtr, to=edge_of(t3))            # other pointers untouched (I2)
 
         ONTS_AFTER_CONTRACT(R, actPtr, sel, option, A, B)     # §7.3
         return R
 
-    Post: option 1 -> TYPE_AT(R, actPtr) == B    (the type moved to B)
-          option 2 -> TYPE_AT(R, actPtr) == A    (UNCHANGED — the user occupies
-                                                  both places; the pointer names A)
+    Post: TYPE_AT(R, actPtr) == B under BOTH options, since [App(t1,t2)] == [t2].
+          Option 1 MOVED the reader there; option 2 was already there and stayed,
+          the operand becoming context behind it.
     |Pr| unchanged by either option.
 
 3.2 Reflection  (§4.2)
@@ -245,7 +270,7 @@ a closed reading may be what the user answers WITH, never what they ask FROM.
     procedure SAVE(R: OpenReading, name: str) -> ClosedReading:
         # Total: closable from any state, whatever the pointer set
         #   (reading_desc §1).
-        # Closing COLLAPSES the pointer set; ontologies ARE kept (O7).
+        # Closing COLLAPSES the pointer set; the ontologies ARE kept (§1).
         return ClosedReading(graph=R.graph, term=R.term,
                              ontologies=R.ontologies, name=name)
 
@@ -389,9 +414,9 @@ Per reading step: UPDATE (§7.3/§7.4), then ENRICH (§7.2).
 
     function INIT_ONTS_FROM_CLOSED(cr: ClosedReading, p: Pointer)
             -> set[Ontology]:
-        # O7: the ontologies are STORED, not re-derived. Re-deriving was
-        # rejected — stored ontologies are SURVIVORS of refutation over cr's
-        # whole construction, which enrichment cannot recover.
+        # The ontologies are STORED, not re-derived: they are SURVIVORS of
+        # refutation over cr's whole construction, which enrichment cannot
+        # recover, proposing candidates by type alone (§1).
         onts = DEEP_COPY(cr.ontologies)
         for each o in onts:
             COLLAPSE_POINTERS_TO_ROOT(o, corresponding_to=p)   # mirror §2
@@ -521,7 +546,11 @@ between CONTRADICTED and merely SILENT.
                     continue                       # REFUTED
 
                 if not R1_APPLICABLE_AT(o.graph, ta):      # test at ta, NOT at p
-                    newOnts.add(o)                 # SILENT; P unchanged
+                    o2 = o with pointers = (P - {p}) union
+                                           {ptr to App(ta,tb)}
+                    newOnts.add(o2)                # SILENT — kept, and the
+                                                   # pointer ADVANCES as the
+                                                   # reading's actPtr did
                 else:
                     APPLY_R1(o.graph, at=ta); REDUCE_SILENTLY(o.graph)
                     o2 = o with pointers = REBASE_ALL(P, onto=o.graph)
@@ -533,9 +562,15 @@ between CONTRADICTED and merely SILENT.
         CHECK_EMPTY(R)                             # §7.5
 
     OPTION 2, TWO POINTS. The applicability test is at ta, NOT at the pointer —
-    option 1 is the case where the two coincide. And P is carried over UNCHANGED
-    because the reader does not move, but the pointers must be REBASED onto the
-    rewritten graph: "unchanged" means the same positions, not the same edge ids.
+    option 1 is the case where the two coincide. And the pointer ADVANCES to the
+    new application in both branches, as the reading's actPtr did; where a
+    reduction happened the pointers must also be REBASED onto the rewritten
+    graph, since the same position no longer means the same edge ids.
+
+    NOTE THE TYPE TEST IS THE SAME FOR BOTH OPTIONS — TYPE_OF(ta)==A and
+    TYPE_OF(tb)==B — because both build App(t1,t2) with [t1]==A and [t2]==B
+    (§3.1). Getting that naming backwards makes this test unsatisfiable for
+    option 2 and refutes every ontology at every option-2 step.
 
 7.4 Update on a reflection  (§8.7)
 -----------------------------------
@@ -620,10 +655,10 @@ some abstraction BODY supplies the needed argument position.
 AN EMPTY SET IS MEANINGFUL: no available explicit material can express what this
 user is doing — the reading has outrun its abstractions. Surface it.
 
-    [OPEN — O11] Whether to record CONFIRMATION per ontology (a count of actual
+    [OPEN — O8] Whether to record CONFIRMATION per ontology (a count of actual
     firings) so that "survivors are better approximations" tracks confirmation
     rather than mere survival. A ranking refinement.
-    [OPEN — O10] Whether a size bound is needed. Enrichment branches per pointer
+    [OPEN — O7] Whether a size bound is needed. Enrichment branches per pointer
     per step, and option 1's closed-reading case multiplies by |cr.ontologies|;
     against that, the outer test refutes heavily. Unsettled.
 
@@ -714,8 +749,8 @@ user is doing — the reading has outrun its abstractions. Surface it.
   - COST. Each reading step is local: O(size of grafted material), except a
     closed-reading operand, which is O(|cr.graph|) under the copy default. The
     ontology set is the real cost centre — enrichment branches per pointer per
-    step and the closed-reading case multiplies by |cr.ontologies| (O10).
+    step and the closed-reading case multiplies by |cr.ontologies| (O7).
 
-  - PERSISTENCE. `kg_store.save_readings_db` must be extended to hold ontology
-    sets (O7). Abstractions already persist separately, via
-    `term_utils.append_lambda_term`.
+  - PERSISTENCE. `kg_store.save_readings_db` takes an optional ontology-set
+    argument and `load_readings_ontologies` reads it back. Abstractions persist
+    separately, via `term_utils.append_lambda_term`.

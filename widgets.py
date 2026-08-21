@@ -359,11 +359,17 @@ class OntologyItem(ListItem):
         n_ptr = len(getattr(ontology, "pointers", {}) or {})
         fired = getattr(ontology, "fired", 0)
         # `fired` counts how often this model's hypotheses actually paid off —
-        # a confirmed survivor is a better approximation than a silent one (O11).
+        # a confirmed survivor is a better approximation than a silent one (O8).
         badge = (f"[green]✓{fired}[/green]" if fired else "[dim]·[/dim]")
+        # the reading is a member of its own set: trivially a model of itself,
+        # and the one member that can never fire (a reading has no abstractions).
+        if getattr(ontology, "is_reading", False):
+            badge = "[cyan]≡[/cyan]"
+        tag = "  [cyan]the reading itself[/cyan]" if getattr(
+            ontology, "is_reading", False) else ""
         display = (
             f"{badge} [b]{index + 1}.[/b] {esc(str(ontology.term))}"
-            f"  [dim]|P|={n_ptr}[/dim]"
+            f"{tag}  [dim]|P|={n_ptr}[/dim]"
         )
         super().__init__(Label(display, markup=True))
         self.ontology = ontology
@@ -469,10 +475,12 @@ class ReadingOntologiesModal(ModalScreen):
                     id="ont-body", markup=True,
                 )
                 return
-            lv = ListView(id="ont-body")
-            for i, o in enumerate(self._ontologies):
-                lv.append(OntologyItem(o, i))
-            yield lv
+            # Pass the items to the constructor: ListView.append() mounts, and a
+            # widget cannot be mounted into before it is itself mounted.
+            yield ListView(
+                *[OntologyItem(o, i) for i, o in enumerate(self._ontologies)],
+                id="ont-body",
+            )
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         item = event.item
