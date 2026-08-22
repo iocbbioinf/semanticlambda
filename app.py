@@ -21,9 +21,11 @@ from kg_store import (
 from term_utils import (
     collect_edge_claims, append_lambda_term,
     _term_type, _top_claim_name, _render_lam_root,
+    title_for_abstraction, inner_abstractions,
 )
 from widgets import (
     NodeItem, ClaimItem, ReverseClaimItem, SeparatorItem, MappingItem,
+    OntologyStepItem,
     ChainTargetItem, ReadingItem, PointerItem,
     ClaimTextModal, ReadingDetailModal, LambdaAbstractionModal,
     OntologyModal, ReadingOntologiesModal, ReflectionModal,
@@ -547,6 +549,69 @@ class KGBrowser(App):
                 result.append((i, name, term, pred, ciri))
         return result
 
+    @staticmethod
+    def _abstractions_of(term) -> list:
+        """Every abstraction in `term`, the outermost included.
+
+        `inner_abstractions` deliberately skips the top node; here the top one is
+        a question too, so it is added back.
+        """
+        out = list(inner_abstractions(term))
+        if isinstance(term, LamAbs):
+            out.insert(0, term)
+        return out
+
+    def _ont_proposed_steps(self, reverse: bool) -> list[tuple]:
+        """Steps the ONTOLOGY SET offers at actPtr, as (node, label, n, titles).
+
+        These are contractions for which a MODEL already exists even though the
+        knowledge graph asserts no claim: some ontology has app(ta, tb) with
+        actPtr at one side and the offered entity's type at the other (§8.1).
+        Entities the claim panels already list are dropped — the point is to add
+        what the graph does not say, not to duplicate what it does.
+        """
+        ps = self._pointers
+        if ps is None or not self._ontologies:
+            return []
+        act = ps.act()
+        if act is None:
+            return []
+        cands = ont_layer.strip_reading_ontology(self._ontologies)
+        found = ont_layer.steps_proposed(cands, act.pid, self._ont_type_at,
+                                        reverse=reverse) if cands else {}
+        # Sources of a title, per offered entity.
+        sources: dict[str, list] = {}
+        for iri, onts in found.items():
+            qs = []
+            for o in onts:
+                qs.extend(self._abstractions_of(o.origin_term))
+            sources[iri] = qs
+
+        # AT THE START OF A READING no ontology holds an application yet (§8.3
+        # seeds a bare variable), so `steps_proposed` finds nothing. The offers
+        # are then read off the saved QUESTIONS of the pointer's own type — the
+        # same offer one step earlier (§8.7b).
+        if not found:
+            here = self._act_subterm()
+            t_iri = _term_type(here) if here is not None else None
+            if t_iri:
+                by_q = ont_layer.steps_from_questions(
+                    t_iri, self._ont_type_at, reverse=reverse)
+                for iri, qs in by_q.items():
+                    found[iri] = qs
+                    sources[iri] = list(qs)
+
+        out = []
+        for iri, backers in sorted(found.items()):
+            node = rdflib.URIRef(iri)
+            titles = []
+            for q in sources.get(iri, []):
+                t = title_for_abstraction(q)
+                if t and t not in titles:
+                    titles.append(t)
+            out.append((node, node_label(self.g, node), len(backers), titles))
+        return out
+
     def _readings_matching_any(self, node: rdflib.URIRef) -> list[tuple[int, str, LamTerm, str, str]]:
         """Return (index, name, term, predicate_label, claim_iri) for readings r where claim (node, type(r)) exists."""
         obj_to_claim: dict[str, tuple[str, str]] = {}
@@ -582,9 +647,21 @@ class KGBrowser(App):
         lv = self.query_one("#results-list", ListView)
         lv.clear()
         if not claims and not mappings:
-            self._list_label(
-                f"No outgoing claims for [b]{esc(lbl)}[/b].  Ctrl+R to search again."
-            )
+            proposed = self._ont_proposed_steps(reverse=False)
+            if proposed:
+                self._list_label(
+                    f"No outgoing claims for [b]{esc(lbl)}[/b] — but the "
+                    f"ontologies propose steps.  Enter: follow:"
+                )
+                lv.append(SeparatorItem("Proposed by the ontologies (no claim)"))
+                for nd, nlbl, n, titles in proposed:
+                    lv.append(OntologyStepItem(nd, nlbl, n, titles))
+                lv.focus()
+                lv.call_after_refresh(setattr, lv, "index", 0)
+            else:
+                self._list_label(
+                    f"No outgoing claims for [b]{esc(lbl)}[/b].  Ctrl+R to search again."
+                )
         else:
             matching = self._readings_matching_any(node)
             if matching:
@@ -595,8 +672,11 @@ class KGBrowser(App):
                 self._list_label(
                     f"Claims from [b]{esc(lbl)}[/b] — Enter: follow  |  s: save reading:"
                 )
+            seen_out = set()
             for cd in claims:
                 lv.append(ClaimItem(cd))
+                if isinstance(cd["object"], rdflib.URIRef):
+                    seen_out.add(cd["object"])
             if mappings:
                 lv.append(SeparatorItem("External Mappings"))
                 for md in mappings:
@@ -605,6 +685,14 @@ class KGBrowser(App):
                 lv.append(SeparatorItem("Compose with saved reading"))
                 for idx, name, term, pred, ciri in matching:
                     lv.append(ChainTargetItem(name, term, idx, pred, ciri))
+            # Steps some ONTOLOGY already contains at actPtr, which no claim
+            # asserts: a model exists for them, so the reading may take them.
+            proposed = [p for p in self._ont_proposed_steps(reverse=False)
+                        if p[0] not in seen_out]
+            if proposed:
+                lv.append(SeparatorItem("Proposed by the ontologies (no claim)"))
+                for nd, nlbl, n, titles in proposed:
+                    lv.append(OntologyStepItem(nd, nlbl, n, titles))
             lv.focus()
             lv.call_after_refresh(setattr, lv, "index", 0)
 
@@ -612,9 +700,13 @@ class KGBrowser(App):
         to_lv.clear()
         to_label = self.query_one("#to-list-label", Static)
         matching_rev = self._readings_matching_reverse(node)
-        if reverse_claims or matching_rev:
+        seen_in = {rc["subject"] for rc in reverse_claims
+                   if isinstance(rc["subject"], rdflib.URIRef)}
+        proposed_rev = [p for p in self._ont_proposed_steps(reverse=True)
+                        if p[0] not in seen_in]
+        if reverse_claims or matching_rev or proposed_rev:
             hint = "s: save reading"
-            if reverse_claims:
+            if reverse_claims or proposed_rev:
                 hint = "Enter: follow  |  " + hint
             if matching_rev:
                 hint += "  |  select ⛓ to compose"
@@ -625,6 +717,12 @@ class KGBrowser(App):
                 to_lv.append(SeparatorItem("Compose with saved reading"))
                 for idx, name, term, pred, ciri in matching_rev:
                     to_lv.append(ChainTargetItem(name, term, idx, pred, ciri, reverse=True))
+            if proposed_rev:
+                # actPtr at tb, [ta] == the offered entity: option 2, the reader
+                # STAYS and the proposal goes into function position behind it.
+                to_lv.append(SeparatorItem("Proposed by the ontologies (no claim)"))
+                for nd, nlbl, n, titles in proposed_rev:
+                    to_lv.append(OntologyStepItem(nd, nlbl, n, titles, reverse=True))
             to_lv.call_after_refresh(setattr, to_lv, "index", 0)
         else:
             to_label.update(f"Claims to [b]{esc(lbl)}[/b]:")
@@ -795,6 +893,22 @@ class KGBrowser(App):
                 option=1, land_node=next_node,
             )
             self._show_node_and_claims(next_node)
+
+        elif isinstance(item, OntologyStepItem):
+            # A step the ontologies already contain. Following it is an ORDINARY
+            # contraction — the option is fixed by which side actPtr is on:
+            #   forward  actPtr at ta, [tb] == the entity  -> option 1, reader MOVES
+            #   reverse  actPtr at tb, [ta] == the entity  -> option 2, reader STAYS
+            self._push_term_snapshot()
+            if item.reverse:
+                stay_node = self._act_node()
+                self._contract(self._entity_var(item.node, item.label_text),
+                               option=2, land_node=stay_node)
+                self._show_node_and_claims(stay_node, push_stack=False)
+            else:
+                self._contract(self._entity_var(item.node, item.label_text),
+                               option=1, land_node=item.node)
+                self._show_node_and_claims(item.node)
 
         elif lv_id == "to-list" and isinstance(item, ReverseClaimItem):
             cd = item.claim_data

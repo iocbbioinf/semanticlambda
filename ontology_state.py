@@ -32,9 +32,8 @@ from typing import Optional
 
 from optimal_lambda import LamTerm, LamVar, LamApp, LamAbs
 from kg_store import load_lambda_db, local_name
-from optimal_lambda.term import lam_from_dict
 from reading_state import (
-    Path, LamFan, HOLE, subterm_at, replace_at,
+    Path, LamFan, HOLE, EntityRegistry, subterm_at, replace_at,
     lam_to_dict_shared, lam_from_dict_shared,
 )
 
@@ -57,31 +56,64 @@ class Ontology:
               often its hypotheses paid off (O8: unruled, so recorded but only
               used for eviction ordering)
     is_reading  this member IS the reading itself — see `reading_ontology`.
+    origin    THE SHARED GRAPH BEFORE THE FIRST REDUCTION the reading caused —
+              the term this ontology was proposed as, prior to any rule firing.
+              None while nothing has fired yet, in which case `term` IS the
+              origin; `origin_term` resolves that.
+
+              Why it is kept: an ontology is a HYPOTHESIS, and `term` is that
+              hypothesis after the reading has consumed part of it. What was
+              proposed and what is left are different graphs, and only the
+              former shows which abstractions the model actually claimed. It is
+              set ONCE, at the first firing, and then carried forward untouched
+              — never re-derived, since reduction is not invertible here.
     """
     term: LamTerm
     pointers: dict[int, Path] = field(default_factory=dict)
     fired: int = 0
     is_reading: bool = False
+    origin: Optional[LamTerm] = None
 
     def corresponding(self, pid: int) -> Optional[Path]:
         """The counterpart of the reading's pointer `pid` — §8.1."""
         return self.pointers.get(pid)
 
+    @property
+    def origin_term(self) -> LamTerm:
+        """The graph this ontology was proposed as, before any reduction.
+
+        Equals `term` until something fires, so callers need not special-case
+        an unreduced ontology.
+        """
+        return self.term if self.origin is None else self.origin
+
+    @property
+    def is_reduced(self) -> bool:
+        """Has the reading actually reduced this ontology?"""
+        return self.origin is not None
+
     def to_dict(self) -> dict:
-        return {
+        d = {
             "term": lam_to_dict_shared(self.term),
             "pointers": {str(k): list(v) for k, v in self.pointers.items()},
             "fired": self.fired,
             "is_reading": self.is_reading,
         }
+        if self.origin is not None:
+            d["origin"] = lam_to_dict_shared(self.origin)
+        return d
 
     @staticmethod
     def from_dict(d: dict) -> "Ontology":
+        raw = d.get("origin")
         return Ontology(
             term=lam_from_dict_shared(d["term"]),
             pointers={int(k): tuple(v) for k, v in d.get("pointers", {}).items()},
             fired=d.get("fired", 0),
             is_reading=d.get("is_reading", False),
+            # absent in records written before origins were kept: such an
+            # ontology simply has no recoverable pre-reduction graph.
+            origin=lam_from_dict_shared(raw) if raw else None,
         )
 
     def __str__(self) -> str:
@@ -94,6 +126,18 @@ def load_abstractions() -> list[LamAbs]:
     """Every saved abstraction, as its POSITIVE FORM G(lam a.t).
 
     A reading sees only TITLES; ontologies are built from these.
+
+    ENTITY SHARING IS REBUILT PER ABSTRACTION, one registry each. An abstraction
+    body naming one entity twice names ONE entity, so it must be ONE node reached
+    twice — a SHARED subterm (§1) — exactly as for a reading. This matters to
+    §8.7, whose outer test asks whether G(toc) is already shared in both sides of
+    an application, and sharing there is node identity, not structural equality.
+    Loading these bodies without a registry would answer "no" to every candidate
+    for the wrong reason: the graph would have the sharing, the objects would not.
+
+    A registry PER ABSTRACTION, not one global: two different abstractions
+    mentioning the same entity are two separate graphs, and fusing their nodes
+    would invent sharing nobody asserted.
     """
     out: list[LamAbs] = []
     for rec in load_lambda_db():
@@ -101,7 +145,7 @@ def load_abstractions() -> list[LamAbs]:
         if not isinstance(d, dict) or d.get("type") != "abs":
             continue
         try:
-            t = lam_from_dict(d)
+            t = lam_from_dict_shared(d, EntityRegistry())
         except (ValueError, KeyError):
             continue
         if isinstance(t, LamAbs):
@@ -254,7 +298,11 @@ def enrich(ontologies: list[Ontology],
                 new_term = replace_at(o.term, path, q)
                 ptrs = dict(o.pointers)
                 ptrs[pid] = path             # the pointer follows the material
-                cand = Ontology(term=new_term, pointers=ptrs, fired=o.fired)
+                # Enrichment SUBSTITUTES, it does not reduce, so `fired` and the
+                # origin are inherited: a candidate grown from an already-reduced
+                # ontology still descends from that ontology's proposal.
+                cand = Ontology(term=new_term, pointers=ptrs, fired=o.fired,
+                                origin=o.origin)
                 out.append(cand)
                 go(cand, rest)
         elif side == 1:
@@ -267,7 +315,7 @@ def enrich(ontologies: list[Ontology],
                 for q in candidates(pid, fn):
                     new_term = replace_at(o.term, fpath, q)
                     cand = Ontology(term=new_term, pointers=dict(o.pointers),
-                                    fired=o.fired)
+                                    fired=o.fired, origin=o.origin)
                     out.append(cand)
                     go(cand, rest)
 
@@ -362,6 +410,101 @@ def candidates_for_contraction(pid: int, path: Path, a_iri: str, b_iri: str,
     return out
 
 
+def steps_proposed(ontologies: list[Ontology], pid: int, type_at,
+                   reverse: bool = False) -> dict[str, list[Ontology]]:
+    """Entities the ONTOLOGY SET offers as a next contraction at actPtr.
+
+    An ontology is a model in which the reading is valid, so material it already
+    contains at the reader's own position is a step the reading COULD take — one
+    for which a model exists, even where the knowledge graph asserts no claim.
+    This reads those steps off the set:
+
+      forward (reverse=False, option 1)
+          some ont(G(t), P) has a subgraph app(ta, tb) with P's counterpart of
+          actPtr pointing at ta; the entity offered is B == [tb].
+      reverse (reverse=True, option 2)
+          ... pointing at tb; the entity offered is A == [ta].
+
+    Returns entity iri -> the ontologies proposing it, so the caller can say HOW
+    MANY models back each step and name them.
+
+    WHERE THE POINTER SITS. After a contraction actPtr designates the APPLICATION
+    NODE it just built (§4.1, `PointerSet.after_contraction`) — not one of its
+    sides. So the app(ta, tb) to read is the one AT the pointer, and ta, tb are
+    its two branches. The pointer "points to ta" in the sense of §4.1 option 1:
+    ta is the material the reader stands at, tb the answer alongside it.
+
+    An ontology whose pointer designates something that is NOT an application
+    proposes nothing HERE — but see `steps_from_questions`, which covers the one
+    position where that is the normal case rather than the exception: the start of
+    a reading, where §8.3 seeds a bare variable and no application exists yet.
+    """
+    out: dict[str, list[Ontology]] = {}
+    for o in ontologies:
+        path = o.corresponding(pid)
+        if path is None:
+            continue
+        node = _bare(subterm_at(o.term, path))
+        if not isinstance(node, LamApp):
+            continue
+        # forward (option 1): the reader stands at ta; tb is the entity offered
+        # reverse (option 2): the reader stands at tb; ta is the entity offered
+        other = path + (0 if reverse else 1,)
+        iri = type_at(o.term, other)
+        if not iri:
+            continue
+        out.setdefault(iri, []).append(o)
+    return out
+
+
+def steps_from_questions(type_iri: str, type_at,
+                        reverse: bool = False,
+                        pool: Optional[list[LamAbs]] = None,
+                        ) -> dict[str, list[LamAbs]]:
+    """Steps the SAVED QUESTIONS offer at a position of type `type_iri`.
+
+    §8.7b read the offers off the ontology SET, which presupposes an ontology
+    holding an application at the pointer. At the START of a reading there is
+    none: §8.3 seeds a bare variable, so nothing is offered and a reading can
+    only begin along a real claim — even where a question exists that would
+    license the step.
+
+    THIS IS THE SAME OFFER, ONE STEP EARLIER, read off the questions themselves
+    rather than off the set. For each saved question q of type `type_iri`, its
+    BODY is the material the question is about; wherever that body contains
+    app(ta, tb) with the reader's own type on one side, the other side is a step
+    the question licenses:
+
+        forward  [ta] == type_iri  ->  offer B == [tb]
+        reverse  [tb] == type_iri  ->  offer A == [ta]
+
+    Taking such a step then makes `candidates_for_contraction` propose app(q, B),
+    a rule-1 redex whose firing IS that contraction (§8.4) — so the offer and the
+    model that justifies it are the same question.
+
+    Returns entity iri -> the questions offering it.
+    """
+    out: dict[str, list[LamAbs]] = {}
+    for q in abstractions_of_type(type_iri, pool):
+        def walk(t):
+            node = _bare(t)
+            if isinstance(node, LamApp):
+                ta, tb = node.func, node.arg
+                mine, other = (tb, ta) if reverse else (ta, tb)
+                if type_at(mine, ()) == type_iri:
+                    iri = type_at(other, ())
+                    if iri and iri != type_iri:
+                        out.setdefault(iri, [])
+                        if q not in out[iri]:
+                            out[iri].append(q)
+                walk(node.func)
+                walk(node.arg)
+            elif isinstance(node, LamAbs):
+                walk(node.body)
+        walk(q.body)
+    return out
+
+
 def init_from_closed(stored: list[Ontology], pid: int) -> list[Ontology]:
     """After init form (b): the STORED ontologies of the closed reading (§8.3).
 
@@ -369,7 +512,8 @@ def init_from_closed(stored: list[Ontology], pid: int) -> list[Ontology]:
     construction, which enrichment cannot recover (§1). Their pointers collapse
     to the single ROOT pointer, mirroring what closing did to the reading's own.
     """
-    rebased = [Ontology(term=o.term, pointers={pid: ()}, fired=o.fired)
+    rebased = [Ontology(term=o.term, pointers={pid: ()}, fired=o.fired,
+                        origin=o.origin)
                for o in stored]
     return enrich(rebased)
 
@@ -453,7 +597,8 @@ def after_contraction(ontologies: list[Ontology], pid: int, option: int,
             # only what sits at it grew.
             ptrs = dict(o.pointers)
             ptrs[pid] = path
-            out.append(Ontology(term=o.term, pointers=ptrs, fired=o.fired))
+            out.append(Ontology(term=o.term, pointers=ptrs, fired=o.fired,
+                                origin=o.origin))
             stats["silent"] += 1
             continue
 
@@ -468,8 +613,11 @@ def after_contraction(ontologies: list[Ontology], pid: int, option: int,
                     continue
                 ptrs = dict(o.pointers)
                 ptrs[pid] = path
+                # FIRST firing: remember the graph as it was PROPOSED — here
+                # the grafted term, i.e. what actually went into the reduction.
                 out.append(Ontology(term=reduced, pointers=ptrs,
-                                    fired=o.fired + 1))
+                                    fired=o.fired + 1,
+                                    origin=o.origin or grafted))
                 stats["grafted"] += 1
             continue
 
@@ -482,10 +630,128 @@ def after_contraction(ontologies: list[Ontology], pid: int, option: int,
         # option 2: P is carried over unchanged (the reader did not move), but
         # rebased onto the rewritten term — same position, new identity.
         ptrs[pid] = path
-        out.append(Ontology(term=reduced, pointers=ptrs, fired=o.fired + 1))
+        # FIRST firing: keep the pre-reduction graph (§8.1 `origin`).
+        out.append(Ontology(term=reduced, pointers=ptrs, fired=o.fired + 1,
+                            origin=o.origin or o.term))
         stats["fired"] += 1
 
     return (out, stats)
+
+
+def _sharing_fan_above(term: LamTerm, path: Path) -> Optional[Path]:
+    """The path of the SHARING FAN-IN standing above `path`, or None.
+
+    §8.7's second branch asks whether the sharing is ALREADY in place above the
+    pointed subterm — the fan is toc's PARENT, toc being what it shares. So this
+    walks up from `path`, not at it.
+
+    THERE IS ONLY ONE KIND OF SHARING (§1): the middle-wire fan-in. A reused
+    entity is a FREE VARIABLE occurring in both sides of an application, and GAL
+    shares it by exactly that fan — GAL page 7, first picture. `_Compiler._fan_in`
+    builds it, marked on OFFSET, which is what distinguishes it from the syntactic
+    lambda/@ fans on the folded command wire (§8.5(2)).
+
+    IN THE TERM REPRESENTATION that one node shows up two ways, and BOTH count:
+
+      an explicit `LamFan`   when there are casts to record (a reflection);
+      a node reached twice   when there are not (entity reuse) — the fan is
+                             implicit, and compiling the term materialises it.
+
+    Testing only for `LamFan` would be testing the representation instead of the
+    graph: it would reject the (ab)a reading of §1, whose `a` IS shared by such a
+    fan, and would refute every candidate at every reflection.
+
+    Returns the path of the enclosing node that does the sharing.
+    """
+    if not path:
+        return None
+    parent = path[:-1]
+    if isinstance(subterm_at(term, parent), LamFan):
+        return parent                       # explicit: a reflection's fan
+
+    # implicit: the pointed node is reached from more than one place, so a
+    # sharing fan-in stands above it. Report the enclosing node as that fan.
+    node = subterm_at(term, path)
+    if _occurrences(term, node) > 1:
+        return parent
+    return None
+
+
+def _occurrences(term: LamTerm, node: LamTerm) -> int:
+    """How many times `node` is reached in `term`, BY IDENTITY.
+
+    Identity, not equality: sharing in a GAL graph is one node reached twice, and
+    two structurally equal but distinct subterms are two nodes (§1).
+    """
+    n = 0
+    if term is node:
+        n += 1
+    if isinstance(term, LamApp):
+        n += _occurrences(term.func, node) + _occurrences(term.arg, node)
+    elif isinstance(term, LamAbs):
+        n += _occurrences(term.body, node)
+    elif isinstance(term, LamFan):
+        n += (_occurrences(term.principal, node)
+              + _occurrences(term.grey_ctx, node)
+              + _occurrences(term.black_ctx, node))
+    return n
+
+
+def _occurs(hay: LamTerm, needle: LamTerm) -> bool:
+    """Is `needle` present in `hay` AS THE SAME GRAPH NODE?
+
+    Identity, not equality: §8.7 asks whether G(toc) is ALREADY SHARED in both
+    branches, and sharing in a GAL graph is one node reached twice. Two
+    structurally equal but distinct subterms are two nodes, i.e. NOT shared.
+    """
+    if hay is needle:
+        return True
+    if isinstance(hay, LamApp):
+        return _occurs(hay.func, needle) or _occurs(hay.arg, needle)
+    if isinstance(hay, LamAbs):
+        return _occurs(hay.body, needle)
+    if isinstance(hay, LamFan):
+        return (_occurs(hay.principal, needle)
+                or _occurs(hay.grey_ctx, needle)
+                or _occurs(hay.black_ctx, needle))
+    return False
+
+
+def _shared_app_ab(term: LamTerm, toc: LamTerm,
+                   a_iri: str, b_iri: str, type_at) -> bool:
+    """§8.7's OUTER TEST, common to both branches (§8.8: the strong gate).
+
+    Does `term` contain a subtree app(ta, tb) with [ta] == A, [tb] == B, and
+    G(toc) ALREADY SHARED as a subterm of BOTH ta and tb?
+
+    Two separate requirements, per §8.7: the reducer's own redex condition never
+    implies the already-shared one — rule 4 CREATES duplication rather than
+    demanding it — so this filter is layered on top and computed here.
+    """
+    def walk(t: LamTerm, path: Path) -> bool:
+        node = _bare(t)
+        if isinstance(node, LamApp):
+            ta, tb = node.func, node.arg
+            if (type_at_term(ta, a_iri) and type_at_term(tb, b_iri)
+                    and _occurs(ta, toc) and _occurs(tb, toc)):
+                return True
+        if isinstance(node, LamApp):
+            return walk(node.func, path + (0,)) or walk(node.arg, path + (1,))
+        if isinstance(node, LamAbs):
+            return walk(node.body, path + (0,))
+        return False
+
+    def type_at_term(sub: LamTerm, want: str) -> bool:
+        try:
+            return type_at_of(sub) == want
+        except Exception:
+            return False
+
+    def type_at_of(sub: LamTerm) -> Optional[str]:
+        # `type_at` is given as (term, path); ask it about `sub` as its own root
+        return type_at(sub, ())
+
+    return walk(term, ())
 
 
 # ── update on a reflection  (§8.7) ─────────────────────────────────────────
@@ -496,17 +762,22 @@ def after_reflection(ontologies: list[Ontology], pid: int,
                      type_at) -> tuple[list[Ontology], dict]:
     """Update the set for a reflection the user just performed (§8.7).
 
-    TWO BRANCHES, and unlike §8.6 BOTH demand real structure — the required
-    SHARING must already be present either way:
+    ONE OUTER TEST, then TWO BRANCHES. The outer test is §8.8's strong gate and
+    applies to both: [toc] == C, and t must ALREADY contain app(ta, tb) with
+    [ta] == A, [tb] == B and G(toc) shared as a subterm of BOTH ta and tb.
+    Passing it, the branches differ only in whether anything reduces:
 
-      toc is an abstraction, RULE 4 applies  -> reduce; the new pointers land on
-                                                the two copies of the
-                                                abstraction's fan.
-      a SHARING FAN-IN is already above toc  -> NOTHING reduces; the new pointers
-                                                land on that fan's two top edges.
+      toc IS an abstraction      -> RULE 4 fires; the new pointers land on the two
+                                    copies of the abstraction's fan.
+      toc is NOT an abstraction,
+      but a SHARING FAN-IN is
+      already ABOVE it           -> NOTHING reduces; G(t) is unchanged and the new
+                                    pointers land on that fan's two top edges.
+                                    NO abstraction is needed in this branch.
 
-    An ontology with neither is REFUTED. So reflection refutes HARDER than
-    contraction, whose non-firing branch demands no structure of its own.
+    An ontology failing the outer test, or passing it with neither branch, is
+    REFUTED. So reflection refutes HARDER than contraction, whose non-firing
+    branch demands no structure of its own.
     """
     out: list[Ontology] = []
     stats = {"fired": 0, "silent": 0, "refuted": 0}
@@ -519,6 +790,16 @@ def after_reflection(ontologies: list[Ontology], pid: int,
         raw = subterm_at(o.term, path)
         toc = _bare(raw)
 
+        # THE OUTER TEST, required by BOTH branches (§8.7, §8.8): the ontology
+        # must ALREADY contain app(ta,tb) with [ta]==A, [tb]==B and G(toc) shared
+        # in both. [toc] == C is checked here too.
+        if type_at(o.term, path) != c_iri:
+            stats["refuted"] += 1
+            continue
+        if not _shared_app_ab(o.term, raw, a_iri, b_iri, type_at):
+            stats["refuted"] += 1
+            continue
+
         if isinstance(toc, LamAbs):
             # RULE 4 fires: the abstraction is duplicated onto the two branches.
             # Both new pointers designate copies of the ABSTRACTION's fan (§8.5).
@@ -527,17 +808,22 @@ def after_reflection(ontologies: list[Ontology], pid: int,
             ptrs = {k: v for k, v in o.pointers.items() if k != pid}
             ptrs[left_pid] = path + (0,)
             ptrs[right_pid] = path + (1,)
-            out.append(Ontology(term=new_term, pointers=ptrs, fired=o.fired + 1))
+            out.append(Ontology(term=new_term, pointers=ptrs, fired=o.fired + 1,
+                                origin=o.origin or o.term))
             stats["fired"] += 1
             continue
 
-        if isinstance(raw, LamFan):
-            # The sharing is ALREADY in place: nothing reduces, the pointers just
-            # advance onto the existing fan's two top edges.
+        # toc is NOT an abstraction. §8.7's second branch: NO abstraction is
+        # needed if a SHARING FAN-IN is ALREADY ABOVE toc. The fan is the PARENT
+        # — toc is what it shares — so look up the path, not at it.
+        fan_path = _sharing_fan_above(o.term, path)
+        if fan_path is not None:
+            # NOTHING REDUCES. The pointers advance onto that fan's two top edges.
             ptrs = {k: v for k, v in o.pointers.items() if k != pid}
-            ptrs[left_pid] = path + (0,)
-            ptrs[right_pid] = path + (1,)
-            out.append(Ontology(term=o.term, pointers=ptrs, fired=o.fired))
+            ptrs[left_pid] = fan_path + (0,)
+            ptrs[right_pid] = fan_path + (1,)
+            out.append(Ontology(term=o.term, pointers=ptrs, fired=o.fired,
+                                origin=o.origin))
             stats["silent"] += 1
             continue
 

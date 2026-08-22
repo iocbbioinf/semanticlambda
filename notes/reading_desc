@@ -77,21 +77,40 @@ pointer by a larger one containing it.
 
 AN ENTITY THE USER REUSES IS ONE NODE. G(t) is a SHARING graph, so an entity that
 turns up again in a later contraction is not a second variable of the same name: it
-is the same node, reached from every place it was used. Two kinds of sharing arise,
-and they are not the same mechanism:
+is the same node, reached from every place it was used.
 
-    ENTITY REUSE     the same entity used at several positions. Shared because it
-                     IS one entity; nothing is cast and no position forks. There
-                     is no fan — the node is simply reached more than once.
+THERE IS ONLY ONE KIND OF SHARING: AN EXPLICIT SHARING FAN-IN. Reuse and
+reflection are not two mechanisms. When the user reuses an entity, the entity is a
+FREE VARIABLE occurring in both sides of an application, and GAL shares a free
+variable by a fan-in ON THE MIDDLE WIRE — the configuration of GAL page 7, first
+picture (the application sharing graph). The two occurrences are the fan's two aux
+ports; the shared entity hangs below its principal port.
 
-    REFLECTION       one SUBJECT viewed under two casts (§4.2). The sharing is the
-                     step's whole content, so it is carried by an explicit fan-in
-                     whose two aux ports are the reader's new positions.
+  So a reading of A, then A -> B, then B -> A builds the term (ab)a with [a] == A
+  and [b] == B, and its graph carries a sharing fan-in whose two aux ports are the
+  two uses of a. Confirmed against the implementation: compiling (ab)a yields THREE
+  fans where (ab) yields one — the extra node is `_Compiler._fan_in`'s
+  role=INTERNAL fan, marked on OFFSET (the middle wire), carrying a's iri.
+
+  THE MIDDLE WIRE IS WHAT DISTINGUISHES IT from the syntactic λ/@ fans, which act
+  on the folded command wire (§8.5(2)). That marking is why a value flowing into
+  the shared variable DUPLICATES by rule 4 rather than annihilating.
+
+WHAT REFLECTION ADDS IS NOT THE FAN BUT THE CAST. Reflection (§4.2) shares one
+SUBJECT under two casts, A on the left-up edge and B on the right-up edge, and it
+is the CASTS that make the step more than reuse. The sharing itself is the same
+fan-in in both cases.
 
   Sharing an entity does NOT tie the positions together: contracting at one
   occurrence leaves the others as they were. What is shared is the entity, not the
   context built around it — so the graph records one node with several parents,
-  each parent free to grow independently.
+  each parent free to grow independently. In a reflection fan the two parents are
+  the reader's own new positions, which is why that fan carries per-branch context.
+
+  IN THE TERM REPRESENTATION the one mechanism appears in two ways — a node
+  reached twice by identity, or an explicit `LamFan` when there are casts to
+  record — but this is an artefact of writing graphs as terms, NOT a second kind
+  of sharing. Anything testing for sharing must accept both (see §8.7).
 
 
 2. Types are entities
@@ -567,6 +586,29 @@ contains no abstractions (I6); an ONTOLOGY is the EXPLICIT layer and is built
 from the POSITIVE FORM of abstractions, G(lam a.t), which a reading never sees.
 Reduction is the explicit act of ANSWERING the question.
 
+THE PRE-REDUCTION GRAPH IS KEPT AS WELL. An ontology is a HYPOTHESIS, and G(t)
+above is that hypothesis AFTER the reading has consumed part of it: every firing
+of rule 1 or rule 4 rewrites it. So each ontology also carries the graph it was
+PROPOSED as, before the first reduction the reading caused:
+
+    ont( G(t), P, G(t_0) )        G(t_0) = the graph as proposed
+
+  WHY IT CANNOT BE RE-DERIVED: reduction here is not invertible. Rule 1 consumes
+  the abstraction it fires on, so the resolved graph no longer records WHICH
+  abstraction the model claimed — and that claim is the whole content of the
+  hypothesis. Only G(t_0) shows it.
+
+  G(t_0) is set ONCE, at the first firing, and carried forward untouched
+  thereafter. Before anything fires there is nothing to keep: the proposal IS the
+  current graph, and the two coincide.
+
+  ENRICHMENT (§8.4) INHERITS IT rather than resetting it: substituting an
+  abstraction into an already-reduced ontology yields a candidate that still
+  descends from that ontology's proposal.
+
+  THE READING'S OWN MEMBER (§8.1b) HAS NONE, and must not: it is a mirror
+  refreshed at every step, not a hypothesis under test, and it never reduces.
+
 8.1b The reading is a member of its own ontology set
 -----------------------------------------------------
 
@@ -613,6 +655,48 @@ FORM of every abstraction whose type is A. Note that abstracting RETYPES:
 so "of type A" is a test on the BOUND VARIABLE, not on the body. This is what
 makes "all abstractions of type A" a finite, concrete lookup
 (cf. `widgets._record_contains_iri`, which tests `term.var.iri == iri`).
+
+RENDERING SHOWS BOTH SIDES AT ONCE. A rendered ontology shows the POSITIVE FORM —
+that is what the graph holds — but the positive form names only the asked entity,
+so the reader cannot tell WHICH QUESTION was claimed. So where an abstraction node
+is a SAVED question, its TITLE is rendered beside it (`term_utils.
+title_for_abstraction`, keyed on the term's canonical string).
+
+  This matters most in the PRE-REDUCTION graph (§8.1): rule 1 consumes the
+  abstraction it fires on, so the resolved graph has lost the question, and the
+  original is the only place it can be read.
+
+  ONLY WHOLE SAVED ABSTRACTIONS HAVE A TITLE. An abstraction node nested INSIDE a
+  saved question's body was never asked as a question in its own right, and one
+  produced BY reduction was never asked at all; both correctly render untitled.
+  Absence of a title is therefore informative, not a lookup failure.
+
+  ONE TERM MAY CARRY SEVERAL TITLES. Two questions may share a graph and an asked
+  entity and differ only in title, which is legitimate; the renderer names one and
+  counts the rest.
+
+TWO WELL-FORMEDNESS INVARIANTS ON A SAVED QUESTION. Enrichment (§8.4) draws its
+candidates ONLY from saved questions, so every abstraction reachable in the store
+must be one a user actually asked. Enforced in `term_utils.check_question`, which
+`append_lambda_term` calls before writing:
+
+  Q1  THE BOUND VARIABLE MUST OCCUR FREE IN THE BODY. A question whose binder
+      binds nothing claims to be about an entity its graph never mentions — and
+      since [G(lam a.t)] == [a], enrichment would still offer it as a candidate OF
+      THAT TYPE, although reducing it can never place the asked entity anywhere.
+      Such a candidate is a vacuous hypothesis occupying a slot in the set.
+
+      A SHADOWED OCCURRENCE DOES NOT COUNT: an inner binder for the same entity
+      rebinds it, so the outer binder binds nothing after all.
+
+  Q2  EVERY NESTED ABSTRACTION MUST ITSELF BE A SAVED QUESTION. An anonymous
+      abstraction inside a stored term is material nobody asked for: it has no
+      title, so it cannot be shown or accounted for, yet it reaches ontologies
+      through the question that contains it.
+
+      CONSEQUENCE FOR ORDER: a question with nested abstractions can only be
+      saved AFTER those abstractions have been saved as questions in their own
+      right.
 
 8.3 Initialisation
 -------------------
@@ -1021,8 +1105,73 @@ ontology pointers must survive rule applications.
   `_Compiler._fan_in`. It is what makes the two uses DUPLICATE rather than
   annihilate.
 
+  WHICH SHARING COUNTS: ALL OF IT. There is only one kind of sharing (§1) — the
+  middle-wire fan-in — so this branch is satisfied by ANY node reached twice above
+  toc, entity reuse included, not only by a fan a prior reflection created. This
+  matters in practice: of the saved abstractions, 2529 applications app(ta,tb)
+  share a node across both sides and so pass the outer test; under the narrow
+  reading NONE would pass this one, and every reflection would empty the set.
+
   Which nodes the two new pointers designate in the FIRING branch: see §8.5 — the
   two copies of the abstraction's fan, identified by their `role` and `iri`.
+
+8.7b What the ontology set OFFERS the reader
+--------------------------------------------
+
+The update rules read the set FORWARD: the user acts, and each ontology is tested.
+The set can also be read BACKWARD, as a source of steps — material an ontology
+already holds at the reader's own position is a step for which a MODEL EXISTS,
+whether or not the knowledge graph asserts a claim for it.
+
+    forward offer  (contraction option 1, the reader MOVES)
+        some ont(G(t), P) has a subgraph app(ta, tb) with P's counterpart of
+        actPtr designating that application and the reader standing at ta;
+        the entity offered is B == [tb].
+
+    reverse offer  (contraction option 2, the reader STAYS)
+        the same, with the reader standing at tb;
+        the entity offered is A == [ta].
+
+  WHERE THE POINTER SITS. After a contraction actPtr designates the APPLICATION
+  NODE just built (§4.1), so the app(ta, tb) to read is the one AT the pointer and
+  ta, tb are its two branches. An ontology whose pointer designates something that
+  is not an application offers nothing — there is no pair to match.
+
+  WHY THIS IS SOUND, not a new step: taking such an offer is an ORDINARY
+  contraction. The offering ontology then passes §8.6's outer test by
+  construction (it already has app(ta,tb) with the right types) and FIRES if an
+  abstraction sits there — so the offer is exactly the proposal that its own
+  reduction replay the reading (§8.1).
+
+  WHAT IT MEANS FOR THE READER. A claim is what the graph asserts; an offer is
+  what some saved question would license. So the offers are the reading's
+  available EXPLICIT continuations, and they are the mechanism by which a reading
+  can leave the claim graph (§2's [ASSUMPTION]) while staying modelled — the case
+  Example 3 exhibits.
+
+  IN THE UI both claim panels list them after the real claims, marked and counted
+  by how many ontologies back each, and named by the questions those ontologies
+  were built from (`ontology_state.steps_proposed`). Entities the claims already
+  list are not repeated: the point is to add what the graph does not say.
+
+  AT THE START OF A READING there is no such offer to read: §8.3 seeds a BARE
+  VARIABLE, so no ontology holds an application at the pointer and the set offers
+  nothing. A reading could then only BEGIN along a real claim, even where a saved
+  question licenses the step — which would make the first step a special case for
+  no reason of principle.
+
+  So at that one position the offer is read off the SAVED QUESTIONS instead of off
+  the set (`ontology_state.steps_from_questions`). For each question q whose type
+  is the type at the pointer, wherever q's BODY contains app(ta, tb) with the
+  reader's own type on one side, the other side is offered:
+
+      forward   [ta] == [pointer]  ->  offer B == [tb]
+      reverse   [tb] == [pointer]  ->  offer A == [ta]
+
+  THIS IS THE SAME OFFER ONE STEP EARLIER, not a second mechanism: taking it
+  makes §8.4's `candidates_for_contraction` propose app(q, B), whose rule-1
+  firing IS that contraction. The question that offered the step is the model
+  that justifies it.
 
 8.8 Refutation, and the empty set
 ----------------------------------

@@ -98,7 +98,129 @@ def collect_edge_claims(g: rdflib.Graph, term: LamTerm) -> list[dict]:
     return result
 
 
+# ── question titles for abstractions ────────────────────────────────────────
+#
+# An abstraction IS a question (reading_desc §8.2): its negative form is a title,
+# its positive form G(lam a.t) is what ontologies are built from. A rendered
+# ontology shows the positive form, so the title — the thing a reader would
+# recognise — is not visible unless it is looked up.
+#
+# The key is `str(term)`, which is exactly what `append_lambda_term` stores as
+# `term_str`, so a saved question and an abstraction in an ontology that came
+# from it produce the same key. Several questions may share one term (distinct
+# titles over the same graph and asked entity are allowed), so the index maps to
+# a LIST and the renderer shows the first with a count of the rest.
+
+_ABS_TITLES: Optional[dict[str, list[str]]] = None
+
+
+def abstraction_titles(refresh: bool = False) -> dict[str, list[str]]:
+    """term_str -> [question title, ...] for every saved abstraction.
+
+    Cached: the store has thousands of records and a render walks many nodes.
+    Pass refresh=True after saving a new question.
+    """
+    global _ABS_TITLES
+    if _ABS_TITLES is not None and not refresh:
+        return _ABS_TITLES
+    idx: dict[str, list[str]] = {}
+    for rec in load_lambda_db():
+        d = rec.get("term")
+        if not isinstance(d, dict) or d.get("type") != "abs":
+            continue
+        key = rec.get("term_str")
+        title = rec.get("chain_label")
+        if not key or not title:
+            continue
+        idx.setdefault(key, []).append(title)
+    _ABS_TITLES = idx
+    return idx
+
+
+def title_for_abstraction(t: LamTerm) -> Optional[str]:
+    """The question title for this abstraction, or None if it is not a saved one.
+
+    An abstraction can arise inside an ontology by REDUCTION as well as by being
+    proposed whole, so a miss is ordinary and simply means "no title to show".
+    """
+    titles = abstraction_titles().get(str(t))
+    if not titles:
+        return None
+    if len(titles) == 1:
+        return titles[0]
+    # distinct titles over the same term are legitimate — name one, count the rest
+    return f"{titles[0]}  (+{len(titles) - 1} more)"
+
+
+def _occurs_free(t: LamTerm, iri: str) -> bool:
+    """Does `iri` occur FREE in t? A binder for the same entity shadows it."""
+    if isinstance(t, LamVar):
+        return t.iri == iri
+    if isinstance(t, LamApp):
+        return _occurs_free(t.func, iri) or _occurs_free(t.arg, iri)
+    if isinstance(t, LamAbs):
+        if t.var.iri == iri:
+            return False
+        return _occurs_free(t.body, iri)
+    return False
+
+
+def inner_abstractions(t: LamTerm, _top: bool = True,
+                       acc: Optional[list] = None) -> list:
+    """Every abstraction node STRICTLY INSIDE t."""
+    if acc is None:
+        acc = []
+    if isinstance(t, LamAbs):
+        if not _top:
+            acc.append(t)
+        inner_abstractions(t.body, False, acc)
+    elif isinstance(t, LamApp):
+        inner_abstractions(t.func, False, acc)
+        inner_abstractions(t.arg, False, acc)
+    return acc
+
+
+def check_question(term: LamTerm) -> Optional[str]:
+    """Why `term` is not a well-formed question, or None if it is.
+
+    Two invariants, both because ONLY SAVED QUESTIONS MAY BE USED DURING
+    ENRICHMENT (§8.4) — so every abstraction reachable in the store has to be one
+    a user actually asked:
+
+      (1) THE BOUND VARIABLE MUST OCCUR FREE IN THE BODY. Otherwise the question
+          claims to be about an entity its graph never mentions; and since
+          [G(lam a.t)] == [a] (§8.2), enrichment would offer it as a candidate of
+          that type even though reducing it can never place the asked entity.
+          A shadowed occurrence does not count — an inner binder for the same
+          entity rebinds it, leaving the outer binder binding nothing.
+
+      (2) EVERY NESTED ABSTRACTION MUST ITSELF BE A SAVED QUESTION. An anonymous
+          abstraction inside a stored term is material nobody asked for: it
+          renders untitled and cannot be accounted for.
+    """
+    if not isinstance(term, LamAbs):
+        return None                       # not a question; nothing to check
+    if not _occurs_free(term.body, term.var.iri):
+        return (f"the bound variable {term.var.label!r} does not occur free in "
+                f"the body, so the question is about nothing")
+    saved = abstraction_titles()
+    for q in inner_abstractions(term):
+        if str(q) not in saved:
+            return (f"the nested abstraction {str(q)[:60]!r} is not itself a "
+                    f"saved question")
+    return None
+
+
 def append_lambda_term(name: str, term: LamTerm, g: rdflib.Graph) -> None:
+    """Save a question. Raises ValueError if it is not well formed.
+
+    The check is here rather than at the call sites because this is the ONLY way
+    material enters the question store, and enrichment draws its candidates from
+    exactly that store.
+    """
+    why = check_question(term)
+    if why is not None:
+        raise ValueError(f"refusing to save {name!r}: {why}")
     records = load_lambda_db()
     records.append({
         "chain_label": name,
@@ -107,6 +229,7 @@ def append_lambda_term(name: str, term: LamTerm, g: rdflib.Graph) -> None:
         "claims": collect_edge_claims(g, term),
     })
     save_lambda_db(records)
+    abstraction_titles(refresh=True)      # the new title must be visible at once
 
 
 def _term_type(t: LamTerm) -> Optional[str]:
@@ -177,32 +300,63 @@ def _is_fan(t) -> bool:
 
 
 def _find_shared(term: LamTerm) -> dict[int, int]:
-    """Map id(subterm) -> share number for every subterm reached more than once.
+    """Map id(subterm) -> share number for every subterm the GRAPH shares.
 
-    Retained for terms whose sharing is only object identity — e.g. anything
-    built before fan-in nodes existed, or a term assembled directly as
-    LamApp(t, t). A reading's own sharing is now carried by an explicit fan
-    (§4.2) and needs no inference.
+    THE COMPILER'S FAN-IN IS THE ONLY MEANING OF SHARING. `_Compiler._merge_free`
+    builds a sharing fan-in for a variable exactly when that variable has FREE
+    references in BOTH sides of an application. Two consequences, and the renderer
+    must follow both or it draws structure the graph does not have:
+
+      SHARING IS BY ENTITY, NOT BY OBJECT. The compiler keys its free-variable map
+      on the IRI, so two DISTINCT LamVar objects naming one entity are merged by a
+      fan just the same. Object identity is therefore not the criterion — it is
+      neither necessary (distinct objects still share) nor sufficient (see next).
+
+      A BINDER SCOPES SHARING, it does not forbid it. `_Compiler.abs` pops its own
+      name out of the free map and wires it to the lambda fan's BLACK port — but
+      that happens to the ALREADY-MERGED reference, so a bound variable used TWICE
+      inside one body still gets a sharing fan first (verified: compiling
+      `lam a.((a . b) . a)` yields an INTERNAL fan on `a`). What the binder does is
+      END THE SCOPE: occurrences on opposite sides of it are merged separately, so
+      they are never one shared node.
+
+    So this counts occurrences PER ENTITY PER BINDING SCOPE, and marks the entity
+    shared when two or more meet in the SAME scope — exactly when the compiler
+    merges them into one fan.
     """
-    seen: set[int] = set()
-    shared: dict[int, int] = {}
+    # (entity iri, scope id) -> occurrence object ids, in encounter order.
+    # The scope id distinguishes the free occurrences of an entity from those
+    # bound by each enclosing lambda over it.
+    occ: dict[tuple[str, int], list[int]] = {}
+    seen_nodes: set[int] = set()
 
-    def walk(t: LamTerm) -> None:
+    def walk(t: LamTerm, scope: dict) -> None:
+        if isinstance(t, LamVar):
+            # scope.get -> the binder that captures this occurrence, or 0 for free
+            occ.setdefault((t.iri, scope.get(t.iri, 0)), []).append(id(t))
+            return
         key = id(t)
-        if key in seen:
-            if key not in shared:
-                shared[key] = len(shared) + 1
-            return                      # do NOT descend again
-        seen.add(key)
+        if key in seen_nodes:
+            return                              # a compound reached twice
+        seen_nodes.add(key)
         if _is_fan(t):
-            walk(t.principal)
+            walk(t.principal, scope)
         elif isinstance(t, LamApp):
-            walk(t.func)
-            walk(t.arg)
+            walk(t.func, scope)
+            walk(t.arg, scope)
         elif isinstance(t, LamAbs):
-            walk(t.body)
+            walk(t.body, {**scope, t.var.iri: id(t)})
 
-    walk(term)
+    walk(term, {})
+
+    shared: dict[int, int] = {}
+    n = 0
+    for _key, ids in occ.items():
+        if len(ids) < 2:
+            continue
+        n += 1
+        for i in ids:                           # every occurrence carries the mark
+            shared[i] = n
     return shared
 
 
@@ -260,7 +414,10 @@ def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
     share_no = shared.get(key)
     if share_no is not None:
         mark = f"[cyan]{_share_mark(share_no)}[/cyan] "
-        if key in expanded:
+        # KEY ON THE SHARE NUMBER, not on the object: sharing is per ENTITY (see
+        # _find_shared), so two distinct objects naming one entity are two
+        # occurrences of ONE graph node and only the first may be expanded.
+        if share_no in expanded:
             # a later use of one shared subgraph — point back, do not re-draw.
             # Name it by its TYPE, i.e. its rightmost leaf (reading_desc §7.4),
             # which is where the reader stands in that subterm.
@@ -273,7 +430,7 @@ def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
                     f"{prefix}{connector}{mark}[dim]…{lbl}[/dim] [dim]shared[/dim]"
                 )
             return
-        expanded.add(key)
+        expanded.add(share_no)
     else:
         mark = ""
 
@@ -299,8 +456,13 @@ def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
     elif isinstance(term, LamVar):
         lines.append(f"{prefix}{connector}{mark}[b]{esc(term.label)}[/b]")
     elif isinstance(term, LamAbs):
+        # An abstraction is a QUESTION. Show its TITLE when it is a saved one —
+        # the bound variable alone names only the asked entity, not the question.
+        title = title_for_abstraction(term)
+        title_s = f"  [italic dim]{esc(title)}[/italic dim]" if title else ""
         lines.append(
             f"{prefix}{connector}{mark}[yellow]?[/yellow] [b]{esc(term.var.label)}[/b]"
+            f"{title_s}"
         )
         _render_lam_body(term.body, lines, claims_by_edge, child_prefix,
                          is_last=True, shared=shared, expanded=expanded)

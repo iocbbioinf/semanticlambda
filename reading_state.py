@@ -237,6 +237,11 @@ def subterm_at(term, path: Path):
     Entering a LamFan by branch 0/1 materialises THAT occurrence: its own context
     with the one shared subject in the hole. Both branches put the SAME principal
     object in place, so identity — and hence sharing — is preserved.
+
+    A LamAbs is entered by branch 0, reaching its BODY. Readings contain no
+    abstractions (I6), but ONTOLOGY terms do (§8.1) and §8.4/§8.7 point inside
+    them, so the descent has to be total over the term language, not just over
+    the part a reading can build.
     """
     cur = term
     for d in path:
@@ -244,6 +249,8 @@ def subterm_at(term, path: Path):
             cur = cur.branch(0 if d == 0 else 1)
         elif isinstance(cur, LamApp):
             cur = cur.func if d == 0 else cur.arg
+        elif isinstance(cur, LamAbs) and d == 0:
+            cur = cur.body
         else:
             return None
     return cur
@@ -284,6 +291,11 @@ def replace_at(term, path: Path, new):
                           term.grey_cast, term.black_cast)
         return LamFan(term.principal, term.grey_ctx, ctx,
                       term.grey_cast, term.black_cast)
+    if isinstance(term, LamAbs) and path[0] == 0:
+        # descend into the body, keeping the binder. Ontology terms contain
+        # abstractions (§8.1) and are rewritten inside them; without this the
+        # path would be ignored and the subterm returned unchanged.
+        return LamAbs(var=term.var, body=replace_at(term.body, path[1:], new))
     if not isinstance(term, LamApp):
         return term
     d, rest = path[0], path[1:]

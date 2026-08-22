@@ -129653,108 +129653,6 @@
     "shares_bound": false
   },
   {
-    "chain_label": "\u25c7 asked as PCDB (Protein Conformational Database): is AH-DB (Apo-Holo DataBase) what holo form answers?",
-    "term": {
-      "type": "abs",
-      "var": {
-        "type": "var",
-        "iri": "https://ahoj-db.org/kg#PCDB",
-        "label": "PCDB (Protein Conformational Database)"
-      },
-      "body": {
-        "type": "app",
-        "func": {
-          "type": "var",
-          "iri": "https://ahoj-db.org/kg#AH_DB",
-          "label": "AH-DB (Apo-Holo DataBase)"
-        },
-        "arg": {
-          "type": "abs",
-          "var": {
-            "type": "var",
-            "iri": "https://ahoj-db.org/kg#HoloForm",
-            "label": "holo form"
-          },
-          "body": {
-            "type": "var",
-            "iri": "https://ahoj-db.org/kg#HoloForm",
-            "label": "holo form"
-          }
-        }
-      }
-    },
-    "term_str": "\u03bbPCDB (Protein Conformational Database).(AH-DB (Apo-Holo DataBase) \u00b7 (\u03bbholo form.(holo form)))",
-    "claims": [
-      {
-        "subj_iri": "https://ahoj-db.org/kg#AH_DB",
-        "obj_iri": "https://ahoj-db.org/kg#HoloForm",
-        "claim_iri": "https://ahoj-db.org/kg#Chang2012_c1",
-        "claim_text": "AH-DB provides corresponding pairs of protein structures before (apo) and after (holo) binding."
-      }
-    ],
-    "origin": "ai",
-    "shares_bound": false
-  },
-  {
-    "chain_label": "\u25c7 does AH-DB (Apo-Holo DataBase) reach binding pocket through holo form?",
-    "term": {
-      "type": "abs",
-      "var": {
-        "type": "var",
-        "iri": "https://ahoj-db.org/kg#AH_DB",
-        "label": "AH-DB (Apo-Holo DataBase)"
-      },
-      "body": {
-        "type": "app",
-        "func": {
-          "type": "abs",
-          "var": {
-            "type": "var",
-            "iri": "https://ahoj-db.org/kg#HoloForm",
-            "label": "holo form"
-          },
-          "body": {
-            "type": "app",
-            "func": {
-              "type": "var",
-              "iri": "https://ahoj-db.org/kg#HoloForm",
-              "label": "holo form"
-            },
-            "arg": {
-              "type": "abs",
-              "var": {
-                "type": "var",
-                "iri": "https://ahoj-db.org/kg#BindingPocket",
-                "label": "binding pocket"
-              },
-              "body": {
-                "type": "var",
-                "iri": "https://ahoj-db.org/kg#BindingPocket",
-                "label": "binding pocket"
-              }
-            }
-          }
-        },
-        "arg": {
-          "type": "var",
-          "iri": "https://ahoj-db.org/kg#BindingPocket",
-          "label": "binding pocket"
-        }
-      }
-    },
-    "term_str": "\u03bbAH-DB (Apo-Holo DataBase).((\u03bbholo form.(holo form \u00b7 (\u03bbbinding pocket.(binding pocket)))) \u00b7 binding pocket)",
-    "claims": [
-      {
-        "subj_iri": "https://ahoj-db.org/kg#HoloForm",
-        "obj_iri": "https://ahoj-db.org/kg#BindingPocket",
-        "claim_iri": "https://ahoj-db.org/kg#Peng2022_c2",
-        "claim_text": "Ligand-induced conformational changes are drastic but mainly confined to the binding site: fewer than 15% of protein pairs show obvious overall conformational adaptation, whereas more than 50% show significant structural change in the ligand binding site."
-      }
-    ],
-    "origin": "ai",
-    "shares_bound": false
-  },
-  {
     "chain_label": "'PDB structure' 'has coordinate precision' 'Coordinate precision (positional standard uncertainty)'",
     "term": {
       "type": "abs",
@@ -129814,5 +129712,646 @@
         "claim_text": "AHoJ-DB provides curated apo\u2013holo structure pairs that enable training and benchmarking of LBS predictors, drug design and docking, cryptic site validation, allosteric effect detection, and investigation of order-to-disorder transitions."
       }
     ]
+  },
+  {
+    "chain_label": "\u25c7 taken on its own, what is binding pocket?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#BindingPocket",
+        "label": "binding pocket"
+      },
+      "body": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#BindingPocket",
+        "label": "binding pocket"
+      }
+    },
+    "term_str": "\u03bbbinding pocket.(binding pocket)",
+    "claims": [],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 what does holo form reach through binding pocket?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#HoloForm",
+        "label": "holo form"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#HoloForm",
+          "label": "holo form"
+        },
+        "arg": {
+          "type": "abs",
+          "var": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          },
+          "body": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bbholo form.(holo form \u00b7 (\u03bbbinding pocket.(binding pocket)))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#HoloForm",
+        "obj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "claim_iri": "https://ahoj-db.org/kg#Peng2022_c2",
+        "claim_text": "Ligand-induced conformational changes are drastic but mainly confined to the binding site: fewer than 15% of protein pairs show obvious overall conformational adaptation, whereas more than 50% show significant structural change in the ligand binding site."
+      }
+    ],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 taken on its own, what is holo form?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#HoloForm",
+        "label": "holo form"
+      },
+      "body": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#HoloForm",
+        "label": "holo form"
+      }
+    },
+    "term_str": "\u03bbholo form.(holo form)",
+    "claims": [],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#HoloForm",
+        "label": "holo form"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "abs",
+          "var": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          },
+          "body": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#BindingPocket",
+              "label": "binding pocket"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+              "label": "Unified binding site"
+            }
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#HoloForm",
+            "label": "holo form"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+            "label": "Unified binding site"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bbholo form.((\u03bbbinding pocket.(binding pocket \u00b7 Unified binding site)) \u00b7 (holo form \u00b7 Unified binding site))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 asking AH-DB (Apo-Holo DataBase): does that reach carry back through binding pocket?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#AH_DB",
+        "label": "AH-DB (Apo-Holo DataBase)"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "abs",
+          "var": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#HoloForm",
+            "label": "holo form"
+          },
+          "body": {
+            "type": "app",
+            "func": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#BindingPocket",
+                "label": "binding pocket"
+              },
+              "body": {
+                "type": "app",
+                "func": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#BindingPocket",
+                  "label": "binding pocket"
+                },
+                "arg": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+                  "label": "Unified binding site"
+                }
+              }
+            },
+            "arg": {
+              "type": "app",
+              "func": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#HoloForm",
+                "label": "holo form"
+              },
+              "arg": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+                "label": "Unified binding site"
+              }
+            }
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AH_DB",
+            "label": "AH-DB (Apo-Holo DataBase)"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bbAH-DB (Apo-Holo DataBase).((\u03bbholo form.((\u03bbbinding pocket.(binding pocket \u00b7 Unified binding site)) \u00b7 (holo form \u00b7 Unified binding site))) \u00b7 (AH-DB (Apo-Holo DataBase) \u00b7 binding pocket))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#HoloForm",
+        "obj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "claim_iri": "https://ahoj-db.org/kg#Peng2022_c2",
+        "claim_text": "Ligand-induced conformational changes are drastic but mainly confined to the binding site: fewer than 15% of protein pairs show obvious overall conformational adaptation, whereas more than 50% show significant structural change in the ligand binding site."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 does Conformational selection keep answering Conformational ensemble, twice over?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+        "label": "Conformational selection"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+            "label": "Conformational selection"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+            "label": "Conformational ensemble"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+          "label": "Conformational ensemble"
+        }
+      }
+    },
+    "term_str": "\u03bbConformational selection.((Conformational selection \u00b7 Conformational ensemble) \u00b7 Conformational ensemble)",
+    "claims": [],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 asking cryptic binding site: does Conformational selection's double answer to Conformational ensemble hold of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#CrypticSite",
+        "label": "cryptic binding site"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "abs",
+          "var": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+            "label": "Conformational selection"
+          },
+          "body": {
+            "type": "app",
+            "func": {
+              "type": "app",
+              "func": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+                "label": "Conformational selection"
+              },
+              "arg": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+                "label": "Conformational ensemble"
+              }
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+              "label": "Conformational ensemble"
+            }
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#CrypticSite",
+            "label": "cryptic binding site"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+            "label": "Conformational ensemble"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bbcryptic binding site.((\u03bbConformational selection.((Conformational selection \u00b7 Conformational ensemble) \u00b7 Conformational ensemble)) \u00b7 (cryptic binding site \u00b7 Conformational ensemble))",
+    "claims": [],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 asking allosteric site: does that carry back through Conformational selection?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#AllostericSite",
+        "label": "allosteric site"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "abs",
+          "var": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#CrypticSite",
+            "label": "cryptic binding site"
+          },
+          "body": {
+            "type": "app",
+            "func": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+                "label": "Conformational selection"
+              },
+              "body": {
+                "type": "app",
+                "func": {
+                  "type": "app",
+                  "func": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+                    "label": "Conformational selection"
+                  },
+                  "arg": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+                    "label": "Conformational ensemble"
+                  }
+                },
+                "arg": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+                  "label": "Conformational ensemble"
+                }
+              }
+            },
+            "arg": {
+              "type": "app",
+              "func": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#CrypticSite",
+                "label": "cryptic binding site"
+              },
+              "arg": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+                "label": "Conformational ensemble"
+              }
+            }
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AllostericSite",
+            "label": "allosteric site"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+            "label": "Conformational selection"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bballosteric site.((\u03bbcryptic binding site.((\u03bbConformational selection.((Conformational selection \u00b7 Conformational ensemble) \u00b7 Conformational ensemble)) \u00b7 (cryptic binding site \u00b7 Conformational ensemble))) \u00b7 (allosteric site \u00b7 Conformational selection))",
+    "claims": [],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 does allosteric site keep answering cryptic binding site, twice over?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#AllostericSite",
+        "label": "allosteric site"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AllostericSite",
+            "label": "allosteric site"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#CrypticSite",
+            "label": "cryptic binding site"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#CrypticSite",
+          "label": "cryptic binding site"
+        }
+      }
+    },
+    "term_str": "\u03bballosteric site.((allosteric site \u00b7 cryptic binding site) \u00b7 cryptic binding site)",
+    "claims": [],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 does cryptic binding site keep answering Conformational selection, twice over?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#CrypticSite",
+        "label": "cryptic binding site"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#CrypticSite",
+            "label": "cryptic binding site"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+            "label": "Conformational selection"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+          "label": "Conformational selection"
+        }
+      }
+    },
+    "term_str": "\u03bbcryptic binding site.((cryptic binding site \u00b7 Conformational selection) \u00b7 Conformational selection)",
+    "claims": [],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 asking cryptic binding site against Conformational ensemble: does Conformational selection still answer via Induced fit?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#CrypticSite",
+        "label": "cryptic binding site"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "abs",
+          "var": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+            "label": "Conformational selection"
+          },
+          "body": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#InducedFit",
+              "label": "Induced fit"
+            },
+            "arg": {
+              "type": "app",
+              "func": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#InducedFit",
+                "label": "Induced fit"
+              },
+              "arg": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+                "label": "Conformational selection"
+              }
+            }
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#CrypticSite",
+            "label": "cryptic binding site"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+            "label": "Conformational ensemble"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bbcryptic binding site.((\u03bbConformational selection.(Induced fit \u00b7 (Induced fit \u00b7 Conformational selection))) \u00b7 (cryptic binding site \u00b7 Conformational ensemble))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#InducedFit",
+        "obj_iri": "https://ahoj-db.org/kg#ConformationalSelection",
+        "claim_iri": "https://ahoj-db.org/kg#Roder2022_c10",
+        "claim_text": "The two binding mechanisms map onto landscape topography: induced fit relies on flexibility and is associated with shallow landscapes, whereas conformational selection is associated with multifunnel landscapes whose alternative ensembles are stabilised by specific interactions."
+      }
+    ],
+    "origin": "ai",
+    "shares_bound": false
+  },
+  {
+    "chain_label": "\u25c7 asking allosteric site through Conformational selection: does that reach Induced fit?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#AllostericSite",
+        "label": "allosteric site"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "abs",
+          "var": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#CrypticSite",
+            "label": "cryptic binding site"
+          },
+          "body": {
+            "type": "app",
+            "func": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+                "label": "Conformational selection"
+              },
+              "body": {
+                "type": "app",
+                "func": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#InducedFit",
+                  "label": "Induced fit"
+                },
+                "arg": {
+                  "type": "app",
+                  "func": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#InducedFit",
+                    "label": "Induced fit"
+                  },
+                  "arg": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+                    "label": "Conformational selection"
+                  }
+                }
+              }
+            },
+            "arg": {
+              "type": "app",
+              "func": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#CrypticSite",
+                "label": "cryptic binding site"
+              },
+              "arg": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+                "label": "Conformational ensemble"
+              }
+            }
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AllostericSite",
+            "label": "allosteric site"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ConformationalSelection",
+            "label": "Conformational selection"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bballosteric site.((\u03bbcryptic binding site.((\u03bbConformational selection.(Induced fit \u00b7 (Induced fit \u00b7 Conformational selection))) \u00b7 (cryptic binding site \u00b7 Conformational ensemble))) \u00b7 (allosteric site \u00b7 Conformational selection))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#InducedFit",
+        "obj_iri": "https://ahoj-db.org/kg#ConformationalSelection",
+        "claim_iri": "https://ahoj-db.org/kg#Roder2022_c10",
+        "claim_text": "The two binding mechanisms map onto landscape topography: induced fit relies on flexibility and is associated with shallow landscapes, whereas conformational selection is associated with multifunnel landscapes whose alternative ensembles are stabilised by specific interactions."
+      }
+    ],
+    "origin": "ai",
+    "shares_bound": false
   }
 ]

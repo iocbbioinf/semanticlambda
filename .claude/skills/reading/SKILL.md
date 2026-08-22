@@ -144,11 +144,26 @@ This matches GAL's own geometry: direction there is likewise recovered
 per-traversal, and the two occurrences are distinguished by the same grey/black
 branch that distinguishes their contexts.
 
-**Two kinds of sharing, different mechanisms.** An **entity the user reuses** is one
-node reached from every place it was used — shared by identity, no fan, nothing cast,
-and the positions stay independent (contracting at one occurrence leaves the others
-alone). **Reflection** shares a *subject* under two casts, and that sharing is the
-step's whole content, so it needs the explicit fan.
+**One kind of sharing: the explicit fan-in.** Reuse and reflection are *not* two
+mechanisms. An entity the user reuses is a **free variable occurring in both sides
+of an application**, and GAL shares a free variable by a fan-in **on the middle
+wire** (GAL p. 7, first picture — the application sharing graph); the two
+occurrences are its aux ports. So reading `A`, `A->B`, `B->A` builds `(ab)a` with
+`[a]==A`, `[b]==B` and `a` shared by such a fan — confirmed in code: compiling
+`(ab)a` yields three fans where `(ab)` yields one, the extra being
+`_Compiler._fan_in`'s `role=INTERNAL` node marked on `OFFSET`. The middle-wire
+marking is what separates it from the syntactic λ/@ fans and makes an incoming
+value *duplicate* (rule 4) rather than annihilate.
+
+What **reflection** adds is not the fan but the **casts** (A left-up, B right-up),
+plus the fact that its two parents are the reader's own new positions — which is
+why that fan carries per-branch context. Positions stay independent either way:
+contracting at one occurrence leaves the others alone.
+
+*In the term representation* the one mechanism shows up two ways — a node reached
+twice by identity, or an explicit `LamFan` when there are casts to record. That is
+an artefact of writing graphs as terms, **not** a second kind of sharing: anything
+testing for sharing must accept both (see `ontology_state._sharing_fan_above`).
 
 Reflection is the only operation that shares A SUBJECT, the only one that increases `|Pr|`,
 and the only one that breaks the typing. **No operation removes a pointer** — `Pr`

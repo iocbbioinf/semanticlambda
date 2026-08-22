@@ -156,6 +156,12 @@ a closed reading may be what the user answers WITH, never what they ask FROM.
         if sel is an Entity B:
             v = R.entities.get(B)          # NOT a fresh Var: an entity reused
             return (compile_term(v), v, B) # across steps is ONE shared node (§1)
+            # The reuse is shared by THE SAME MECHANISM as a reflection: a
+            # free variable in both sides of an application, merged by a
+            # middle-wire fan-in (reading_desc §1; `_Compiler._fan_in`).
+            # There is no second kind of sharing — reflection differs only by
+            # carrying CASTS. Any test for "is this shared" must therefore
+            # accept both a node reached twice and an explicit fan.
         if sel is a ClosedReading cr:                      # option 1 only
             if SHARE_GRAFTED_READING:
                 return (SHARED_REF(cr.graph), cr.term, TYPE_OF(cr.term))

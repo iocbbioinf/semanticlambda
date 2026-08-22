@@ -377,13 +377,26 @@ class OntologyItem(ListItem):
 
 
 class OntologyDetailModal(ModalScreen):
-    """One ontology's whole term, rendered as a graph."""
+    """One ontology's whole term, rendered as a graph.
+
+    TWO VIEWS, toggled with `o`:
+
+      RESOLVED  the term as it stands now — the hypothesis after the reading has
+                consumed part of it by reduction.
+      ORIGINAL  the shared graph this ontology was PROPOSED as, before the first
+                reduction the reading caused (`Ontology.origin`).
+
+    They differ exactly when the reading has fired a rule in this ontology. The
+    original is what shows which abstractions the model actually claimed —
+    reduction consumes them, so the resolved term alone does not say.
+    """
 
     CSS = ONTOLOGY_CSS
 
     BINDINGS = [
         Binding("escape", "dismiss", "Close"),
         Binding("q", "dismiss", "Close"),
+        Binding("o", "toggle_origin", "Original / resolved"),
     ]
 
     def __init__(self, g: rdflib.Graph, ontology, index: int) -> None:
@@ -391,32 +404,72 @@ class OntologyDetailModal(ModalScreen):
         self._g = g
         self._o = ontology
         self._index = index
+        self.show_origin = False
+
+    # the pre-reduction graph, when there is a distinct one to show
+    @property
+    def _origin(self):
+        o = self._o
+        return o.origin if getattr(o, "origin", None) is not None else None
 
     def compose(self) -> ComposeResult:
-        term = self._o.term
+        # Both panes are filled by `_refresh`, so the toggle re-renders in place
+        # instead of rebuilding the screen.
+        with ScrollableContainer(id="ont-container"):
+            yield Static("", id="ont-title", markup=True)
+            yield Static("", id="ont-body", markup=True)
+
+    def on_mount(self) -> None:
+        self._refresh()
+
+    def action_toggle_origin(self) -> None:
+        if self._origin is None:
+            self.app.bell()          # nothing reduced: there is no other graph
+            return
+        self.show_origin = not self.show_origin
+        self._refresh()
+
+    def _refresh(self) -> None:
+        o = self._o
+        ptrs = getattr(o, "pointers", {}) or {}
+        fired = getattr(o, "fired", 0)
+        origin = self._origin
+        showing_origin = self.show_origin and origin is not None
+        term = origin if showing_origin else o.term
+
         claims = collect_edge_claims(self._g, term)
         claims_by_edge: dict[tuple[str, str], list[str]] = {}
         for c in claims:
             claims_by_edge.setdefault((c["subj_iri"], c["obj_iri"]), []).append(
                 c["claim_text"])
-        ptrs = getattr(self._o, "pointers", {}) or {}
-        fired = getattr(self._o, "fired", 0)
-        with ScrollableContainer(id="ont-container"):
-            yield Static(
-                f"Ontology {self._index + 1}  [dim](rule fired {fired}×  |  "
-                f"|P|={len(ptrs)}  |  Esc close)[/dim]\n"
-                f"[dim]a model in which this reading is valid — its reduction "
-                f"replays the reading[/dim]",
-                id="ont-title", markup=True,
-            )
-            lines: list[str] = []
-            _render_lam_root(term, claims_by_edge, lines)
-            if ptrs:
-                lines.append("")
-                lines.append("[dim]pointers (reading pid → path):[/dim]")
-                for pid, path in sorted(ptrs.items()):
-                    lines.append(f"[dim]  {pid} → {list(path)}[/dim]")
-            yield Static("\n".join(lines), id="ont-body", markup=True)
+
+        if origin is None:
+            # Nothing has fired, so the proposal IS the current graph. Say so
+            # rather than offering a toggle that would show the same thing.
+            what = ("[b]as proposed[/b] [dim]— nothing has reduced here, so this "
+                    "is also the original graph[/dim]")
+        elif showing_origin:
+            what = ("[b]ORIGINAL[/b] [dim]— the graph this ontology was proposed "
+                    "as, before the first reduction (o: show resolved)[/dim]")
+        else:
+            what = ("[b]RESOLVED[/b] [dim]— after the reading reduced it "
+                    f"({fired}× ) (o: show ORIGINAL, pre-reduction)[/dim]")
+
+        self.query_one("#ont-title", Static).update(
+            f"Ontology {self._index + 1}  [dim](rule fired {fired}×  |  "
+            f"|P|={len(ptrs)}  |  Esc close)[/dim]\n{what}"
+        )
+
+        lines: list[str] = []
+        _render_lam_root(term, claims_by_edge, lines)
+        # Pointers index the RESOLVED term, so they are not shown over the
+        # original — the paths would point into a different graph.
+        if ptrs and not showing_origin:
+            lines.append("")
+            lines.append("[dim]pointers (reading pid → path):[/dim]")
+            for pid, path in sorted(ptrs.items()):
+                lines.append(f"[dim]  {pid} → {list(path)}[/dim]")
+        self.query_one("#ont-body", Static).update("\n".join(lines))
 
 
 class ReadingOntologiesModal(ModalScreen):
@@ -451,7 +504,8 @@ class ReadingOntologiesModal(ModalScreen):
         with ScrollableContainer(id="ont-container"):
             yield Static(
                 f"Ontologies of the current reading: [b]{n}[/b]{detail}"
-                f"  [dim](Enter: show graph  |  Esc close)[/dim]",
+                f"  [dim](Enter: show graph, then o: original pre-reduction graph"
+                f"  |  Esc close)[/dim]",
                 id="ont-title", markup=True,
             )
             if not self._has_reading:
@@ -481,6 +535,19 @@ class ReadingOntologiesModal(ModalScreen):
                 *[OntologyItem(o, i) for i, o in enumerate(self._ontologies)],
                 id="ont-body",
             )
+
+    def on_mount(self) -> None:
+        """Focus the LIST, not its scroll container.
+
+        `ScrollableContainer` is focusable and is mounted first, so it takes the
+        initial focus and swallows the arrow keys — the list's own cursor never
+        moves and Enter has no selected item to act on. Focusing the list makes
+        arrows move the cursor and Enter emit ListView.Selected.
+        """
+        try:
+            self.query_one("#ont-body", ListView).focus()
+        except Exception:
+            pass          # no list: the empty-set or no-reading message is shown
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         item = event.item
@@ -782,6 +849,36 @@ class SeparatorItem(ListItem):
     def __init__(self, label: str) -> None:
         super().__init__(Label(f"[dim]─── {esc(label)} ───[/dim]", markup=True))
         self.disabled = True
+
+
+class OntologyStepItem(ListItem):
+    """A step some ONTOLOGY of the reading already contains, but no claim asserts.
+
+    The ontology layer proposes it: some ont(G(t), P) has a subgraph app(ta, tb)
+    with actPtr at one side and this entity's type at the other (reading_desc
+    §8.1). Following it is an ordinary contraction — the difference is only where
+    the step came from, so it is marked and listed after the real claims.
+
+      forward (option 1)  actPtr at ta, [tb] == this entity — the reader MOVES
+      reverse (option 2)  actPtr at tb, [ta] == this entity — the reader STAYS
+    """
+
+    def __init__(self, node: rdflib.URIRef, label: str, n_onts: int,
+                 titles: list[str], reverse: bool = False) -> None:
+        arrow = "←" if reverse else "→"
+        via = ""
+        if titles:
+            first = titles[0]
+            more = f"  +{len(titles) - 1}" if len(titles) > 1 else ""
+            via = f"  [dim italic]{esc(first[:56])}{more}[/dim italic]"
+        display = (
+            f"[magenta]◈[/magenta] {arrow}  [b]{esc(label)}[/b]"
+            f"  [dim]{n_onts} ontolog{'y' if n_onts == 1 else 'ies'}[/dim]{via}"
+        )
+        super().__init__(Label(display, markup=True))
+        self.node = node
+        self.label_text = label
+        self.reverse = reverse
 
 
 class MappingItem(ListItem):
