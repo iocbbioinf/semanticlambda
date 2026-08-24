@@ -360,6 +360,8 @@ class OntologyItem(ListItem):
         fired = getattr(ontology, "fired", 0)
         # `fired` counts how often this model's hypotheses actually paid off —
         # a confirmed survivor is a better approximation than a silent one (O8).
+        # It counts BOTH rules: rule 1 for a contraction (§8.6) and rule 4 for a
+        # reflection (§8.7). The list is ordered by it, descending.
         badge = (f"[green]✓{fired}[/green]" if fired else "[dim]·[/dim]")
         # the reading is a member of its own set: trivially a model of itself,
         # and the one member that can never fire (a reading has no abstractions).
@@ -504,7 +506,8 @@ class ReadingOntologiesModal(ModalScreen):
         with ScrollableContainer(id="ont-container"):
             yield Static(
                 f"Ontologies of the current reading: [b]{n}[/b]{detail}"
-                f"  [dim](Enter: show graph, then o: original pre-reduction graph"
+                f"  [dim]— most rules fired first[/dim]\n"
+                f"[dim](Enter: show graph, then o: original pre-reduction graph"
                 f"  |  Esc close)[/dim]",
                 id="ont-title", markup=True,
             )
@@ -529,10 +532,28 @@ class ReadingOntologiesModal(ModalScreen):
                     id="ont-body", markup=True,
                 )
                 return
-            # Pass the items to the constructor: ListView.append() mounts, and a
-            # widget cannot be mounted into before it is itself mounted.
+            # ORDERED BY HOW MANY RULES FIRED, DESCENDING. `fired` counts every
+            # firing this ontology has had — rule 1 for a contraction (§8.6) and
+            # rule 4 for a reflection (§8.7) alike — so it measures how often the
+            # model's hypotheses actually paid off. The most-confirmed survivor
+            # is the most interesting one, so it comes first (cf. `cap`, which
+            # evicts by the same key).
+            #
+            # Ties keep the set's own order, which is stable: `sorted` is stable
+            # and the reading's mirror is inserted at position 0 by
+            # `sync_reading_ontology`, so it leads its tie group. Numbering
+            # follows the DISPLAY order, so the label a row shows is the position
+            # it occupies.
+            #
+            # THE READING'S OWN MIRROR THEREFORE COMES LAST: it can never fire
+            # (a reading contains no abstractions, I6), so its count is 0. That
+            # follows from the ordering rule rather than working against it — it
+            # is the one member that proposes nothing — and it stays findable by
+            # its "≡ the reading itself" tag.
+            ordered = sorted(self._ontologies,
+                            key=lambda o: getattr(o, "fired", 0), reverse=True)
             yield ListView(
-                *[OntologyItem(o, i) for i, o in enumerate(self._ontologies)],
+                *[OntologyItem(o, i) for i, o in enumerate(ordered)],
                 id="ont-body",
             )
 

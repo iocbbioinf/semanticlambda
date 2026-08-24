@@ -402,11 +402,44 @@ def candidates_for_contraction(pid: int, path: Path, a_iri: str, b_iri: str,
     Only abstractions that actually FIT are kept: [q] must be the type at the
     pointer, and the reduct must present the step's own types. The rest would be
     refuted immediately, so they are never proposed.
+
+    WHICH SIDE THE REDEX GOES ON DEPENDS ON THE OPTION. Both options build
+    app(t1, t2) with [t1] == A and [t2] == B (§4.1), and rule 1 fires at t1 — so
+    the proposal is always app(q, x) with [q] == A. What differs is WHAT THE OTHER
+    SIDE IS:
+
+      option 1  the reader MOVES to B: the operand is t2, so the candidate is
+                app(q, operand) with q of type A — the type AT THE POINTER.
+      option 2  the reader STAYS: the operand is t1, so the ABSTRACTION MUST BE OF
+                THE OPERAND'S OWN TYPE and the pointed material is t2. The
+                candidate is app(q, stayed) with [q] == A == [operand].
+
+    Getting this wrong empties the set on every option-2 step: the proposals would
+    all have [t1] equal to the type at the pointer, which under option 2 is B, and
+    the outer test demands A there.
     """
     out: list[Ontology] = []
     for q in abstractions_of_type(a_iri, pool):
         cand = LamApp(q, operand)
         out.append(Ontology(term=cand, pointers={pid: path}))
+    return out
+
+
+def candidates_for_option2(pid: int, path: Path, a_iri: str,
+                           stayed: LamTerm,
+                           pool: Optional[list[LamAbs]] = None,
+                           ) -> list[Ontology]:
+    """Proposals for an OPTION 2 contraction (§4.1, §8.6).
+
+    Option 2 puts the OPERAND in function position: the reading builds
+    app(operand, stayed) with [operand] == A and [stayed] == B, and the reader
+    does not move. Rule 1 fires at t1, so the abstraction to propose is of type
+    A — the OPERAND's type, not the type at the pointer — applied to the material
+    the reader stayed at.
+    """
+    out: list[Ontology] = []
+    for q in abstractions_of_type(a_iri, pool):
+        out.append(Ontology(term=LamApp(q, stayed), pointers={pid: path}))
     return out
 
 

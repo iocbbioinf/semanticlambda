@@ -323,7 +323,8 @@ class KGBrowser(App):
 
     def _ont_after_contraction(self, pid: int, option: int,
                                a_iri: str, b_iri: str,
-                               operand_onts=None, operand=None) -> None:
+                               operand_onts=None, operand=None,
+                               stayed=None) -> None:
         """UPDATE then ENRICH, in step with the reading's contraction (§8.6)."""
         # the reading's own mirror is not a hypothesis to be tested: keep it out
         # of the update rules and refresh it afterwards.
@@ -333,9 +334,16 @@ class KGBrowser(App):
         # this contraction. Done here rather than at init because the operand is
         # only known once the user has chosen it.
         if operand is not None:
-            candidates = candidates + ont_layer.candidates_for_contraction(
-                pid, self._ont_pointer_paths().get(pid, ()),
-                a_iri, b_iri, operand)
+            ppath = self._ont_pointer_paths().get(pid, ())
+            if option == 2 and stayed is not None:
+                # option 2 puts the OPERAND in function position, so the
+                # abstraction to propose is of the operand's type applied to the
+                # material the reader stayed at (§8.6).
+                candidates = candidates + ont_layer.candidates_for_option2(
+                    pid, ppath, a_iri, stayed)
+            else:
+                candidates = candidates + ont_layer.candidates_for_contraction(
+                    pid, ppath, a_iri, b_iri, operand)
         self._ontologies, stats = ont_layer.after_contraction(
             candidates, pid, option, a_iri, b_iri,
             self._ont_type_at, operand_onts,
@@ -781,7 +789,7 @@ class KGBrowser(App):
             # approval of a rule-1 firing (§8.5(3), §8.6).
             self._ont_after_contraction(act.pid, option, a_iri, b_iri,
                                         operand_onts=operand_onts,
-                                        operand=operand)
+                                        operand=operand, stayed=stayed)
 
     # ── Events ────────────────────────────────────────────────────────────────
 
