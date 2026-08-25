@@ -325,10 +325,36 @@ class KGBrowser(App):
                                a_iri: str, b_iri: str,
                                operand_onts=None, operand=None,
                                stayed=None) -> None:
-        """UPDATE then ENRICH, in step with the reading's contraction (§8.6)."""
-        # the reading's own mirror is not a hypothesis to be tested: keep it out
-        # of the update rules and refresh it afterwards.
+        """UPDATE then ENRICH, in step with the reading's contraction (§8.6).
+
+        THE SPECIAL ONTOLOGY IS PREPARED FIRST, then the ordinary update runs.
+        The order is part of the rule:
+
+          1. drop the old mirror;
+          2. add a fresh one equal to the reading AFTER this contraction;
+          3. set its pointer set to tb — in BOTH options, since §4.1 makes tb the
+             B side either way, so [actPtr] stays the reading's own type and the
+             pointer DESCENDS INTO the term as the reading grows;
+          4. ENRICH that mirror, at that pointer;
+          5. run the ordinary update over the whole set.
+
+        Step 3 before step 4 is what makes the enrichment productive: §8.4
+        substitutes at a pointed VARIABLE, and tb is a variable where the
+        application the step just built is not. Enriching a mirror pointed at the
+        root would find nothing to substitute, which is why the set used to grow
+        only from `candidates_for_contraction`.
+        """
+        # (1,2) the fresh mirror IS the reading after the step
         candidates = ont_layer.strip_reading_ontology(self._ontologies)
+        mirror = ont_layer.reading_ontology(
+            self._current_term_as_lam(), self._ont_pointer_paths())
+        # (3) its pointer descends to tb
+        mirror = ont_layer.point_reading_mirror_at_tb([mirror], pid)[0]
+        # (4) enrich THE MIRROR, at that pointer: the substituted variants are
+        # ordinary candidates (they are hypotheses, not the reading), which
+        # `enrich` already ensures by leaving is_reading False on what it adds.
+        candidates = candidates + ont_layer.enrich([mirror])
+
         # A contraction also PROPOSES models: for each saved abstraction of the
         # type at the pointer, app(q, operand) — a rule-1 redex whose firing IS
         # this contraction. Done here rather than at init because the operand is
@@ -344,14 +370,19 @@ class KGBrowser(App):
             else:
                 candidates = candidates + ont_layer.candidates_for_contraction(
                     pid, ppath, a_iri, b_iri, operand)
+
+        # (5) the ordinary update, over the whole set including the mirror
         self._ontologies, stats = ont_layer.after_contraction(
             candidates, pid, option, a_iri, b_iri,
             self._ont_type_at, operand_onts,
         )
         self._ontologies = ont_layer.enrich(self._ontologies)
         self._ontologies, dropped = ont_layer.cap(self._ontologies)
-        self._ontologies = ont_layer.sync_reading_ontology(
-            self._ontologies, self._current_term_as_lam(), self._ont_pointer_paths())
+        # §8.1b: the set is defined to hold the reading, so restore the mirror if
+        # the update refuted it — re-pointed at tb, as step 3 left it.
+        if not any(o.is_reading for o in self._ontologies):
+            restored = ont_layer.point_reading_mirror_at_tb([mirror], pid)
+            self._ontologies = restored + self._ontologies
         stats["dropped"] = dropped
         stats["total"] = len(self._ontologies)
         self._ont_stats = stats

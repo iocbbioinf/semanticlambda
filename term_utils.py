@@ -137,6 +137,62 @@ def abstraction_titles(refresh: bool = False) -> dict[str, list[str]]:
     return idx
 
 
+_ABS_ORIGINS: Optional[dict[str, set[str]]] = None
+
+
+def abstraction_origins(refresh: bool = False) -> dict[str, set[str]]:
+    """term_str -> {origin, ...} for every saved abstraction.
+
+    `origin` records WHO AUTHORED the question: 'ai' for the generated bulk,
+    other values for questions written for a purpose. Several records may share
+    one term (distinct titles over the same graph are allowed, §8.2), so a term
+    maps to the SET of origins its records carry.
+    """
+    global _ABS_ORIGINS
+    if _ABS_ORIGINS is not None and not refresh:
+        return _ABS_ORIGINS
+    idx: dict[str, set[str]] = {}
+    for rec in load_lambda_db():
+        d = rec.get("term")
+        if not isinstance(d, dict) or d.get("type") != "abs":
+            continue
+        key = rec.get("term_str")
+        if not key:
+            continue
+        idx.setdefault(key, set()).add(rec.get("origin") or "")
+    _ABS_ORIGINS = idx
+    return idx
+
+
+def origins_of_abstraction(t: LamTerm) -> set[str]:
+    """The origins recorded for this abstraction, empty if it is not saved."""
+    return abstraction_origins().get(str(t), set())
+
+
+def has_non_ai_question(term: LamTerm) -> bool:
+    """Does `term` contain a saved question whose origin is NOT 'ai'?
+
+    Used to rank the ontologies list: among members with the same number of
+    fired rules, one built from a question somebody wrote for a purpose is more
+    interesting than one from the generated bulk, so it is listed first.
+
+    A question that is NOT SAVED counts as 'ai' here — it carries no authorship
+    to prefer. An abstraction arising by reduction rather than by proposal is the
+    usual such case.
+    """
+    def walk(x) -> bool:
+        if isinstance(x, LamAbs):
+            if any(o and o != "ai" for o in origins_of_abstraction(x)):
+                return True
+            return walk(x.body)
+        if isinstance(x, LamApp):
+            return walk(x.func) or walk(x.arg)
+        if _is_fan(x):
+            return walk(x.principal)
+        return False
+    return walk(term)
+
+
 def title_for_abstraction(t: LamTerm) -> Optional[str]:
     """The question title for this abstraction, or None if it is not a saved one.
 
@@ -230,6 +286,7 @@ def append_lambda_term(name: str, term: LamTerm, g: rdflib.Graph) -> None:
     })
     save_lambda_db(records)
     abstraction_titles(refresh=True)      # the new title must be visible at once
+    abstraction_origins(refresh=True)
 
 
 def _term_type(t: LamTerm) -> Optional[str]:

@@ -886,6 +886,70 @@ ontology pointers must survive rule applications.
   TWO BRANCHES PER ONTOLOGY: one where RULE 1 fires and one where it does not.
   The non-firing ontology is KEPT — that is SILENCE, not contradiction.
 
+  THE POINTER DESIGNATES A SIDE, NOT THE APPLICATION. p points at ta or tb — the
+  place the reader stands — so THE app(ta, tb) THE STEP IS ABOUT IS THE ONE
+  ENCLOSING p, never the pointed subterm itself. Reading the test at p instead
+  asks a variable to be an application, and refutes every ontology whose redex
+  sits, correctly, one level up.
+
+    if the ontology has app(ta, tb) at p's PARENT with [ta] == A, [tb] == B:
+        rule 1 not applicable at ta  ->  KEEP, p := pointer to app(ta, tb)
+        rule 1 applicable at ta      ->  reduce; p := WHERE THE ARGUMENT LANDED
+
+  This also makes §8.6 and §8.7 read positions THE SAME WAY: §8.7's second
+  branch already looks for its sharing fan ABOVE the pointer.
+
+  WHICH SIDE p SITS ON IS NOT A CONDITION — IT SELECTS THE OPTION.
+
+      p on tb  ->  the reader stands at B: the next step is OPTION 2
+      p on ta  ->  the reader stands at A: the next step is OPTION 1
+
+  Both are admissible positions, and which one a firing leaves depends on where
+  the question's body uses its own entity: `(lam c.(l (c d)))` applies c, so the
+  substitution lands on ta. Requiring tb would refuse exactly the questions whose
+  bodies apply their entity — the common shape.
+
+  AFTER A FIRING THE POINTER FOLLOWS THE SUBSTITUTION, i.e. the position the
+  argument landed in (`ontology_state.substituted_position`), NOT the position
+  that was rewritten. Landing on the reduct's root strands the pointer: the next
+  redex then sits wherever the question's body left it, and the candidate is
+  refuted for its DEPTH rather than for its content.
+
+  RULE 1 IS LINEAR, so that position is unique and there is no choice to make. A
+  question whose body names its entity twice names ONE shared node (§1) — a
+  reflection (rule 4) is what duplicates it — so rule 1 substitutes at one place.
+
+  WHAT SITS AT A POSITION MAY BE ANY TERM OF THAT TYPE — a variable (an entity),
+  an application (the result of a contraction) or an abstraction (a question).
+
+  WORKED CHECK. Reading A, A->B (option 1), C->B (option 2), B->D (option 1),
+  which builds (c(ab))d, against the ontology
+
+      ((lam a.(h (((lam c.(l (c d))) a) i))) (lam b.(j ((b n) k))))
+
+  fires rule 1 THREE TIMES: after step 1 the reduct is
+  (h (((lam c.(l (c d))) b) i)) with actPtr on the B material, whose enclosing
+  application is the lam-c redex step 2 fires on; and the side sequence is
+  tb, ta, ta — matching the reading's own option sequence 1, 2, 1. Pinned by
+  `t_chain3.py`. It holds whether the ENTITY b or a type-B QUESTION was
+  substituted: both have type B.
+
+  THE ORDER OF THE UPDATE, for the reading's own mirror (§8.1b):
+
+      1. drop the old mirror;
+      2. add a fresh one equal to the reading AFTER this contraction;
+      3. set its pointer set to tb — in BOTH options, since §4.1 makes tb the B
+         side either way, so [actPtr] stays the reading's own type and the
+         pointer DESCENDS INTO the term as the reading grows;
+      4. ENRICH that mirror, at that pointer;
+      5. run the ordinary update over the whole set, the mirror included, so it
+         is tested like any other member rather than exempted — then enrich again.
+
+  Step 3 BEFORE step 4 is what makes the enrichment productive: §8.4 substitutes
+  at a pointed VARIABLE, and tb is a variable where the application the step just
+  built is not. Step 2 must use the POST-step reading: the pre-step one is a bare
+  variable at the first contraction, which §8.6 would refute on shape.
+
   OPTION 1 — the reader's position moves to B.
               The user selects an entity B, or a closed reading R(G(tb)) with
               [R(G(tb))] == B.
@@ -945,7 +1009,7 @@ ontology pointers must survive rule applications.
             if RULE 1 is NOT applicable at app(ta, tb):      # ta not abstraction                
                 newOntologies = newOntologies union { ont( G(t), (P - {p}) union {pointer to G(app(ta, tb))} ) }
 
-            if RULE 1 IS applicable at the REDEX, which is at ta:
+            if RULE 1 IS applicable at the REDEX app(ta, tb) then
                 apply rule 1, then all possible silent reductions (§8.5(3))
                     -> G(t1)
                 newOntologies = newOntologies union { ont( G(t1), P ) }
@@ -1304,17 +1368,40 @@ made it is stated in the section it governs.
       every step, and option 1's closed-reading case multiplies by the operand's
       own set (§8.6 review note RN4). Against that, the OUTER STRUCTURAL TEST
       refutes heavily (§8.8) — a set can go empty in a few steps, as the
-      counterexample in RN1 shows. Whether the two rates balance in practice is
-      not settled, so a cap plus deterministic eviction may still be wanted; O8
-      proposes what to rank by.
+      counterexample in RN1 shows. Whether the two rates balance in general is
+      still not settled.
+
+      A CAP WAS TRIED AND REMOVED. Eviction is not something the calculus has:
+      §8.8 gives exactly one way out of the set, REFUTATION BY OMISSION from an
+      update rule's conditions. A cap adds a second, and it dropped models the
+      rules had kept.
+
+      MEASURED, which is what settled it. On the two-step reading A, A->B
+      (option 1), C->B (option 2), enrichment produced 327 candidates at step 1;
+      a cap of 64 discarded 263 of them. Among the discarded was the one that
+      would have fired a SECOND time at step 2 — so the reading reported a best
+      ontology of one firing where two were available. The cap bit at the one
+      moment nothing distinguishes candidates: every one of them had fired at
+      most once. Ranking by "still holds an abstraction" did not rescue it
+      either — 304 of the 327 were live.
+
+      SO THE SET IS KEPT WHOLE. Growth is then observable rather than hidden:
+      over Example 4's four contractions the set runs 327, 391, 569, 971, each
+      step well under a second, and the best ontology's firing count tracks the
+      step count 1, 2, 3, 4. If some longer reading does grow unmanageably, that
+      now SHOWS rather than passing as a silent truncation — which is the honest
+      failure mode for an open question. The eviction ORDER is still defined
+      (live before spent, then `fired`) in case a bound is ever wanted.
 
   O8  WHETHER TO RECORD CONFIRMATION. §8.6 keeps an ontology in which rule 1 does
       not fire — right, in distinguishing CONTRADICTED from SILENT. But then mere
       survival no longer distinguishes an ontology whose hypotheses kept paying off
       from one that stayed quiet, which is what the interpretation's "survivors are
       better approximations" asserts. Candidate: count firings per ontology, rank by
-      it, and let any O7 cap evict by it. A refinement, not a fix for a hole — see
-      review note RN1 in §8.6.
+      it, and rank by it. IMPLEMENTED: `Ontology.fired` counts every firing —
+      rule 1 for a contraction (§8.6) and rule 4 for a reflection (§8.7) — and
+      the ontologies panel lists members by it, descending. A refinement, not a
+      fix for a hole — see review note RN1 in §8.6.
 
   O9  THE INITIAL ONTOLOGY CANNOT SURVIVE THE FIRST CONTRACTION — a tension in the
       definition, not a coding matter.

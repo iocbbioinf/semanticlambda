@@ -37,12 +37,26 @@ from reading_state import (
     lam_to_dict_shared, lam_from_dict_shared,
 )
 
-# How many ontologies to keep. Enrichment branches over every abstraction of
+# NO BOUND ON THE ONTOLOGY SET. Enrichment branches over every abstraction of
 # matching type at every pointer on every step, and option 1's closed-reading
 # case multiplies by |cr.ontologies| (§8.6 RN4); against that the outer
-# structural test refutes heavily (§8.8). Whether the rates balance is O7, so a
-# cap is applied and what it drops is reported rather than hidden.
-MAX_ONTOLOGIES = 64
+# structural test refutes heavily (§8.8). Whether the rates balance is O7 —
+# unsettled — and a cap was applied while it stayed open.
+#
+# THE CAP WAS THE WRONG INSTRUMENT, and measurement said so. On a two-step
+# reading enrichment produced 327 candidates at step 1, of which 304 still held
+# an abstraction. A limit of 64 discarded 80% of them at the one moment nothing
+# distinguishes which will pay off — every candidate has fired at most once —
+# and the one that would have reached fired=2 on the NEXT step was among the
+# dropped. Ranking by "still live" did not help either: almost everything is
+# live at that point.
+#
+# So the set is now KEPT WHOLE. An ontology leaves it only by REFUTATION, which
+# is what §8.8 says: refutation is by omission from the update rules, never by
+# eviction. A cap made the layer lose models for a reason the calculus does not
+# have. O7 remains open — if the set grows unmanageably that is now VISIBLE
+# rather than silently truncated, which is the honest failure mode.
+MAX_ONTOLOGIES = None
 
 
 @dataclass
@@ -56,17 +70,26 @@ class Ontology:
               often its hypotheses paid off (O8: unruled, so recorded but only
               used for eviction ordering)
     is_reading  this member IS the reading itself — see `reading_ontology`.
-    origin    THE SHARED GRAPH BEFORE THE FIRST REDUCTION the reading caused —
-              the term this ontology was proposed as, prior to any rule firing.
-              None while nothing has fired yet, in which case `term` IS the
-              origin; `origin_term` resolves that.
+    origin    THE GRAPH AS PROPOSED — this ontology's term with every
+              enrichment substitution in place but NO reduction applied. None
+              while nothing has fired yet, in which case `term` IS the origin;
+              `origin_term` resolves that.
 
               Why it is kept: an ontology is a HYPOTHESIS, and `term` is that
               hypothesis after the reading has consumed part of it. What was
               proposed and what is left are different graphs, and only the
-              former shows which abstractions the model actually claimed. It is
-              set ONCE, at the first firing, and then carried forward untouched
-              — never re-derived, since reduction is not invertible here.
+              former shows which questions the model actually claimed — rule 1
+              consumes the abstraction it fires on, so the resolved term has
+              lost it.
+
+              IT TRACKS ENRICHMENT, NOT ONLY THE FIRST FIRING. Reduction is
+              recorded once (the graph before it) and never re-derived, since
+              reduction is not invertible here. But a question substituted by
+              enrichment AFTER that firing is still part of the proposal, so
+              `_enrich_origin` carries each such substitution into the origin as
+              well. Otherwise the resolved term would contain entities the
+              origin never mentions, and the ORIGINAL view could not say which
+              question introduced them.
     """
     term: LamTerm
     pointers: dict[int, Path] = field(default_factory=dict)
@@ -233,6 +256,55 @@ def apply_rule1(term: LamTerm, app_path: Path) -> Optional[LamTerm]:
     return replace_at(term, app_path, reduced)
 
 
+def substituted_position(term: LamTerm, app_path: Path) -> Optional[Path]:
+    """Where the argument LANDS when rule 1 fires at `app_path`.
+
+    The path, in the REDUCED term, of the position the substitution filled — i.e.
+    where the abstraction's bound variable stood in its body. This is where the
+    ontology's pointer belongs after a firing: the reading's own actPtr goes to
+    tb, the B side, and tb's counterpart in the ontology is the B-typed material
+    the substitution just put in place, NOT the root of the reduct.
+
+    Pointing at the reduct's root instead strands the pointer: the next step's
+    redex is then wherever the question's body left it, typically a level or two
+    below, and §8.6 — which tests only AT the pointer — refutes on depth rather
+    than on content.
+
+    RULE 1 IS LINEAR, so there is one such position and no choice to make. A
+    question whose body names its entity twice names ONE shared node (§1), which
+    a reflection (rule 4) duplicates; rule 1 substitutes at that single place.
+    Where the body genuinely has several distinct occurrences the FIRST in
+    left-to-right order is taken, so the result stays deterministic.
+
+    Returns None if there is no redex at `app_path`, or if the bound variable does
+    not occur in the body (a question that binds nothing — refused by §8.2 Q1).
+    """
+    node = _bare(subterm_at(term, app_path))
+    if not isinstance(node, LamApp):
+        return None
+    fn = _bare(node.func)
+    if not isinstance(fn, LamAbs):
+        return None
+    iri = fn.var.iri
+
+    def find(t: LamTerm, path: Path) -> Optional[Path]:
+        """The first free occurrence of `iri` in the abstraction's body."""
+        if isinstance(t, LamVar):
+            return path if t.iri == iri else None
+        if isinstance(t, LamFan):
+            return find(t.principal, path)
+        if isinstance(t, LamApp):
+            return find(t.func, path + (0,)) or find(t.arg, path + (1,))
+        if isinstance(t, LamAbs):
+            if t.var.iri == iri:
+                return None                 # shadowed: not this binder's variable
+            return find(t.body, path + (0,))
+        return None
+
+    inner = find(fn.body, ())
+    return None if inner is None else app_path + inner
+
+
 # ── enrichment  (§8.4) ──────────────────────────────────────────────────────
 
 def _parent_app(term: LamTerm, path: Path) -> Optional[tuple[Path, int]]:
@@ -244,6 +316,29 @@ def _parent_app(term: LamTerm, path: Path) -> Optional[tuple[Path, int]]:
     if isinstance(_bare(node), LamApp):
         return (parent, path[-1])
     return None
+
+
+def _enrich_origin(origin: Optional[LamTerm], var: LamVar,
+                   q: LamAbs) -> Optional[LamTerm]:
+    """Carry an enrichment substitution into the ORIGIN graph as well.
+
+    THE ORIGIN MUST SHOW EVERY SUBSTITUTION, not only the ones made before the
+    first firing. `origin` is the graph the ontology was PROPOSED as (§8.1), and
+    a question enrichment substitutes later is part of that proposal — it is
+    material the model claims. Freezing the origin at the first firing loses it:
+    the resolved term then contains an entity the origin never mentions, and the
+    ORIGINAL view cannot show which question put it there.
+
+    The substitution is BY IRI, which is exactly how `_substitute` identifies a
+    variable: entities are globally unique here, so every free occurrence of that
+    entity in the origin is the same variable enrichment replaced in the term.
+
+    Returns None when there is no origin yet — nothing has fired, so `term` IS
+    the origin and the caller's `new_term` already carries the substitution.
+    """
+    if origin is None:
+        return None
+    return _substitute(origin, var.iri, q)
 
 
 def enrich(ontologies: list[Ontology],
@@ -298,11 +393,12 @@ def enrich(ontologies: list[Ontology],
                 new_term = replace_at(o.term, path, q)
                 ptrs = dict(o.pointers)
                 ptrs[pid] = path             # the pointer follows the material
-                # Enrichment SUBSTITUTES, it does not reduce, so `fired` and the
-                # origin are inherited: a candidate grown from an already-reduced
-                # ontology still descends from that ontology's proposal.
+                # Enrichment SUBSTITUTES, it does not reduce, so `fired` is
+                # inherited — but THE ORIGIN TAKES THE SUBSTITUTION TOO, so the
+                # ORIGINAL view shows every question the model claims, not only
+                # those substituted before the first firing.
                 cand = Ontology(term=new_term, pointers=ptrs, fired=o.fired,
-                                origin=o.origin)
+                                origin=_enrich_origin(o.origin, tp, q))
                 out.append(cand)
                 go(cand, rest)
         elif side == 1:
@@ -315,7 +411,8 @@ def enrich(ontologies: list[Ontology],
                 for q in candidates(pid, fn):
                     new_term = replace_at(o.term, fpath, q)
                     cand = Ontology(term=new_term, pointers=dict(o.pointers),
-                                    fired=o.fired, origin=o.origin)
+                                    fired=o.fired,
+                                    origin=_enrich_origin(o.origin, fn, q))
                     out.append(cand)
                     go(cand, rest)
 
@@ -355,6 +452,42 @@ def sync_reading_ontology(ontologies: list[Ontology], term: LamTerm,
     """
     out = [o for o in ontologies if not o.is_reading]
     out.insert(0, reading_ontology(term, pointers))
+    return out
+
+
+def point_reading_mirror_at_tb(ontologies: list[Ontology], pid: int) -> list[Ontology]:
+    """Put the reading's mirror's pointer on tb — the B side of the step.
+
+    THE THIRD PART OF THE CONTRACTION UPDATE (§8.6). The mirror's pointer is not
+    left on the application the step built but DESCENDS to its tb, in BOTH
+    options: §4.1 makes tb the B side either way, so [actPtr] stays equal to the
+    reading's own type, and the pointer moves INTO the term as the reading grows
+    instead of sitting on the root for ever.
+
+    WHY IT MATTERS: a pointer pinned at the root can only ever match material at
+    the root, so an ontology whose corresponding application sits NESTED is
+    refuted for its depth rather than for its content. Descending to tb is what
+    keeps the reader's position and the term's growth in step.
+
+    actPtr and the pointer set move together: the entry for `pid` IS actPtr's
+    counterpart, so re-pointing it re-points both (§8.1's elementwise
+    correspondence).
+    """
+    out: list[Ontology] = []
+    for o in ontologies:
+        if not o.is_reading:
+            out.append(o)
+            continue
+        ptrs = dict(o.pointers)
+        p = ptrs.get(pid)
+        if p is not None:
+            tb = p + (1,)
+            # only descend where tb exists: a step that did not leave an
+            # application there has nothing to descend into.
+            if subterm_at(o.term, tb) is not None:
+                ptrs[pid] = tb
+        out.append(Ontology(term=o.term, pointers=ptrs, fired=o.fired,
+                            is_reading=True, origin=o.origin))
     return out
 
 
@@ -417,11 +550,15 @@ def candidates_for_contraction(pid: int, path: Path, a_iri: str, b_iri: str,
     Getting this wrong empties the set on every option-2 step: the proposals would
     all have [t1] equal to the type at the pointer, which under option 2 is B, and
     the outer test demands A there.
+
+    THE POINTER DESIGNATES A SIDE, NOT THE APPLICATION. §8.6 reads the app(ta,tb)
+    ENCLOSING the pointer, so a proposal must point INTO the application it
+    builds: here at tb, which is the operand — the reader has moved to B.
     """
     out: list[Ontology] = []
     for q in abstractions_of_type(a_iri, pool):
         cand = LamApp(q, operand)
-        out.append(Ontology(term=cand, pointers={pid: path}))
+        out.append(Ontology(term=cand, pointers={pid: path + (1,)}))
     return out
 
 
@@ -436,10 +573,14 @@ def candidates_for_option2(pid: int, path: Path, a_iri: str,
     does not move. Rule 1 fires at t1, so the abstraction to propose is of type
     A — the OPERAND's type, not the type at the pointer — applied to the material
     the reader stayed at.
+
+    The pointer designates a SIDE (§8.6 reads the enclosing application), and
+    under option 2 the reader stays at B — which is tb, the `stayed` material.
     """
     out: list[Ontology] = []
     for q in abstractions_of_type(a_iri, pool):
-        out.append(Ontology(term=LamApp(q, stayed), pointers={pid: path}))
+        out.append(Ontology(term=LamApp(q, stayed),
+                            pointers={pid: path + (1,)}))
     return out
 
 
@@ -475,14 +616,17 @@ def steps_proposed(ontologies: list[Ontology], pid: int, type_at,
     out: dict[str, list[Ontology]] = {}
     for o in ontologies:
         path = o.corresponding(pid)
-        if path is None:
+        if path is None or not path:
             continue
-        node = _bare(subterm_at(o.term, path))
+        # THE POINTER DESIGNATES A SIDE, so the application is its PARENT — the
+        # same convention §8.6 now uses. The entity offered is the OTHER side.
+        app_path = path[:-1]
+        node = _bare(subterm_at(o.term, app_path))
         if not isinstance(node, LamApp):
             continue
         # forward (option 1): the reader stands at ta; tb is the entity offered
         # reverse (option 2): the reader stands at tb; ta is the entity offered
-        other = path + (0 if reverse else 1,)
+        other = app_path + (0 if reverse else 1,)
         iri = type_at(o.term, other)
         if not iri:
             continue
@@ -587,30 +731,41 @@ def after_contraction(ontologies: list[Ontology], pid: int, option: int,
             continue
 
         # ── the outer structural test (§8.6, §8.8) ──────────────────────────
-        # The reading has just built app(ta, tb) at this position. The ontology
-        # must already have that shape, with the right types.
+        # THE POINTER DESIGNATES tb, SO THE APPLICATION IS ITS PARENT. p points
+        # at the B side — the place the reader stands — and the app(ta, tb) the
+        # step is about is the one ENCLOSING it. Testing the pointed subterm
+        # instead asks a variable to be an application and refutes every
+        # candidate whose redex sits, correctly, one level up.
         #
-        # [OPEN — O9] This reads the test AGAINST THE ONTOLOGY BEFORE THE STEP,
-        # which is what §8.8 states. The alternative reading — that the
-        # contraction extends the ontology's term too, so the test applies to the
-        # result — would let a bare seed survive its first contraction via the
-        # non-firing branch below, and would make a reflection-free reading
-        # trivially an ontology of itself. §8 does not settle which is meant; see
-        # O9 for the evidence either way. Do not switch without settling it.
-        node = _bare(subterm_at(o.term, path))
+        # This also makes §8.6 and §8.7 read positions the SAME way: §8.7's
+        # second branch already looks for its sharing fan ABOVE the pointer
+        # (`_sharing_fan_above`), for exactly this reason.
+        #
+        # [OPEN — O9] The test still reads the ontology AS IT STANDS, not as the
+        # step would leave it; that question is untouched here.
+        if not path:
+            # the root has no enclosing application, so there is nothing to test
+            stats["refuted"] += 1
+            continue
+        app_path = path[:-1]
+        node = _bare(subterm_at(o.term, app_path))
         if not isinstance(node, LamApp):
             stats["refuted"] += 1
             continue
-        ta_path, tb_path = path + (0,), path + (1,)
+        # WHICH SIDE p SITS ON IS NOT A CONDITION — it SELECTS THE OPTION.
+        # p on tb means the reader stands at the B side, so the next step is
+        # option 2; p on ta means they stand at A, so it is option 1. Both are
+        # legitimate positions, and which one a firing leaves depends on where
+        # the question's body uses its entity: `(\c.(l (c d)))` puts it in
+        # FUNCTION position, so the pointer lands on ta.
+        #
+        # Requiring tb here would refuse exactly the questions whose bodies apply
+        # their own entity — the common shape — so the side is recorded, not
+        # tested.
+        ta_path, tb_path = app_path + (0,), app_path + (1,)
         ta_t = type_at(o.term, ta_path)
         tb_t = type_at(o.term, tb_path)
-        # [ta] == A and [tb] == B, for BOTH options (§8.6).
-        #
-        # Uniform because BOTH options build app(t1, t2) with [t1] == A and
-        # [t2] == B (§4.1); they differ only in WHICH of the two actPtr
-        # designates — t1 in option 1 (the reader moves to B), t2 in option 2
-        # (the reader stays at B). The letters follow position in the term, so no
-        # transposition is needed.
+        # [ta] == A and [tb] == B, for BOTH options (§8.6, §4.1).
         if (ta_t, tb_t) != (a_iri, b_iri):
             stats["refuted"] += 1
             continue
@@ -628,10 +783,13 @@ def after_contraction(ontologies: list[Ontology], pid: int, option: int,
             # `path` already designates that application: the reading replaced
             # the subterm there by app(t1,t2), so the position is unchanged and
             # only what sits at it grew.
+            # SILENT: the ontology proposed nothing here, so it is KEPT (not
+            # contradicted) and the pointer moves to the APPLICATION itself —
+            # ont(G(t), (P - {p}) union {pointer to app(ta,tb)}).
             ptrs = dict(o.pointers)
-            ptrs[pid] = path
+            ptrs[pid] = app_path
             out.append(Ontology(term=o.term, pointers=ptrs, fired=o.fired,
-                                origin=o.origin))
+                                is_reading=o.is_reading, origin=o.origin))
             stats["silent"] += 1
             continue
 
@@ -641,30 +799,40 @@ def after_contraction(ontologies: list[Ontology], pid: int, option: int,
             # one place the set can grow multiplicatively (RN4).
             for oo in operand_ontologies:
                 grafted = replace_at(o.term, tb_path, oo.term)
-                reduced = apply_rule1(grafted, path)
+                landed = substituted_position(grafted, app_path)
+                reduced = apply_rule1(grafted, app_path)
                 if reduced is None:
                     continue
                 ptrs = dict(o.pointers)
-                ptrs[pid] = path
+                ptrs[pid] = landed if landed is not None else app_path
                 # FIRST firing: remember the graph as it was PROPOSED — here
                 # the grafted term, i.e. what actually went into the reduction.
                 out.append(Ontology(term=reduced, pointers=ptrs,
                                     fired=o.fired + 1,
+                                    is_reading=o.is_reading,
                                     origin=o.origin or grafted))
                 stats["grafted"] += 1
             continue
 
-        reduced = apply_rule1(o.term, path)
+        landed = substituted_position(o.term, app_path)
+        reduced = apply_rule1(o.term, app_path)
         if reduced is None:
             stats["refuted"] += 1
             continue
         ptrs = dict(o.pointers)
-        # option 1: the pointer moves to tb (the reader moved to B).
-        # option 2: P is carried over unchanged (the reader did not move), but
-        # rebased onto the rewritten term — same position, new identity.
-        ptrs[pid] = path
+        # THE POINTER FOLLOWS THE SUBSTITUTION. The reading's own actPtr goes to
+        # tb — the B side of the step — and tb's counterpart here is the B-typed
+        # material the substitution just put in place, not the root of the
+        # reduct. Rule 1 is linear, so that position is unique.
+        #
+        # Landing on the reduct's root instead strands the pointer: the next
+        # step's redex sits wherever the question's body left it, and §8.6 tests
+        # only AT the pointer, so the candidate would be refuted for its depth
+        # rather than for its content.
+        ptrs[pid] = landed if landed is not None else path
         # FIRST firing: keep the pre-reduction graph (§8.1 `origin`).
         out.append(Ontology(term=reduced, pointers=ptrs, fired=o.fired + 1,
+                            is_reading=o.is_reading,
                             origin=o.origin or o.term))
         stats["fired"] += 1
 
@@ -842,6 +1010,7 @@ def after_reflection(ontologies: list[Ontology], pid: int,
             ptrs[left_pid] = path + (0,)
             ptrs[right_pid] = path + (1,)
             out.append(Ontology(term=new_term, pointers=ptrs, fired=o.fired + 1,
+                                is_reading=o.is_reading,
                                 origin=o.origin or o.term))
             stats["fired"] += 1
             continue
@@ -856,7 +1025,7 @@ def after_reflection(ontologies: list[Ontology], pid: int,
             ptrs[left_pid] = fan_path + (0,)
             ptrs[right_pid] = fan_path + (1,)
             out.append(Ontology(term=o.term, pointers=ptrs, fired=o.fired,
-                                origin=o.origin))
+                                is_reading=o.is_reading, origin=o.origin))
             stats["silent"] += 1
             continue
 
@@ -867,17 +1036,45 @@ def after_reflection(ontologies: list[Ontology], pid: int,
 
 # ── the cap  (O7) ──────────────────────────────────────────────────────────
 
-def cap(ontologies: list[Ontology],
-        limit: int = MAX_ONTOLOGIES) -> tuple[list[Ontology], int]:
-    """Keep at most `limit` ontologies, preferring the CONFIRMED ones.
+def has_unfired_abstraction(term: LamTerm) -> bool:
+    """Does `term` still contain an abstraction — something that COULD yet fire?
 
-    O7 is unsettled — nothing guarantees enrichment's growth and refutation's
-    pruning balance — so a bound is applied rather than left to chance. Eviction
-    is by `fired` descending, which is O8's proposal: an ontology whose
-    hypotheses kept paying off is a better approximation than one that merely
-    stayed silent. What is dropped is REPORTED, never hidden.
+    An ontology with no abstraction left is SPENT: rule 1 fires where an
+    abstraction meets an application, so such a candidate can never fire again,
+    however the reading continues. One that still holds an abstraction can.
     """
-    if len(ontologies) <= limit:
+    t = _bare(term)
+    if isinstance(t, LamAbs):
+        return True
+    if isinstance(t, LamApp):
+        return has_unfired_abstraction(t.func) or has_unfired_abstraction(t.arg)
+    return False
+
+
+def cap(ontologies: list[Ontology],
+        limit: Optional[int] = None) -> tuple[list[Ontology], int]:
+    """Return the set UNCHANGED. Nothing is evicted.
+
+    Kept as a function so the update rules read the same and a bound can be
+    reinstated in one place if O7 ever demands it. `limit=None` (the default,
+    from MAX_ONTOLOGIES) means no bound; an explicit integer still truncates,
+    which the tests use to exercise the ordering.
+
+    WHY NOTHING IS EVICTED. §8.8 defines the only way out of the set: an
+    ontology is DISCARDED BY NEVER BEING ADDED, i.e. by failing an update rule's
+    conditions. Eviction is a different thing — dropping a model that the rules
+    kept — and it cost real models: see the note on MAX_ONTOLOGIES.
+
+    The eviction ORDER is still defined here (live before spent, then `fired`),
+    because it is the right order if a bound is ever wanted; it simply is not
+    applied by default.
+    """
+    if limit is None or len(ontologies) <= limit:
         return (ontologies, 0)
-    ranked = sorted(ontologies, key=lambda o: -o.fired)
-    return (ranked[:limit], len(ontologies) - limit)
+    mirror = [o for o in ontologies if o.is_reading]
+    rest = [o for o in ontologies if not o.is_reading]
+    room = max(limit - len(mirror), 0)
+    ranked = sorted(rest,
+                    key=lambda o: (not has_unfired_abstraction(o.term), -o.fired))
+    kept = mirror + ranked[:room]
+    return (kept, len(ontologies) - len(kept))

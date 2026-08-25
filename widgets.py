@@ -16,7 +16,7 @@ from kg_store import (
 from optimal_lambda import beta_reduce_sequence
 from term_utils import (
     _term_type, _render_lam_root, collect_edge_claims,
-    _make_ontology_term, _make_beta_term,
+    _make_ontology_term, _make_beta_term, has_non_ai_question,
 )
 
 
@@ -369,9 +369,14 @@ class OntologyItem(ListItem):
             badge = "[cyan]≡[/cyan]"
         tag = "  [cyan]the reading itself[/cyan]" if getattr(
             ontology, "is_reading", False) else ""
+        # SPELL THE FIRING COUNT OUT, not only as the leading badge: it is what
+        # the list is ordered by, and it counts BOTH rules — rule 1 for a
+        # contraction (§8.6) and rule 4 for a reflection (§8.7).
+        fired_s = (f"[green]fired {fired}×[/green]" if fired
+                   else "[dim]fired 0×[/dim]")
         display = (
             f"{badge} [b]{index + 1}.[/b] {esc(str(ontology.term))}"
-            f"{tag}  [dim]|P|={n_ptr}[/dim]"
+            f"{tag}  [dim]|P|={n_ptr}[/dim]  {fired_s}"
         )
         super().__init__(Label(display, markup=True))
         self.ontology = ontology
@@ -506,7 +511,9 @@ class ReadingOntologiesModal(ModalScreen):
         with ScrollableContainer(id="ont-container"):
             yield Static(
                 f"Ontologies of the current reading: [b]{n}[/b]{detail}"
-                f"  [dim]— most rules fired first[/dim]\n"
+                f"  [dim]— most rules fired first, then non-ai questions"
+                f"  (fired = rule 1 for a contraction + rule 4 for a "
+                f"reflection)[/dim]\n"
                 f"[dim](Enter: show graph, then o: original pre-reduction graph"
                 f"  |  Esc close)[/dim]",
                 id="ont-title", markup=True,
@@ -550,8 +557,21 @@ class ReadingOntologiesModal(ModalScreen):
             # follows from the ordering rule rather than working against it — it
             # is the one member that proposes nothing — and it stays findable by
             # its "≡ the reading itself" tag.
-            ordered = sorted(self._ontologies,
-                            key=lambda o: getattr(o, "fired", 0), reverse=True)
+            # SECOND CRITERION: THE ORIGIN OF THE QUESTIONS USED. Among members
+            # with the SAME number of fired rules, one built from a question
+            # whose `origin` is not 'ai' ranks higher — somebody wrote that
+            # question for a purpose, so it is the more interesting model.
+            #
+            # Tested on the ORIGIN GRAPH, not the resolved term: rule 1 consumes
+            # the abstraction it fires on, so a reduced ontology no longer holds
+            # the questions it was built from (see `Ontology.origin`). Asking the
+            # resolved term would rank every fired candidate as 'ai'.
+            ordered = sorted(
+                self._ontologies,
+                key=lambda o: (getattr(o, "fired", 0),
+                               has_non_ai_question(
+                                   getattr(o, "origin_term", o.term))),
+                reverse=True)
             yield ListView(
                 *[OntologyItem(o, i) for i, o in enumerate(ordered)],
                 id="ont-body",
