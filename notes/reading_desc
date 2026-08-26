@@ -1184,6 +1184,30 @@ ontology pointers must survive rule applications.
   review notes RN2, RN3 and RN5 — corrections to the pseudocode as written, not
   open design questions.
 
+  FIRING AT A REFLECTION'S PORT NEEDS NO CASE OF ITS OWN, BUT IT CONSTRAINS WHAT
+  CAN FIRE THERE. After a reflection the two pointers designate the fan's aux
+  ports (§4.2), so a following contraction at one of them runs this same rule with
+  `path` inside the sharing node. Nothing special is required: `path[:-1]` reaches
+  the node that does the sharing, and in the ordinary case — the fan-in implicit
+  in a node reached twice (§8.7's second branch) — that node IS an app(ta,tb), so
+  the outer test reads it exactly as anywhere else.
+
+  WHAT IS SPECIAL is that ONE OF ITS TWO SIDES IS THE SHARED SUBJECT ITSELF. The
+  reflection shared toc inside an existing application, so at a port the subject
+  occupies ta or tb, and its type is pinned to the reflected subject's. Measured
+  on Example 6's predecessor: at both ports every surviving candidate had
+  [tb] == the subject's type, so a step B -> X could fire only for X comparable to
+  B, and the two onward steps refuted on type while holding a perfectly good
+  redex (rule 1 applicable in 220 of 220).
+
+  THE READING'S OWN QUESTIONS ARE WHAT LIFT THIS. A question whose body already
+  applies its entity to the entities the reader will go on to — Example 6's
+  `(\d. (((d g) e) ((d h) f)))`, holding g and h — puts material of the right type
+  at the port, so each context's contraction meets a redex instead of a type
+  mismatch. That is why the same reading fires 0 times with arbitrary questions
+  and 4 times with these: the constraint is real, and it is met by CHOOSING
+  QUESTIONS, not by adding a case to this rule.
+
 8.7 Update on a reflection step  (A -> B at actPtr, [t_at_actPtr] == C)
 -----------------------------------------------------------------------
 

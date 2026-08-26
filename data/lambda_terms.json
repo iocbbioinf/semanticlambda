@@ -137958,5 +137958,111 @@
     "parent": "https://ahoj-db.org/question#9604bceaeb95df5e",
     "qid": "https://ahoj-db.org/question#422a8d2d16755ad3",
     "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 read through BioLiP2: what Conformational diversity of  makes of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#LBSPredictor",
+        "label": "ligand binding site predictor"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#BioLiP2",
+          "label": "BioLiP2"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#ConformationalDiversity",
+              "label": "Conformational diversity of the native state"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#LBSPredictor",
+              "label": "ligand binding site predictor"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AllostericSite",
+            "label": "allosteric site"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bbligand binding site predictor.(BioLiP2 \u00b7 ((Conformational diversity of the native state \u00b7 ligand binding site predictor) \u00b7 allosteric site))",
+    "claims": [],
+    "parent": "https://ahoj-db.org/kg#LBSPredictor",
+    "qid": "https://ahoj-db.org/question#d03c4e19b27a8cd9",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 does it hold the same at the interface as under a unified analysis?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#ConformationalDiversity",
+        "label": "Conformational diversity of the native state"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#ConformationalDiversity",
+              "label": "Conformational diversity of the native state"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#ChainInterface",
+              "label": "protein\u2013protein interface"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#HoloForm",
+            "label": "holo form"
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#ConformationalDiversity",
+              "label": "Conformational diversity of the native state"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+              "label": "Unified binding site"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#StructuralState",
+            "label": "Structural state"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bbConformational diversity of the native state.(((Conformational diversity of the native state \u00b7 protein\u2013protein interface) \u00b7 holo form) \u00b7 ((Conformational diversity of the native state \u00b7 Unified binding site) \u00b7 Structural state))",
+    "claims": [],
+    "parent": "https://ahoj-db.org/kg#ConformationalDiversity",
+    "qid": "https://ahoj-db.org/question#6c80e90763c8435f",
+    "origin": "aiExample"
   }
 ]
