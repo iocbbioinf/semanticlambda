@@ -842,6 +842,13 @@ yielding a further candidate ontology.
                 ontologies = ontologies union { ont( G(tnew), P ) }
                 enrichOnt( ont(G(tnew), P - p) )
 
+        # (c) tp is a variable and a SHARING FAN-IN stands DIRECTLY ABOVE it
+        if tp is a variable and the node above G(tp) is a sharing fan-in:
+            for each abstraction qp with [qp] == [tp]:
+                let G(tnew) be G(t) with G(tp) replaced by G(qp)
+                ontologies = ontologies union { ont( G(tnew), P ) }
+                enrichOnt( ont(G(tnew), P - p) )
+
 THE SNAPSHOT MATTERS. enrichOnts iterates the ontology set while enrichOnt adds
 to it. The iteration must be over a SNAPSHOT taken before enrichment begins;
 otherwise newly created ontologies are re-enriched in the same pass, and since
@@ -858,6 +865,39 @@ THE ASYMMETRY BETWEEN (a) AND (b) is deliberate and follows the argument/functio
 principle of §5. In (a) the substituted abstraction becomes a NEW POSITION — pqp
 joins the set, replacing p. In (b) the abstraction replaces material in FUNCTION
 position, so the pointer set is left as P. Compare [app(a,b)] = [b].
+
+(c) READS THE GRAPH, NOT THE TERM, AND THAT IS WHY IT IS THERE. Cases (a) and (b)
+ask which SIDE OF AN APPLICATION the variable sits on — but that is an artefact of
+writing a graph as a term. Sharing is not: a variable under a fan-in is one the
+graph reaches from more than one place, so a question substituted there is claimed
+by every reading passing through it at once. That is the position where one
+substitution says the most, and no positional test finds it.
+
+IT MUST BE A SHARING FAN-IN — one on a MIDDLE wire, not the rightmost (§8.5(2)).
+A fan on the folded command wire is a syntactic lambda/@ fan, bookkeeping from
+writing the graph as a term rather than the reader having reused an entity, so
+enriching there would substitute at a position that is not genuinely shared. Both
+forms of §1's single sharing mechanism qualify: an explicit fan a reflection or
+rule 4 built, and a node reached twice (entity reuse), which IS the middle-wire
+fan-in of GAL p.7.
+
+THE SUBSTITUTION IS BY IDENTITY, NOT AT ONE PATH. The shared node must be replaced
+at EVERY place it is reached, by the same object, or the sharing the case is about
+is destroyed: one occurrence becomes an abstraction and the others stay variables.
+This is the same sharing-preserving substitution rule 1 performs.
+
+THE POINTER STAYS PUT in (c). It designates the shared node, and substitution
+leaves a node at that position, so — unlike (a) — no new position is created.
+
+WITHOUT (c), §8.7'S RULE-4 BRANCH IS UNREACHABLE THROUGH ENRICHMENT. Rule 4 fires
+only when the shared subterm is an ABSTRACTION, and (a)/(b) can never put one at a
+shared position: they write to the pointer in function position and to the function
+side, never to an application's ARGUMENT. Measured before (c) was added, on a
+reading whose ontologies had an abstraction at the pointer in 320 candidates, NONE
+had it shared, and every reflection took the silent branch — the count stopped one
+short at every attempt. §8.6's closed-reading operand is the only other rule that
+writes into an argument position, which would have forced the question in as a
+saved closed reading; (c) makes it an ordinary enrichment.
 
 ENRICHMENT COVERS THE ABSTRACTION TITLE OPERAND. When the
 contraction operand is an abstraction TITLE (§4.1) rather than an entity, the
@@ -896,6 +936,26 @@ ontology pointers must survive rule applications.
       After RULE 4, pointers to the LEFT and RIGHT abstraction (fan-in) nodes are
       added to P and the old pointer to the abstraction is removed. After RULE 1,
       the pointer outcome is as given in §8.6.
+
+      THE TWO NEW POINTERS MUST DESIGNATE TWO NODES, ONE PER BRANCH — rule 4
+      DUPLICATES the shared abstraction, so each branch gets its own copy and its
+      own pointer. Wrapping only the occurrence the old pointer happened to
+      address, and hanging both new pointers off that single fan's two ports,
+      leaves the other occurrence a bare abstraction and makes both pointers
+      address THE SAME node: the branches never become independent, so reducing
+      at one drags the other along. Measured on Example 7: after the first
+      branch's contraction, 1760 candidates had the second branch's pointer
+      inside the FIRST branch's result — its [tb] was the first step's own
+      operand — and all 1760 refuted. Where the abstraction occurs only once
+      there is nothing to fork, and both pointers fall back to that fan's ports.
+
+      A CONTRACTION AT SUCH A POINTER STEPS OVER THE FAN. The pointer designates
+      an aux port, so the app(ta,tb) the step is about is above the FAN, not
+      immediately above the pointer. §8.6's outer test therefore walks up through
+      any fan before looking for the application — a fan-in is not a level of
+      application structure, only the statement that one node is reached twice
+      (§1). Without that, every candidate the reflection just paid off on is
+      refuted on shape while holding a perfectly good redex.
 
       A POINTER MAY ALSO SIT ON A NON-ABSTRACTION, in which case no rule fires
       there. The pointer is then advanced without any reduction: §8.6's non-firing

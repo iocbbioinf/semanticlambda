@@ -410,6 +410,17 @@ def enrich(ontologies: list[Ontology],
 
     Returns the set GROWN by every candidate the rule admits.
 
+    THREE PLACES a question may be substituted, and the third is the one that
+    reads the GRAPH rather than the term:
+
+      (a) the pointed variable is in FUNCTION position;
+      (b) it is in ARGUMENT position and the function side is a variable;
+      (c) it is SHARED — a fan-in stands directly above it.
+
+    (c) is what makes §8.7's rule-4 branch reachable: only a shared ABSTRACTION
+    fires there, and (a)/(b) can never put an abstraction at a shared position.
+    See the case itself for the measurement.
+
     THE SNAPSHOT IS LOAD-BEARING: iteration is over the set as it stood before
     the pass. Without it, newly created ontologies are re-enriched in the same
     pass and — since each substitution can create fresh matching material — the
@@ -442,6 +453,66 @@ def enrich(ontologies: list[Ontology],
         if path is None:
             return
         tp = _bare(subterm_at(o.term, path))
+
+        # (c) THE POINTED VARIABLE IS SHARED — a fan-in stands DIRECTLY ABOVE it.
+        #
+        # This case keys on SHARING, not on syntactic position, and that is the
+        # point. Cases (a) and (b) below ask which side of an application the
+        # variable sits on, which is an artefact of how the graph is written as a
+        # term; sharing is a property of the graph itself (§1). A variable under a
+        # fan-in is one the graph reaches from more than one place, so a question
+        # substituted there is claimed by every reading that passes through it at
+        # once — exactly the position where one substitution says the most.
+        #
+        # IT IS ALSO WHAT MAKES RULE 4 REACHABLE. §8.7 fires only when the SHARED
+        # subterm is an ABSTRACTION. Under (a) and (b) alone a shared position can
+        # only ever hold a variable: neither case writes to an application's
+        # ARGUMENT (they write to `path` in function position, and to
+        # `ppath + (0,)`), so measured on a reading whose ontologies had an
+        # abstraction at the pointer in 320 candidates, NONE had it shared, and
+        # every reflection took the silent branch. Enriching AT the fan-in turns
+        # the shared variable into a shared abstraction, so §8.7's firing branch
+        # becomes reachable through enrichment rather than only through §8.6's
+        # closed-reading graft.
+        #
+        # IT MUST BE A SHARING FAN-IN — one on a MIDDLE WIRE, not on the rightmost
+        # (§8.5(2)). A fan on the folded command wire is a syntactic lambda/@ fan:
+        # bookkeeping from writing the graph as a term, not the reader having
+        # reused an entity, so substituting there would enrich a position that is
+        # not genuinely shared.
+        #
+        # `_sharing_fan_above` is exactly that test, and BOTH of its cases are
+        # middle-wire by construction (§1's one kind of sharing):
+        #   - the explicit `LamFan` is only ever built by a reflection or by
+        #     rule 4 (the two sites that construct one), never for a syntactic
+        #     fan — those are materialised by `_Compiler`, not represented here;
+        #   - a node reached twice IS a reused entity, which is the middle-wire
+        #     fan-in of GAL p.7 that `_Compiler._fan_in` marks on OFFSET.
+        # So no rightmost-wire fan can reach this branch.
+        #
+        # THE POINTER STAYS PUT. It designates the shared node, and substitution
+        # leaves a node at that position, so there is nothing to follow. Unlike
+        # (a), no new position is created.
+        #
+        # THE SUBSTITUTION IS BY IDENTITY, NOT BY PATH. `replace_at` writes at ONE
+        # path — correct for §7.2, where re-parenting one fan branch must leave
+        # the other alone, but wrong here: it would replace one occurrence of the
+        # shared node and leave the rest as variables, DESTROYING the sharing the
+        # case is about (measured: the substituted side became an abstraction and
+        # `_shared_app_ab` then reported no sharing, so rule 4 still refused).
+        #
+        # `_substitute` is the sharing-preserving primitive — the same one rule 1
+        # uses — putting the SAME `q` object at every occurrence, so the result is
+        # one shared abstraction rather than several copies.
+        if isinstance(tp, LamVar) and _sharing_fan_above(o.term, path) is not None:
+            for q in candidates(pid, tp):
+                new_term = _substitute(o.term, tp.iri, q)
+                cand = Ontology(term=new_term, pointers=dict(o.pointers),
+                                fired=o.fired,
+                                origin=_enrich_origin(o.origin, tp, q))
+                out.append(cand)
+                go(cand, rest)
+
         parent = _parent_app(o.term, path)
         if parent is None:
             return
@@ -841,7 +912,22 @@ def after_contraction(ontologies: list[Ontology], pid: int, option: int,
             # the root has no enclosing application, so there is nothing to test
             stats["refuted"] += 1
             continue
+        # A FAN BETWEEN THE POINTER AND THE APPLICATION IS STEPPED OVER. After a
+        # reflection the pointers designate the fan's aux ports (§4.2), so when
+        # rule 4 fired there the pointer's parent is the FAN and the app(ta,tb)
+        # the step is about is one level further up. A fan is not an application,
+        # so stopping at it refutes every candidate the reflection just paid off
+        # on — measured: all 80 rule-4 candidates of Example 7, each holding a
+        # perfectly good redex.
+        #
+        # This does not weaken the test, it locates it: the rule is "the
+        # application ENCLOSING the pointer", and a fan-in is not a level of
+        # application structure but a statement that one node is reached twice
+        # (§1). §8.7's silent branch already lands its pointers on an ordinary
+        # application for the same reason; this makes the firing branch agree.
         app_path = path[:-1]
+        while app_path and isinstance(subterm_at(o.term, app_path), LamFan):
+            app_path = app_path[:-1]
         node = _bare(subterm_at(o.term, app_path))
         if not isinstance(node, LamApp):
             stats["refuted"] += 1
@@ -1003,6 +1089,34 @@ def _occurrences(term: LamTerm, node: LamTerm) -> int:
     return n
 
 
+def _occurrence_paths(term: LamTerm, node: LamTerm) -> list[Path]:
+    """The path of every place `node` is reached in `term`, BY IDENTITY.
+
+    The path-valued companion of `_occurrences`: rule 4 duplicates a shared
+    subterm onto both branches, so it needs to know WHERE each occurrence is, not
+    merely how many there are (§8.5(2)).
+
+    Identity, not equality, for the same reason as `_occurrences`: sharing is one
+    node reached twice, and two equal-but-distinct subterms are two nodes (§1).
+    Paths come out in left-to-right order, so the first is the grey (left-up)
+    occurrence and the second the black (right-up) one.
+    """
+    out: list[Path] = []
+
+    def walk(t: LamTerm, p: Path) -> None:
+        if t is node:
+            out.append(p)
+        if isinstance(t, LamApp):
+            walk(t.func, p + (0,)); walk(t.arg, p + (1,))
+        elif isinstance(t, LamAbs):
+            walk(t.body, p + (0,))
+        elif isinstance(t, LamFan):
+            walk(t.principal, p + (0,))
+
+    walk(term, ())
+    return out
+
+
 def _occurs(hay: LamTerm, needle: LamTerm) -> bool:
     """Is `needle` present in `hay` AS THE SAME GRAPH NODE?
 
@@ -1109,13 +1223,35 @@ def after_reflection(ontologies: list[Ontology], pid: int,
             continue
 
         if isinstance(toc, LamAbs):
-            # RULE 4 fires: the abstraction is duplicated onto the two branches.
-            # Both new pointers designate copies of the ABSTRACTION's fan (§8.5).
+            # RULE 4 fires: the abstraction is DUPLICATED onto the two branches,
+            # and §8.5(2) puts one new pointer on the LEFT and one on the RIGHT
+            # abstraction fan-in node — one per branch.
+            #
+            # EACH POINTER GOES TO ITS OWN OCCURRENCE. Wrapping at `path` alone
+            # and pointing both new pointers at that one fan's two ports leaves
+            # the other occurrence a bare abstraction and makes the two pointers
+            # address THE SAME node: the branches never become independent, so
+            # reducing at one moves the other with it. Measured on Example 7:
+            # after the grey step 1760 candidates had the black pointer inside
+            # the GREY result ([tb] == ChainInterface, the grey step's own
+            # operand), and every one refuted.
+            #
+            # So the fan is placed at BOTH occurrences of the shared abstraction
+            # and each new pointer designates the occurrence in its own branch.
+            # Where the abstraction occurs only once there is nothing to fork,
+            # and the two pointers fall back to that single fan's ports.
             fan = LamFan(principal=toc, grey_cast=a_iri, black_cast=b_iri)
-            new_term = replace_at(o.term, path, fan)
+            occs = _occurrence_paths(o.term, raw)
+            new_term = o.term
+            for op in occs:
+                new_term = replace_at(new_term, op, fan)
             ptrs = {k: v for k, v in o.pointers.items() if k != pid}
-            ptrs[left_pid] = path + (0,)
-            ptrs[right_pid] = path + (1,)
+            if len(occs) >= 2:
+                ptrs[left_pid] = occs[0] + (0,)
+                ptrs[right_pid] = occs[1] + (1,)
+            else:
+                ptrs[left_pid] = path + (0,)
+                ptrs[right_pid] = path + (1,)
             out.append(Ontology(term=new_term, pointers=ptrs, fired=o.fired + 1,
                                 is_reading=o.is_reading,
                                 origin=o.origin or o.term))
