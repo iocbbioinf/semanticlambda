@@ -136441,5 +136441,1522 @@
     "shares_bound": false,
     "parent": "https://ahoj-db.org/kg#UnifiedBindingSite",
     "qid": "https://ahoj-db.org/question#9604bceaeb95df5e"
+  },
+  {
+    "chain_label": "\u25c7 standing in \u201c\u25c7 asking holo form: does binding pocket's reach to Unifi\u201d: does it still answer the same?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+        "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "abs",
+          "var": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          },
+          "body": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#BindingPocket",
+              "label": "binding pocket"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+              "label": "Unified binding site"
+            }
+          },
+          "qid": "https://ahoj-db.org/question#cc36647ff48e1fe2"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+            "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+            "label": "Unified binding site"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?.((\u03bbbinding pocket.(binding pocket \u00b7 Unified binding site)) \u00b7 (\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it? \u00b7 Unified binding site))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "parent": "https://ahoj-db.org/question#162464efb9c739dc",
+    "qid": "https://ahoj-db.org/question#7bae91ca2ccd6ae6",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in \u201c\u25c7 does Protein Data Bank's binding pocket answer to Worl\u201d: does it still answer the same?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+        "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#wwPDB",
+          "label": "Worldwide Protein Data Bank (wwPDB)"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+            "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+          },
+          "arg": {
+            "type": "abs",
+            "var": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#BindingPocket",
+              "label": "binding pocket"
+            },
+            "body": {
+              "type": "app",
+              "func": {
+                "type": "app",
+                "func": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#BindingPocket",
+                  "label": "binding pocket"
+                },
+                "arg": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+                  "label": "Unified binding site"
+                }
+              },
+              "arg": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#BindingPocket",
+                "label": "binding pocket"
+              }
+            },
+            "qid": "https://ahoj-db.org/question#b72e39b2840da322"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?.(Worldwide Protein Data Bank (wwPDB) \u00b7 (\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)? \u00b7 (\u03bbbinding pocket.((binding pocket \u00b7 Unified binding site) \u00b7 binding pocket))))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "parent": "https://ahoj-db.org/question#402fd7a2d30c5676",
+    "qid": "https://ahoj-db.org/question#6fafde8b93ff6423",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in \u201c\u25c7 binding pocket analyzed as Unified binding site \u2014 and \u201d: does it still answer the same?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+        "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+            "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+            "label": "Unified binding site"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+          "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?.((\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself? \u00b7 Unified binding site) \u00b7 \u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#b72e39b2840da322",
+    "qid": "https://ahoj-db.org/question#208c717b6d4d0330",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in \u201c\u25c7 what does ligand binding site predictor make of the Un\u201d: does it still answer the same?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+        "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#LBSPredictor",
+          "label": "ligand binding site predictor"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+          "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 what does ligand binding site predictor make of the Unified binding site?.(ligand binding site predictor \u00b7 \u25c7 what does ligand binding site predictor make of the Unified binding site?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#9604bceaeb95df5e",
+    "qid": "https://ahoj-db.org/question#17fd998db22e89c0",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 from the best model: Protein Data Bank read further",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#PDB",
+        "label": "Protein Data Bank"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#wwPDB",
+          "label": "Worldwide Protein Data Bank (wwPDB)"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#PDB",
+            "label": "Protein Data Bank"
+          },
+          "arg": {
+            "type": "abs",
+            "var": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#BindingPocket",
+              "label": "binding pocket"
+            },
+            "body": {
+              "type": "app",
+              "func": {
+                "type": "app",
+                "func": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#BindingPocket",
+                  "label": "binding pocket"
+                },
+                "arg": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+                  "label": "Unified binding site"
+                }
+              },
+              "arg": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#BindingPocket",
+                "label": "binding pocket"
+              }
+            },
+            "qid": "https://ahoj-db.org/question#b72e39b2840da322"
+          }
+        }
+      },
+      "qid": "https://ahoj-db.org/question#402fd7a2d30c5676"
+    },
+    "term_str": "\u03bbProtein Data Bank.(Worldwide Protein Data Bank (wwPDB) \u00b7 (Protein Data Bank \u00b7 (\u03bbbinding pocket.((binding pocket \u00b7 Unified binding site) \u00b7 binding pocket))))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "parent": "https://ahoj-db.org/kg#PDB",
+    "qid": "https://ahoj-db.org/question#e7d487b72f19dadd",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#AH_DB",
+        "label": "AH-DB (Apo-Holo DataBase)"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#AlphaFold",
+          "label": "AlphaFold"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#PDB",
+                "label": "Protein Data Bank"
+              },
+              "body": {
+                "type": "app",
+                "func": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#wwPDB",
+                  "label": "Worldwide Protein Data Bank (wwPDB)"
+                },
+                "arg": {
+                  "type": "app",
+                  "func": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#PDB",
+                    "label": "Protein Data Bank"
+                  },
+                  "arg": {
+                    "type": "abs",
+                    "var": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#BindingPocket",
+                      "label": "binding pocket"
+                    },
+                    "body": {
+                      "type": "app",
+                      "func": {
+                        "type": "app",
+                        "func": {
+                          "type": "var",
+                          "iri": "https://ahoj-db.org/kg#BindingPocket",
+                          "label": "binding pocket"
+                        },
+                        "arg": {
+                          "type": "var",
+                          "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+                          "label": "Unified binding site"
+                        }
+                      },
+                      "arg": {
+                        "type": "var",
+                        "iri": "https://ahoj-db.org/kg#BindingPocket",
+                        "label": "binding pocket"
+                      }
+                    },
+                    "qid": "https://ahoj-db.org/question#b72e39b2840da322"
+                  }
+                }
+              },
+              "qid": "https://ahoj-db.org/question#402fd7a2d30c5676"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#AH_DB",
+              "label": "AH-DB (Apo-Holo DataBase)"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ApoForm",
+            "label": "apo form"
+          }
+        }
+      },
+      "qid": "https://ahoj-db.org/question#5c8aec920bef9099"
+    },
+    "term_str": "\u03bbAH-DB (Apo-Holo DataBase).(AlphaFold \u00b7 (((\u03bbProtein Data Bank.(Worldwide Protein Data Bank (wwPDB) \u00b7 (Protein Data Bank \u00b7 (\u03bbbinding pocket.((binding pocket \u00b7 Unified binding site) \u00b7 binding pocket))))) \u00b7 AH-DB (Apo-Holo DataBase)) \u00b7 apo form))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#AH_DB",
+        "obj_iri": "https://ahoj-db.org/kg#ApoForm",
+        "claim_iri": "https://ahoj-db.org/kg#Chang2012_c2",
+        "claim_text": "AH-DB is generated by identifying and mapping molecules across different PDB entries, using a refined alignment scheme to overcome the fact that many PDB structures are only protein fragments rather than complete proteins."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "parent": "https://ahoj-db.org/kg#AH_DB",
+    "qid": "https://ahoj-db.org/question#eaae2ad824791982",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in \u201c\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read fu\u201d: does it still answer the same?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+        "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#AlphaFold",
+          "label": "AlphaFold"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#PDB",
+                "label": "Protein Data Bank"
+              },
+              "body": {
+                "type": "app",
+                "func": {
+                  "type": "var",
+                  "iri": "https://ahoj-db.org/kg#wwPDB",
+                  "label": "Worldwide Protein Data Bank (wwPDB)"
+                },
+                "arg": {
+                  "type": "app",
+                  "func": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#PDB",
+                    "label": "Protein Data Bank"
+                  },
+                  "arg": {
+                    "type": "abs",
+                    "var": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#BindingPocket",
+                      "label": "binding pocket"
+                    },
+                    "body": {
+                      "type": "app",
+                      "func": {
+                        "type": "app",
+                        "func": {
+                          "type": "var",
+                          "iri": "https://ahoj-db.org/kg#BindingPocket",
+                          "label": "binding pocket"
+                        },
+                        "arg": {
+                          "type": "var",
+                          "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+                          "label": "Unified binding site"
+                        }
+                      },
+                      "arg": {
+                        "type": "var",
+                        "iri": "https://ahoj-db.org/kg#BindingPocket",
+                        "label": "binding pocket"
+                      }
+                    },
+                    "qid": "https://ahoj-db.org/question#b72e39b2840da322"
+                  }
+                }
+              },
+              "qid": "https://ahoj-db.org/question#402fd7a2d30c5676"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+              "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ApoForm",
+            "label": "apo form"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further.(AlphaFold \u00b7 (((\u03bbProtein Data Bank.(Worldwide Protein Data Bank (wwPDB) \u00b7 (Protein Data Bank \u00b7 (\u03bbbinding pocket.((binding pocket \u00b7 Unified binding site) \u00b7 binding pocket))))) \u00b7 \u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further) \u00b7 apo form))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "parent": "https://ahoj-db.org/question#eaae2ad824791982",
+    "qid": "https://ahoj-db.org/question#cf6ae55e307501e9",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in AH_DB's question \u2014 what does AlphaFold make of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+        "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#AlphaFold",
+          "label": "AlphaFold"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+          "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further.(AlphaFold \u00b7 \u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#eaae2ad824791982",
+    "qid": "https://ahoj-db.org/question#026bc592c9a9b149",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in AH_DB's question \u2014 read through AlphaFold, and back to itself?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+        "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+            "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AlphaFold",
+            "label": "AlphaFold"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+          "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further.((\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further \u00b7 AlphaFold) \u00b7 \u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#eaae2ad824791982",
+    "qid": "https://ahoj-db.org/question#8d8cf8d6ea4e951c",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in AH_DB's question \u2014 through Worldwide Protein Data Bank (wwPDB), what AlphaFold says?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+        "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#AlphaFold",
+          "label": "AlphaFold"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+            "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#wwPDB",
+            "label": "Worldwide Protein Data Bank (wwPDB)"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further.(AlphaFold \u00b7 (\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further \u00b7 Worldwide Protein Data Bank (wwPDB)))",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#eaae2ad824791982",
+    "qid": "https://ahoj-db.org/question#18ec30ac8caa7392",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in AH_DB's question \u2014 applied to AlphaFold, then Worldwide Protein Data Bank (wwPDB)?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+        "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+            "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AlphaFold",
+            "label": "AlphaFold"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#wwPDB",
+          "label": "Worldwide Protein Data Bank (wwPDB)"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further.((\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further \u00b7 AlphaFold) \u00b7 Worldwide Protein Data Bank (wwPDB))",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#eaae2ad824791982",
+    "qid": "https://ahoj-db.org/question#17b137029ca81a39",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in AH_DB's question \u2014 approached by AlphaFold, then itself?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+        "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AlphaFold",
+            "label": "AlphaFold"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+            "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+          "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further.((AlphaFold \u00b7 \u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further) \u00b7 \u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#eaae2ad824791982",
+    "qid": "https://ahoj-db.org/question#b590f9ec5e3533b7",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in AH_DB's question \u2014 the same to AlphaFold as to Protein Data Bank?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+        "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+            "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#AlphaFold",
+            "label": "AlphaFold"
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#eaae2ad824791982",
+            "label": "\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#PDB",
+            "label": "Protein Data Bank"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further.((\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further \u00b7 AlphaFold) \u00b7 (\u25c7 from the best model: AH-DB (Apo-Holo DataBase) read further \u00b7 Protein Data Bank))",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#eaae2ad824791982",
+    "qid": "https://ahoj-db.org/question#92768f8b26386a75",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in HoloForm's question \u2014 what does binding pocket make of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+        "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#BindingPocket",
+          "label": "binding pocket"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+          "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?.(binding pocket \u00b7 \u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#162464efb9c739dc",
+    "qid": "https://ahoj-db.org/question#d2354366b51a6a6c",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in HoloForm's question \u2014 read through binding pocket, and back to itself?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+        "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+            "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+          "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?.((\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it? \u00b7 binding pocket) \u00b7 \u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#162464efb9c739dc",
+    "qid": "https://ahoj-db.org/question#65c40b4090f26440",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in HoloForm's question \u2014 through Unified binding site, what binding pocket says?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+        "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#BindingPocket",
+          "label": "binding pocket"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+            "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+            "label": "Unified binding site"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?.(binding pocket \u00b7 (\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it? \u00b7 Unified binding site))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "parent": "https://ahoj-db.org/question#162464efb9c739dc",
+    "qid": "https://ahoj-db.org/question#f3553a52bf8bd22e",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in HoloForm's question \u2014 applied to binding pocket, then Unified binding site?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+        "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+            "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+          "label": "Unified binding site"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?.((\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it? \u00b7 binding pocket) \u00b7 Unified binding site)",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "parent": "https://ahoj-db.org/question#162464efb9c739dc",
+    "qid": "https://ahoj-db.org/question#3ae347e1c6955e7f",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in HoloForm's question \u2014 approached by binding pocket, then itself?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+        "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+            "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+          "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?.((binding pocket \u00b7 \u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?) \u00b7 \u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#162464efb9c739dc",
+    "qid": "https://ahoj-db.org/question#81171d491c914dca",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in HoloForm's question \u2014 the same to binding pocket as to holo form?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+        "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+            "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#162464efb9c739dc",
+            "label": "\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#HoloForm",
+            "label": "holo form"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it?.((\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it? \u00b7 binding pocket) \u00b7 (\u25c7 asking holo form: does binding pocket's reach to Unified binding site still hold of it? \u00b7 holo form))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#HoloForm",
+        "claim_iri": "https://ahoj-db.org/kg#Najmanovich2000_c2",
+        "claim_text": "Upon ligand binding only a small number of binding-pocket residues change side-chain conformation: about 85% of cases show changes in three residues or fewer."
+      }
+    ],
+    "parent": "https://ahoj-db.org/question#162464efb9c739dc",
+    "qid": "https://ahoj-db.org/question#c21b560439e77210",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in PDB's question \u2014 what does Worldwide Protein Data Bank (wwPDB) make of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+        "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#wwPDB",
+          "label": "Worldwide Protein Data Bank (wwPDB)"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+          "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?.(Worldwide Protein Data Bank (wwPDB) \u00b7 \u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#402fd7a2d30c5676",
+    "qid": "https://ahoj-db.org/question#1f7bb536bcec6202",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in PDB's question \u2014 read through Worldwide Protein Data Bank (wwPDB), and back to itself?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+        "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+            "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#wwPDB",
+            "label": "Worldwide Protein Data Bank (wwPDB)"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+          "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?.((\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)? \u00b7 Worldwide Protein Data Bank (wwPDB)) \u00b7 \u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#402fd7a2d30c5676",
+    "qid": "https://ahoj-db.org/question#bcb7d8b93728f91b",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in PDB's question \u2014 through Protein Data Bank, what Worldwide Protein Data Bank (wwPDB) says?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+        "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#wwPDB",
+          "label": "Worldwide Protein Data Bank (wwPDB)"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+            "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#PDB",
+            "label": "Protein Data Bank"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?.(Worldwide Protein Data Bank (wwPDB) \u00b7 (\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)? \u00b7 Protein Data Bank))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#wwPDB",
+        "obj_iri": "https://ahoj-db.org/kg#PDB",
+        "claim_iri": "https://ahoj-db.org/kg#wwPDB2019_c2",
+        "claim_text": "The wwPDB consortium comprises the data centres RCSB PDB, PDBe, PDBj and BMRB, which collaboratively curate and disseminate the PDB archive worldwide."
+      }
+    ],
+    "parent": "https://ahoj-db.org/question#402fd7a2d30c5676",
+    "qid": "https://ahoj-db.org/question#3864341ec40b936e",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in PDB's question \u2014 applied to Worldwide Protein Data Bank (wwPDB), then Protein Data Bank?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+        "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+            "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#wwPDB",
+            "label": "Worldwide Protein Data Bank (wwPDB)"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#PDB",
+          "label": "Protein Data Bank"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?.((\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)? \u00b7 Worldwide Protein Data Bank (wwPDB)) \u00b7 Protein Data Bank)",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#wwPDB",
+        "obj_iri": "https://ahoj-db.org/kg#PDB",
+        "claim_iri": "https://ahoj-db.org/kg#wwPDB2019_c2",
+        "claim_text": "The wwPDB consortium comprises the data centres RCSB PDB, PDBe, PDBj and BMRB, which collaboratively curate and disseminate the PDB archive worldwide."
+      }
+    ],
+    "parent": "https://ahoj-db.org/question#402fd7a2d30c5676",
+    "qid": "https://ahoj-db.org/question#e3eecfc4de85bd49",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in PDB's question \u2014 approached by Worldwide Protein Data Bank (wwPDB), then itself?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+        "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#wwPDB",
+            "label": "Worldwide Protein Data Bank (wwPDB)"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+            "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+          "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?.((Worldwide Protein Data Bank (wwPDB) \u00b7 \u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?) \u00b7 \u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#402fd7a2d30c5676",
+    "qid": "https://ahoj-db.org/question#c518698538aa0a33",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in PDB's question \u2014 the same to Worldwide Protein Data Bank (wwPDB) as to binding pocket?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+        "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+            "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#wwPDB",
+            "label": "Worldwide Protein Data Bank (wwPDB)"
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#402fd7a2d30c5676",
+            "label": "\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)?.((\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)? \u00b7 Worldwide Protein Data Bank (wwPDB)) \u00b7 (\u25c7 does Protein Data Bank's binding pocket answer to Worldwide Protein Data Bank (wwPDB)? \u00b7 binding pocket))",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#402fd7a2d30c5676",
+    "qid": "https://ahoj-db.org/question#e65358a94a9ab33a",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in BindingPocket's question \u2014 what does binding pocket make of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+        "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#BindingPocket",
+          "label": "binding pocket"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+          "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?.(binding pocket \u00b7 \u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#b72e39b2840da322",
+    "qid": "https://ahoj-db.org/question#c12ed015b3954cd0",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in BindingPocket's question \u2014 read through binding pocket, and back to itself?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+        "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+            "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+          "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?.((\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself? \u00b7 binding pocket) \u00b7 \u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#b72e39b2840da322",
+    "qid": "https://ahoj-db.org/question#073747ce2cfccc07",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in BindingPocket's question \u2014 through Unified binding site, what binding pocket says?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+        "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#BindingPocket",
+          "label": "binding pocket"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+            "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+            "label": "Unified binding site"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?.(binding pocket \u00b7 (\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself? \u00b7 Unified binding site))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "parent": "https://ahoj-db.org/question#b72e39b2840da322",
+    "qid": "https://ahoj-db.org/question#25ae9f211bd579ed",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in BindingPocket's question \u2014 applied to binding pocket, then Unified binding site?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+        "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+            "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+          "label": "Unified binding site"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?.((\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself? \u00b7 binding pocket) \u00b7 Unified binding site)",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+        "claim_iri": "https://ahoj-db.org/kg#Clark2019_c5",
+        "claim_text": "Clark et al. define a per-family 'unified binding site' as the union of all residues within 4.5 Angstrom of any bound ligand across all holo structures (avg 21+/-9 residues), so flexibility metrics capture the totality of the pocket rather than a single-structure cutoff."
+      }
+    ],
+    "parent": "https://ahoj-db.org/question#b72e39b2840da322",
+    "qid": "https://ahoj-db.org/question#ea37346fec0ab7ee",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in BindingPocket's question \u2014 approached by binding pocket, then itself?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+        "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+            "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#b72e39b2840da322",
+          "label": "\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?.((binding pocket \u00b7 \u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?) \u00b7 \u25c7 binding pocket analyzed as Unified binding site \u2014 and back to itself?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#b72e39b2840da322",
+    "qid": "https://ahoj-db.org/question#3a7cdb9de350ddf5",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in UnifiedBindingSite's question \u2014 read through ligand binding site predictor, and back to itself?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+        "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+            "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#LBSPredictor",
+            "label": "ligand binding site predictor"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+          "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 what does ligand binding site predictor make of the Unified binding site?.((\u25c7 what does ligand binding site predictor make of the Unified binding site? \u00b7 ligand binding site predictor) \u00b7 \u25c7 what does ligand binding site predictor make of the Unified binding site?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#9604bceaeb95df5e",
+    "qid": "https://ahoj-db.org/question#ecef2c941f7db43d",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in UnifiedBindingSite's question \u2014 through Unified binding site, what ligand binding site predictor says?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+        "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#LBSPredictor",
+          "label": "ligand binding site predictor"
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+            "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+            "label": "Unified binding site"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 what does ligand binding site predictor make of the Unified binding site?.(ligand binding site predictor \u00b7 (\u25c7 what does ligand binding site predictor make of the Unified binding site? \u00b7 Unified binding site))",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#9604bceaeb95df5e",
+    "qid": "https://ahoj-db.org/question#f77a19c993908a72",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in UnifiedBindingSite's question \u2014 applied to ligand binding site predictor, then Unified binding site?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+        "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+            "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#LBSPredictor",
+            "label": "ligand binding site predictor"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+          "label": "Unified binding site"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 what does ligand binding site predictor make of the Unified binding site?.((\u25c7 what does ligand binding site predictor make of the Unified binding site? \u00b7 ligand binding site predictor) \u00b7 Unified binding site)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#9604bceaeb95df5e",
+    "qid": "https://ahoj-db.org/question#acf441b5602b6c4e",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 standing in UnifiedBindingSite's question \u2014 approached by ligand binding site predictor, then itself?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+        "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#LBSPredictor",
+            "label": "ligand binding site predictor"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+            "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/question#9604bceaeb95df5e",
+          "label": "\u25c7 what does ligand binding site predictor make of the Unified binding site?"
+        }
+      }
+    },
+    "term_str": "\u03bb\u25c7 what does ligand binding site predictor make of the Unified binding site?.((ligand binding site predictor \u00b7 \u25c7 what does ligand binding site predictor make of the Unified binding site?) \u00b7 \u25c7 what does ligand binding site predictor make of the Unified binding site?)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/question#9604bceaeb95df5e",
+    "qid": "https://ahoj-db.org/question#422a8d2d16755ad3",
+    "origin": "aiExample"
   }
 ]

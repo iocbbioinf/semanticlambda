@@ -143,6 +143,36 @@ question: WHERE IS THE USER STANDING?
     — not every question of A. A more specific question admits fewer models, so
     this is the reader's direct control over refutation (§8.4).
 
+    SUBSUMPTION. A subtype carries its supertype's claims:
+
+        A1 < A  and  A -> B   =>   A1 -> B
+        B1 < B  and  A -> B   =>   A -> B1
+
+    so a step between subtypes follows from the entity-level claim, and need not
+    be re-asserted.
+
+    THE UPDATE TESTS COMPARE TYPES UP TO SUBTYPING, IN EITHER DIRECTION. §8.6's
+    [ta] == A and §8.7's cast and [toc] tests accept a type COMPARABLE to the one
+    asked for — above it or below it:
+
+      MORE SPECIFIC than the step: a model that commits to more still models the
+        weaker step. Where the reading takes app(qA, b) with [qA] < A, [b] == B,
+        an ontology of it is app(qA1, b') with [qA1] < [qA] and [b'] < B.
+      MORE GENERAL than the step: the step follows from the entity-level claim,
+        so a model stated at the entity covers a reading that has descended into
+        questions.
+
+    Exact equality would refuse both, and with it every ontology whose types sit
+    at a different level from the reader's position — which is most of them once
+    a reading stands in a question at all.
+
+    ENRICHMENT IS NOT SUBSUMPTIVE. `abstractions_of_type` stays ONE-directional:
+    at a variable of type A1 only questions asked of A1 OR BELOW may be
+    substituted. Accepting supertypes there would undo the constraint — choosing
+    a more specific question would no longer narrow anything, and the hierarchy
+    would do no work. MATCHING a step is a weaker demand than PROPOSING material
+    for it, and only the latter is where the reader's choice must bite.
+
     A DIFFERENT TITLE IS A DIFFERENT QUESTION, and so names a different subtype,
     even over the same graph and the same asked entity: the title is part of what
     is asked. Identity is therefore a minted iri per question, not the term

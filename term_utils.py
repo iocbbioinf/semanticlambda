@@ -193,12 +193,42 @@ def has_non_ai_question(term: LamTerm) -> bool:
     return walk(term)
 
 
+_QID_TITLES: Optional[dict[str, str]] = None
+
+
+def qid_titles(refresh: bool = False) -> dict[str, str]:
+    """qid -> title. The index that survives reduction."""
+    global _QID_TITLES
+    if _QID_TITLES is not None and not refresh:
+        return _QID_TITLES
+    idx: dict[str, str] = {}
+    for rec in load_lambda_db():
+        q, ti = rec.get("qid"), rec.get("chain_label")
+        if q and ti:
+            idx[q] = ti
+    _QID_TITLES = idx
+    return idx
+
+
 def title_for_abstraction(t: LamTerm) -> Optional[str]:
     """The question title for this abstraction, or None if it is not a saved one.
 
-    An abstraction can arise inside an ontology by REDUCTION as well as by being
-    proposed whole, so a miss is ordinary and simply means "no title to show".
+    BY QID FIRST, because a question MODIFIED BY REDUCTION IS STILL THE SAME
+    QUESTION — same title, same subtype (§8.2). Its term has moved on, so a
+    term-string lookup would miss it; the qid travels with the abstraction and
+    does not.
+
+    Falling back to the term keeps abstractions that carry no qid working: one
+    built by hand, or loaded from a record written before qids existed.
+
+    A miss is ordinary — an abstraction can arise inside an ontology by REDUCTION
+    rather than by proposal, and then it is nobody's question.
     """
+    q = getattr(t, "qid", None)
+    if q:
+        ti = qid_titles().get(q)
+        if ti:
+            return ti
     titles = abstraction_titles().get(str(t))
     if not titles:
         return None
@@ -322,6 +352,7 @@ def append_lambda_term(name: str, term: LamTerm, g: rdflib.Graph,
     save_lambda_db(records)
     abstraction_titles(refresh=True)      # the new title must be visible at once
     abstraction_origins(refresh=True)
+    qid_titles(refresh=True)
 
 
 def _term_type(t: LamTerm) -> Optional[str]:

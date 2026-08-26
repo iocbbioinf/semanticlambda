@@ -164,7 +164,11 @@ def load_abstractions() -> list[LamAbs]:
     would invent sharing nobody asserted.
     """
     out: list[LamAbs] = []
-    for rec in load_lambda_db():
+    recs = load_lambda_db()
+    # ONE index for the whole load: `_stamp_nested` would otherwise rebuild it
+    # per question, which is 2933 passes over the store.
+    by_term = {r.get("term_str"): r.get("qid") for r in recs if r.get("qid")}
+    for rec in recs:
         d = rec.get("term")
         if not isinstance(d, dict) or d.get("type") != "abs":
             continue
@@ -173,8 +177,42 @@ def load_abstractions() -> list[LamAbs]:
         except (ValueError, KeyError):
             continue
         if isinstance(t, LamAbs):
+            # STAMP THE QUESTION WITH ITS IDENTITY. The qid then travels with the
+            # abstraction through every substitution, so a question that SURVIVES
+            # a reduction is still recognisably itself — same title, same subtype
+            # (§8.2). A question CONSUMED by firing is answered and gone; that it
+            # was there is recorded by `Ontology.origin`.
+            t.qid = rec.get("qid")
+            # NESTED QUESTIONS GET THEIR OWN IDENTITY TOO. A saved question may
+            # hold another in its body (§8.2 Q2 requires that one to be saved as
+            # well), and when the outer one FIRES the inner SURVIVES — so it must
+            # carry its own qid, not the outer one's.
+            _stamp_nested(t, by_term)
             out.append(t)
     return out
+
+
+def _stamp_nested(t: LamTerm, by_term: Optional[dict] = None) -> None:
+    """Give every abstraction inside `t` the qid of the question it is.
+
+    Looked up by term string, which is what identifies a SAVED question in the
+    store; from then on the qid travels and the string is not consulted again.
+    """
+    if by_term is None:
+        by_term = {r.get("term_str"): r.get("qid")
+                   for r in load_lambda_db() if r.get("qid")}
+
+    def walk(x, top=True):
+        if isinstance(x, LamAbs):
+            if not top and not x.qid:
+                x.qid = by_term.get(str(x))
+            walk(x.body, False)
+        elif isinstance(x, LamApp):
+            walk(x.func, False); walk(x.arg, False)
+        elif isinstance(x, LamFan):
+            walk(x.principal, False)
+
+    walk(t)
 
 
 def abstraction_type(q: LamAbs) -> str:
@@ -256,7 +294,10 @@ def _substitute(body: LamTerm, var_iri: str, value: LamTerm) -> LamTerm:
     if isinstance(body, LamAbs):
         if body.var.iri == var_iri:
             return body                     # inner binder shadows this one
-        return LamAbs(var=body.var, body=_substitute(body.body, var_iri, value))
+        # the qid travels: substituting INSIDE a question leaves the same
+        # question, differently answered (§8.2).
+        return LamAbs(var=body.var, qid=body.qid,
+                      body=_substitute(body.body, var_iri, value))
     return body                              # HOLE and anything else
 
 
@@ -718,6 +759,38 @@ def init_from_closed(stored: list[Ontology], pid: int) -> list[Ontology]:
 
 # ── update on a contraction  (§8.6) ────────────────────────────────────────
 
+def _type_fits(have: Optional[str], want: Optional[str]) -> bool:
+    """Do these two types match, up to subtyping — IN EITHER DIRECTION (§2)?
+
+    The UPDATE TESTS (§8.6, §8.7) accept a type COMPARABLE to the one asked for,
+    above or below it, because a subtype carries its supertype's claims:
+
+        A1 < A  and  A -> B   =>   A1 -> B
+        B1 < B  and  A -> B   =>   A -> B1
+
+    so both readings are sound:
+
+      the ontology MORE SPECIFIC than the step — a model that commits to more
+        still models the weaker step. The reading takes app(qA, b) with [qA] < A;
+        an ontology of it is app(qA1, b') with [qA1] < [qA], [b'] < B.
+      the ontology MORE GENERAL than the step — the step follows from the
+        entity-level claim, so a model stated at the entity covers a reading that
+        has descended into questions.
+
+    ENRICHMENT DOES NOT USE THIS. `abstractions_of_type` stays one-directional:
+    at a variable of type A1 only questions asked of A1 or BELOW are admissible.
+    Otherwise choosing a more specific question would not narrow anything, and
+    the hierarchy would constrain nothing — which is the whole reason it exists
+    (§8.2). Matching a step is a weaker demand than proposing material for it.
+    """
+    if have == want:
+        return True
+    if not have or not want:
+        return False
+    t = question_tree.tree()
+    return t.is_subtype(have, want) or t.is_subtype(want, have)
+
+
 def after_contraction(ontologies: list[Ontology], pid: int, option: int,
                       a_iri: str, b_iri: str,
                       type_at,
@@ -786,8 +859,19 @@ def after_contraction(ontologies: list[Ontology], pid: int, option: int,
         ta_path, tb_path = app_path + (0,), app_path + (1,)
         ta_t = type_at(o.term, ta_path)
         tb_t = type_at(o.term, tb_path)
-        # [ta] == A and [tb] == B, for BOTH options (§8.6, §4.1).
-        if (ta_t, tb_t) != (a_iri, b_iri):
+        # [ta] == A and [tb] == B, for BOTH options (§8.6, §4.1) — BUT UP TO
+        # SUBTYPING (§2). An ontology may be MORE SPECIFIC than the step it
+        # models: where the reading takes app(qA, b) with [qA] < A and [b] == B,
+        # an ontology of it is app(qA1, b') with [qA1] < [qA] and [b'] < B.
+        #
+        # WHY THAT DIRECTION. A subtype carries the supertype's claims —
+        #     A1 < A and A -> B  =>  A1 -> B
+        #     B1 < B and A -> B  =>  A -> B1
+        # so a model that commits to more still models the weaker step. Exact
+        # equality would refuse every ontology whose questions are more specific
+        # than the position the reader occupies, which is most of them once a
+        # reading has descended into questions at all.
+        if not (_type_fits(ta_t, a_iri) and _type_fits(tb_t, b_iri)):
             stats["refuted"] += 1
             continue
 
@@ -965,7 +1049,8 @@ def _shared_app_ab(term: LamTerm, toc: LamTerm,
 
     def type_at_term(sub: LamTerm, want: str) -> bool:
         try:
-            return type_at_of(sub) == want
+            # up to subtyping (§2), as §8.6's outer test is
+            return _type_fits(type_at_of(sub), want)
         except Exception:
             return False
 
@@ -1015,7 +1100,8 @@ def after_reflection(ontologies: list[Ontology], pid: int,
         # THE OUTER TEST, required by BOTH branches (§8.7, §8.8): the ontology
         # must ALREADY contain app(ta,tb) with [ta]==A, [tb]==B and G(toc) shared
         # in both. [toc] == C is checked here too.
-        if type_at(o.term, path) != c_iri:
+        # up to subtyping, as in §8.6: the ontology may be more specific
+        if not _type_fits(type_at(o.term, path), c_iri):
             stats["refuted"] += 1
             continue
         if not _shared_app_ab(o.term, raw, a_iri, b_iri, type_at):

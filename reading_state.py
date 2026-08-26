@@ -146,7 +146,8 @@ def _fill_hole(ctx, subject):
         return LamApp(func=_fill_hole(ctx.func, subject),
                       arg=_fill_hole(ctx.arg, subject))
     if isinstance(ctx, LamAbs):
-        return LamAbs(var=ctx.var, body=_fill_hole(ctx.body, subject))
+        return LamAbs(var=ctx.var, qid=ctx.qid,
+                      body=_fill_hole(ctx.body, subject))
     return ctx
 
 
@@ -159,7 +160,8 @@ def _wrap_hole(ctx, wrap):
             return LamApp(func=_wrap_hole(ctx.func, wrap), arg=ctx.arg)
         return LamApp(func=ctx.func, arg=_wrap_hole(ctx.arg, wrap))
     if isinstance(ctx, LamAbs):
-        return LamAbs(var=ctx.var, body=_wrap_hole(ctx.body, wrap))
+        return LamAbs(var=ctx.var, qid=ctx.qid,
+                      body=_wrap_hole(ctx.body, wrap))
     return ctx
 
 
@@ -184,8 +186,11 @@ def lam_to_dict_shared(t) -> dict:
                 "func": lam_to_dict_shared(t.func),
                 "arg": lam_to_dict_shared(t.arg)}
     if isinstance(t, LamAbs):
-        return {"type": "abs", "var": t.var.to_dict(),
-                "body": lam_to_dict_shared(t.body)}
+        d = {"type": "abs", "var": t.var.to_dict(),
+             "body": lam_to_dict_shared(t.body)}
+        if t.qid:
+            d["qid"] = t.qid      # which question this is, kept across saves
+        return d
     return lam_to_dict(t)
 
 
@@ -225,7 +230,8 @@ def lam_from_dict_shared(d: dict, registry: "EntityRegistry | None" = None):
         # share the entity it asks about" answerable at all. Building the binder
         # separately would leave it connected to nothing.
         var = reg.get(d["var"]["iri"], d["var"].get("label", d["var"]["iri"]))
-        return LamAbs(var=var, body=lam_from_dict_shared(d["body"], reg))
+        return LamAbs(var=var, qid=d.get("qid"),
+                      body=lam_from_dict_shared(d["body"], reg))
     if kind == "var":
         return reg.get(d["iri"], d.get("label", d["iri"]))
     return lam_from_dict(d)
@@ -295,7 +301,8 @@ def replace_at(term, path: Path, new):
         # descend into the body, keeping the binder. Ontology terms contain
         # abstractions (§8.1) and are rewritten inside them; without this the
         # path would be ignored and the subterm returned unchanged.
-        return LamAbs(var=term.var, body=replace_at(term.body, path[1:], new))
+        return LamAbs(var=term.var, qid=term.qid,
+                      body=replace_at(term.body, path[1:], new))
     if not isinstance(term, LamApp):
         return term
     d, rest = path[0], path[1:]
@@ -321,7 +328,7 @@ def _abstract_subject(t, subject):
                       arg=a if a is not None else t.arg)
     if isinstance(t, LamAbs):
         b = _abstract_subject(t.body, subject)
-        return None if b is None else LamAbs(var=t.var, body=b)
+        return None if b is None else LamAbs(var=t.var, qid=t.qid, body=b)
     return None
 
 

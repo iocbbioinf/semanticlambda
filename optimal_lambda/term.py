@@ -45,16 +45,38 @@ class LamApp:
 
 @dataclass
 class LamAbs:
-    """Abstraction: λvar.body"""
+    """Abstraction: λvar.body
+
+    `qid` names WHICH QUESTION this is, where the abstraction came from one
+    (reading_desc §2, §8.2). It travels WITH the abstraction, so a question that
+    survives a reduction — rule 1 firing elsewhere in the term — is still the
+    same question, with the same title and the same subtype. Only its body has
+    moved on.
+
+    A question CONSUMED by firing is answered, not modified: the abstraction is
+    gone from the term, and that it was ever there is recorded by
+    `Ontology.origin`. So identity is kept only by the survivors.
+
+    None for an abstraction that is not a saved question — one built by hand, or
+    arising from a reduction rather than from a proposal. The reducer ignores the
+    field entirely; it is metadata for the ontology layer.
+    """
     var: LamVar
     body: "LamTerm"
+    qid: "str | None" = None
 
     def to_dict(self) -> dict:
-        return {"type": "abs", "var": self.var.to_dict(), "body": lam_to_dict(self.body)}
+        d = {"type": "abs", "var": self.var.to_dict(),
+             "body": lam_to_dict(self.body)}
+        if self.qid:
+            d["qid"] = self.qid
+        return d
 
     @staticmethod
     def from_dict(d: dict) -> "LamAbs":
-        return LamAbs(var=LamVar.from_dict(d["var"]), body=lam_from_dict(d["body"]))
+        return LamAbs(var=LamVar.from_dict(d["var"]),
+                      body=lam_from_dict(d["body"]),
+                      qid=d.get("qid"))
 
     def __str__(self) -> str:
         return f"λ{self.var}.({self.body})"
