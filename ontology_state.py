@@ -36,6 +36,7 @@ from reading_state import (
     Path, LamFan, HOLE, EntityRegistry, subterm_at, replace_at,
     lam_to_dict_shared, lam_from_dict_shared,
 )
+import question_tree
 
 # NO BOUND ON THE ONTOLOGY SET. Enrichment branches over every abstraction of
 # matching type at every pointer on every step, and option 1's closed-reading
@@ -181,14 +182,34 @@ def abstraction_type(q: LamAbs) -> str:
 
     Abstracting RETYPES, which is what makes "all abstractions of type A" a
     finite lookup instead of a search.
+
+    NOTE WHAT THIS IS, NOW THAT QUESTIONS NAME SUBTYPES: it is the type the
+    question is ASKED OF — its PARENT in the tree — not the subtype the question
+    itself names. A question of type A1 binds a variable of type A1 and names a
+    subtype BELOW it (`question_tree`).
     """
     return q.var.iri
 
 
 def abstractions_of_type(iri: str,
                          pool: Optional[list[LamAbs]] = None) -> list[LamAbs]:
+    """Questions usable at a variable of type `iri` — ITS OWN AND ANY BELOW IT.
+
+    THE SUBTYPE CONSTRAINT (§2, §8.2). A question names a subtype of the type it
+    is asked of, so the questions available at a variable of type A1 are those
+    asked of A1 or of any subtype of A1 — NOT every question of the root entity
+    A. Standing in a more specific question therefore admits fewer models, which
+    is the reader's direct control over refutation.
+
+    An ENTITY iri admits everything in its tree, since the entity is the most
+    general question of its type and every question under it is a subtype.
+
+    PER VARIABLE, not per reading: each pointer carries its own type, so each is
+    constrained by its own position (§8.1's elementwise correspondence).
+    """
     pool = load_abstractions() if pool is None else pool
-    return [q for q in pool if abstraction_type(q) == iri]
+    admissible = set(question_tree.tree().subtypes_of(iri))
+    return [q for q in pool if abstraction_type(q) in admissible]
 
 
 def abstraction_title(q: LamAbs) -> str:

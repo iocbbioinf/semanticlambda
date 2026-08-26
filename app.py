@@ -25,7 +25,7 @@ from term_utils import (
 )
 from widgets import (
     NodeItem, ClaimItem, ReverseClaimItem, SeparatorItem, MappingItem,
-    OntologyStepItem,
+    OntologyStepItem, QuestionTreeModal,
     ChainTargetItem, ReadingItem, PointerItem,
     ClaimTextModal, ReadingDetailModal, LambdaAbstractionModal,
     OntologyModal, ReadingOntologiesModal, ReflectionModal,
@@ -36,6 +36,7 @@ from reading_state import (
     lam_to_dict_shared, lam_from_dict_shared,
 )
 import ontology_state as ont_layer
+import question_tree
 
 
 class KGBrowser(App):
@@ -175,6 +176,10 @@ class KGBrowser(App):
         # the entity each pointer stands at, by pid: navigation uses the shared
         # subterm's own type, never the reflected cast (§4.2, clarified 08-20)
         self._pointer_nodes: dict[int, rdflib.URIRef] = {}
+        # The TYPE each pointer stands at, by pid — an entity iri, or the
+        # subtype iri a question names (§2). Only recorded where it differs
+        # from the entity, so absence means "the entity itself".
+        self._pointer_types: dict[int, str] = {}
         # one LamVar per entity, so an entity the user REUSES is one shared node
         # in the reading's graph rather than a fresh variable each time (§1).
         self._entities = EntityRegistry()
@@ -261,16 +266,29 @@ class KGBrowser(App):
 
     # ── Pointer set  (reading_desc §1, §4) ────────────────────────────────────
 
-    def _start_pointers(self, node: rdflib.URIRef) -> None:
-        """Open a reading: Pr = exactly one pointer, at the root (§3)."""
+    def _start_pointers(self, node: rdflib.URIRef,
+                        type_iri: Optional[str] = None,
+                        type_label: Optional[str] = None) -> None:
+        """Open a reading: Pr = exactly one pointer, at the root (§3).
+
+        `type_iri` may be a QUESTION's subtype rather than the entity itself
+        (§2): the reading then begins inside that question, its variable typed by
+        the subtype, and enrichment is constrained to that question and below.
+        `node` stays the entity, since that is what the claims panels navigate.
+        """
         self._pointers = PointerSet.initial()
         self._pointer_nodes = {}
+        self._pointer_types = {}
         self._entities = EntityRegistry()
         act = self._pointers.act()
         if act is not None:
             self._pointer_nodes[act.pid] = node
+            if type_iri and type_iri != str(node):
+                self._pointer_types[act.pid] = type_iri
             # init form (a): ontologies = { ont(G(a), {p}) }, then enrich (§8.3)
-            root = self._entity_var(node)
+            root = (self._type_var(type_iri, type_label)
+                    if type_iri and type_iri != str(node)
+                    else self._entity_var(node))
             self._ontologies = ont_layer.init_from_type(root, act.pid)
             self._ontologies, dropped = ont_layer.cap(self._ontologies)
             # The §8.3(a) seed and the reading's own member have the same term at
@@ -599,6 +617,100 @@ class KGBrowser(App):
         if isinstance(term, LamAbs):
             out.insert(0, term)
         return out
+
+    def _claim_chain(self, claim_text: str, source_text: str,
+                     node, reverse: bool) -> None:
+        """claim text -> citation -> the type tree, then contract with the pick.
+
+        `reverse` says which side the claim reaches, and so which contraction
+        option the chosen type takes (§4.1):
+
+          forward  the reader MOVES to it   -> option 1
+          reverse  the reader STAYS         -> option 2
+        """
+        def after(res) -> None:
+            if res != "types" or not isinstance(node, rdflib.URIRef):
+                return
+            purpose = ("Contract with (the reader stays)" if reverse
+                       else "Contract to")
+            self._pick_type(
+                node, purpose,
+                lambda iri, label: self._contract_with_type(iri, label, reverse))
+
+        self.call_after_refresh(
+            self.push_screen, ClaimTextModal(claim_text, source_text), after)
+
+    def _contract_with_type(self, iri: str, label: str, reverse: bool) -> None:
+        """Contract, with an entity OR a question's subtype as the operand.
+
+        A reading holds no abstraction (I6): the operand is the VARIABLE of the
+        chosen type. Where that type is a question's subtype, the reading records
+        it and renders the question's title.
+        """
+        entity = rdflib.URIRef(question_tree.tree().entity_of(iri))
+        operand = self._type_var(iri, label)
+        self._push_term_snapshot()
+        if reverse:
+            stay = self._act_node()
+            self._contract(operand, option=2, land_node=stay)
+            self._show_node_and_claims(stay, push_stack=False)
+        else:
+            self._contract(operand, option=1, land_node=entity)
+            if question_tree.is_question_type(iri):
+                self._pointer_types[self._pointers.act().pid] = iri
+            self._show_node_and_claims(entity)
+
+    def _begin_at_type(self, iri: str, label: str) -> None:
+        """Open a reading at a type — an entity or a question's subtype (§3(a)).
+
+        t = a with [a] == the chosen type. Choosing a question makes the reading
+        begin INSIDE that question: the variable's type is the subtype it names,
+        so enrichment is constrained to that question and below (§8.2).
+        """
+        entity = rdflib.URIRef(question_tree.tree().entity_of(iri))
+        self._start_pointers(entity, type_iri=iri, type_label=label)
+        if question_tree.is_question_type(iri):
+            # the reading's own term is the VARIABLE of the subtype (I6: no
+            # abstraction enters the reading, only its type)
+            self._current_term = self._type_var(iri, label)
+        self._hide_search()
+        self._show_node_and_claims(entity)
+
+    def _pick_type(self, entity: rdflib.URIRef, purpose: str, then) -> None:
+        """Open the question tree under `entity` and call `then(iri, label)`.
+
+        ONE SELECTOR FOR EVERY PLACE A TYPE IS CHOSEN (§2): the initial step, a
+        contraction operand, the parent of a new question. The entity is the
+        tree's root — the most general question of its type — so choosing it is
+        the old behaviour and choosing a question below it selects that subtype.
+        """
+        lbl = node_label(self.g, entity)
+        tree = question_tree.tree()
+
+        def done(res) -> None:
+            if res is None:
+                return
+            iri, label = res
+            then(iri, label)
+
+        self.push_screen(
+            QuestionTreeModal(tree, str(entity), lbl, purpose), done)
+
+    def _type_label(self, iri: str) -> str:
+        """A label for a type — the entity's label, or the question's title."""
+        if question_tree.is_question_type(iri):
+            t = question_tree.tree()
+            return t.title_of(iri) or iri
+        return node_label(self.g, rdflib.URIRef(iri))
+
+    def _type_var(self, iri: str, label: Optional[str] = None) -> LamVar:
+        """The variable standing at a type — an entity OR a question subtype.
+
+        A reading contains no abstractions (I6): selecting a question puts a
+        VARIABLE of the subtype it names into the term, not the abstraction. The
+        registry keeps one node per type, so reuse is shared (§1).
+        """
+        return self._entities.get(iri, label or self._type_label(iri))
 
     def _ont_proposed_steps(self, reverse: bool) -> list[tuple]:
         """Steps the ONTOLOGY SET offers at actPtr, as (node, label, n, titles).
@@ -1083,6 +1195,14 @@ class KGBrowser(App):
         self.push_screen(NameReadingModal(default_name, term_str), on_name_chosen)
 
     def _handle_lambda_abstraction(self) -> None:
+        """Create a question from the current reading (§8.2).
+
+        THE BOUND VARIABLE'S TYPE IS CHOSEN FROM THE TREE, not just from the
+        entities: binding a variable of type A1 makes the new question a CHILD of
+        the question naming A1, so the parent link is what the reader picked
+        (§2). Selecting the entity itself keeps the old behaviour — a question
+        directly on that entity.
+        """
         if self.state != "claims_list" or self._current_term is None:
             self.notify("Start building a chain first", severity="warning")
             return
@@ -1091,12 +1211,30 @@ class KGBrowser(App):
         def on_lambda_selected(abs_term: LamAbs | None) -> None:
             if abs_term is None:
                 return
-            term_name = _top_claim_name(self.g, abs_term.body) if isinstance(abs_term, LamAbs) else str(abs_term)
-            append_lambda_term(term_name, abs_term, self.g)
-            self.notify(f"Saved: {abs_term}", timeout=6)
-            self.call_after_refresh(self.action_reset)
+            self._save_question(abs_term)
 
-        self.push_screen(LambdaAbstractionModal(self.g, term), on_lambda_selected)
+        # the tree goes in so the binder may be a QUESTION, not only an entity:
+        # that is what makes a second level of the hierarchy reachable (§2).
+        self.push_screen(
+            LambdaAbstractionModal(self.g, term, question_tree.tree()),
+            on_lambda_selected)
+
+    def _save_question(self, abs_term: LamAbs) -> None:
+        """Save a question, recording the PARENT its binder's type implies.
+
+        The binder's type is the type the question is asked OF: an entity at the
+        root of a tree, or another question's subtype one level down. Either way
+        it IS the parent, so nothing has to be declared separately (§2).
+        """
+        term_name = (_top_claim_name(self.g, abs_term.body)
+                     if isinstance(abs_term, LamAbs) else str(abs_term))
+        parent = abs_term.var.iri if isinstance(abs_term, LamAbs) else None
+        append_lambda_term(term_name, abs_term, self.g, parent=parent)
+        question_tree.tree(refresh=True)
+        depth = question_tree.tree().depth_of(
+            question_tree.mint_qid(str(abs_term), parent or "", term_name))
+        self.notify(f"Saved at depth {depth}: {abs_term}", timeout=6)
+        self.call_after_refresh(self.action_reset)
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
@@ -1163,6 +1301,18 @@ class KGBrowser(App):
                 self.push_screen(ReadingDetailModal(item.reading_name, item.reading_term, self.g))
             return
 
+        # ── INIT STEP: → on an offered entity opens its question tree (§3) ──
+        # The reading may begin at the entity or at any question below it: the
+        # entity is the most general question of its type, so both are the same
+        # choice at different depths.
+        if self.state == "node_list":
+            lv = self.query_one("#results-list", ListView)
+            item = lv.highlighted_child
+            if isinstance(item, NodeItem):
+                self._pick_type(item.node, "Begin the reading at",
+                                self._begin_at_type)
+            return
+
         if self.state != "claims_list":
             return
 
@@ -1176,17 +1326,23 @@ class KGBrowser(App):
         else:
             return
 
+        # THE CHAIN: claim -> claim text -> citation -> the type and its
+        # questions (§2). So the operand of a contraction can be chosen at any
+        # depth — the bare entity, or a question naming a subtype of it.
         if isinstance(item, (ClaimItem, MappingItem)):
             cd = item.claim_data if isinstance(item, ClaimItem) else item.mapping_data
             claim_text = cd.get("claim_text", "")
             source_text = cd.get("source_text", "")
+            node = cd.get("object")
             if claim_text:
-                self.call_after_refresh(self.push_screen, ClaimTextModal(claim_text, source_text))
+                self._claim_chain(claim_text, source_text, node, reverse=False)
         elif isinstance(item, ReverseClaimItem):
-            claim_text = item.claim_data.get("claim_text", "")
-            source_text = item.claim_data.get("source_text", "")
+            cd = item.claim_data
+            claim_text = cd.get("claim_text", "")
+            source_text = cd.get("source_text", "")
+            node = cd.get("subject")
             if claim_text:
-                self.call_after_refresh(self.push_screen, ClaimTextModal(claim_text, source_text))
+                self._claim_chain(claim_text, source_text, node, reverse=True)
         elif isinstance(item, ChainTargetItem):
             self.call_after_refresh(self.push_screen, ReadingDetailModal(item.reading_name, item.reading_term, self.g))
         elif isinstance(item, ReadingItem):

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 import pyperclip
 import rdflib
 from textual import events
@@ -76,11 +78,19 @@ class ClaimTextModal(ModalScreen):
 
     def action_to_source(self) -> None:
         if not self._source_text:
+            # no citation to show: → goes straight on to the type tree, so the
+            # chain does not dead-end on a claim that has no source text.
+            self.dismiss("types")
             return
-        def on_source_dismissed(close_all: bool | None) -> None:
-            if close_all:
+
+        def on_source_dismissed(res) -> None:
+            if res == "types":
+                self.dismiss("types")       # pass the request to the caller
+            elif res:
                 self.dismiss()
-        self.app.push_screen(SourceTextModal(self._claim_text, self._source_text), on_source_dismissed)
+        self.app.push_screen(
+            SourceTextModal(self._claim_text, self._source_text),
+            on_source_dismissed)
 
     def action_copy(self) -> None:
         pyperclip.copy(self._claim_text)
@@ -88,13 +98,20 @@ class ClaimTextModal(ModalScreen):
 
 
 class SourceTextModal(ModalScreen):
+    """The citation. → continues to the TYPE the claim reaches (§2).
+
+    The navigation is one chain: claim -> claim text -> citation -> the entity
+    and its question tree. So a contraction operand can be chosen at any depth,
+    from the bare entity to a question naming a subtype of it.
+    """
+
     CSS = MODAL_CSS
 
     BINDINGS = [
         Binding("escape", "close_all", "Close"),
         Binding("q", "close_all", "Close"),
         Binding("left", "dismiss", "Back to claim text"),
-        Binding("right", "dismiss", "Back to claim text"),
+        Binding("right", "to_types", "Type / questions"),
         Binding("c", "copy", "Copy"),
     ]
 
@@ -103,10 +120,14 @@ class SourceTextModal(ModalScreen):
         self._source_text = source_text
 
     def compose(self) -> ComposeResult:
-        hint = "← → back  |  c copy  |  Esc close"
+        hint = "→ type & questions  |  ← back  |  c copy  |  Esc close"
         with ScrollableContainer(id="modal-container"):
             yield Static(f"Citation  [dim]({hint})[/dim]", id="modal-title", markup=True)
             yield Static(esc(self._source_text), id="modal-body")
+
+    def action_to_types(self) -> None:
+        """Ask the caller to open the question tree — it knows the entity."""
+        self.dismiss("types")
 
     def action_close_all(self) -> None:
         self.dismiss(True)
@@ -177,29 +198,109 @@ Screen {
 """
 
 
+def _free_type_iris(term) -> set:
+    """The type iris a term actually mentions — what it can legally bind.
+
+    §8.2's Q1: a question's bound variable must occur free in its body. So only
+    these are bindable; anything else would be "a question about nothing".
+    """
+    out = set()
+
+    def walk(x, bound=frozenset()):
+        if isinstance(x, LamVar):
+            if x.iri not in bound:
+                out.add(x.iri)
+        elif isinstance(x, LamApp):
+            walk(x.func, bound); walk(x.arg, bound)
+        elif isinstance(x, LamAbs):
+            walk(x.body, bound | {x.var.iri})
+        elif hasattr(x, "principal"):
+            walk(x.principal, bound)
+    walk(term)
+    return out
+
+
 class LambdaAbstractionModal(ModalScreen):
+    """Create a question: choose the TYPE its variable will be bound at (§8.2).
+
+    The type may be an ENTITY or a question naming a subtype of one (§2), and
+    which it is decides the new question's place in the tree: binding a variable
+    of type A1 makes the new question a child of the question naming A1. So this
+    is where a SECOND level of the hierarchy gets built, and nothing else can
+    build one.
+
+    Search finds the entity; → opens its question tree so a question below it can
+    be taken instead. Enter on a search hit binds the entity itself, which is the
+    root of that tree and the general case.
+    """
+
     CSS = LAMBDA_MODAL_CSS
 
     BINDINGS = [
         Binding("escape", "dismiss", "Cancel"),
+        Binding("right", "to_tree", "Questions of it"),
     ]
 
-    def __init__(self, g: rdflib.Graph, term: LamTerm) -> None:
+    def __init__(self, g: rdflib.Graph, term: LamTerm, tree=None) -> None:
         super().__init__()
         self._g = g
         self._term = term
+        self._tree = tree
         self._candidates: list[rdflib.URIRef] = []
 
     def compose(self) -> ComposeResult:
-        hint = "type to search  |  ↑↓ navigate  |  Enter select  |  Esc cancel"
+        hint = ("type to search  |  ↑↓ navigate  |  → its questions  |  "
+                "Enter select  |  Esc cancel")
         with Vertical(id="lambda-container"):
             yield Static(
                 f"Question  [dim]({hint})[/dim]\n"
-                f"Select queried entity:",
+                f"Bind a variable at which type?",
                 id="lambda-title", markup=True,
             )
             yield Input(placeholder="Search for a node…", id="lambda-search")
             yield ListView(id="lambda-results")
+
+    def action_to_tree(self) -> None:
+        """→ on a search hit: choose from its question tree instead.
+
+        The binder may be a QUESTION, which is what makes the hierarchy deeper
+        than one level. Without this the tree could only ever be entity-rooted
+        questions, and the chains that fire repeatedly could not be built.
+
+        BUT ONLY A TYPE THE READING ALREADY STANDS IN CAN BE BOUND. §8.2's Q1
+        demands the bound variable occur free in the body, and the body is the
+        reading: so binding at a question requires the reading to have BEEN in
+        that question — begun there (§3), or contracted into it by its title
+        (§4.1). A type the body never mentions is refused, so it is not offered:
+        the tree is filtered to what this reading can actually bind.
+        """
+        if self._tree is None:
+            return
+        lv = self.query_one("#lambda-results", ListView)
+        item = lv.highlighted_child
+        if not isinstance(item, NodeItem):
+            return
+        iri = str(item.node)
+        present = _free_type_iris(self._term)
+
+        def picked(res) -> None:
+            if res is None:
+                return
+            type_iri, label = res
+            if type_iri not in present:
+                self.app.notify(
+                    "The reading does not stand in that question — contract it "
+                    "in first, then bind (§8.2 Q1).", severity="warning",
+                    timeout=8)
+                return
+            var = LamVar(iri=type_iri, label=label)
+            self.dismiss(LamAbs(var=var, body=self._term))
+
+        self.app.push_screen(
+            QuestionTreeModal(self._tree, iri,
+                              node_label(self._g, item.node),
+                              "Bind a variable at", bindable=present),
+            picked)
 
     def on_mount(self) -> None:
         self.query_one("#lambda-search", Input).focus()
@@ -1188,3 +1289,184 @@ class PointerItem(ListItem):
         super().__init__(Label(display, markup=True))
         self.pointer = pointer
         self.pid = pointer.pid
+
+
+QTREE_CSS = """
+Screen {
+    align: center middle;
+}
+#qt-container {
+    width: 88%;
+    max-height: 80%;
+    background: $surface;
+    border: thick $success;
+    padding: 1 2;
+}
+#qt-title {
+    text-style: bold;
+    color: $success;
+    padding-bottom: 1;
+}
+#qt-body {
+    height: 1fr;
+}
+"""
+
+
+class QuestionNodeItem(ListItem):
+    """One node of the question tree — an ENTITY or a question naming a subtype.
+
+    The entity is the MOST GENERAL question of its type (reading_desc §2), so it
+    is a row like any other: selecting it is the old behaviour, selecting a
+    question below it puts that subtype into the reading instead.
+    """
+
+    def __init__(self, iri: str, label: str, depth: int,
+                 n_children: int, is_entity: bool,
+                 usable: bool = True) -> None:
+        pad = "  " * depth
+        if is_entity:
+            head = f"[b]{esc(label)}[/b]  [dim]— the entity, most general[/dim]"
+        else:
+            head = f"[yellow]?[/yellow] {esc(label)}"
+        if not usable:
+            # the caller restricted what may be chosen; say why rather than
+            # hiding the row, so the tree still reads as the whole hierarchy.
+            head = f"[dim]{esc(label)}[/dim]"
+            more = (f"  [dim]→ {n_children} more[/dim]" if n_children else "")
+            super().__init__(Label(
+                f"{pad}{head}{more}  [dim](the reading does not stand here)[/dim]",
+                markup=True))
+            self.iri = iri
+            self.label_text = label
+            self.depth = depth
+            self.n_children = n_children
+            self.is_entity = is_entity
+            self.usable = False
+            return
+        more = (f"  [dim]→ {n_children} more[/dim]" if n_children else "")
+        super().__init__(Label(f"{pad}{head}{more}", markup=True))
+        self.usable = True
+        self.iri = iri
+        self.label_text = label
+        self.depth = depth
+        self.n_children = n_children
+        self.is_entity = is_entity
+
+
+class QuestionTreeModal(ModalScreen):
+    """Choose a type: an entity, or a question naming a subtype of it.
+
+    ONE SELECTOR FOR EVERY PLACE A TYPE IS CHOSEN — the initial step (§3), a
+    contraction operand from either claims panel (§4.1), and the parent when a
+    new question is created. They differ only in what the caller does with the
+    result, so the navigation is learned once.
+
+    → unfolds the questions under the highlighted row (a level of the tree)
+    ← folds that row's children away again
+    Enter selects the highlighted row and dismisses with its iri
+
+    Dismisses with (iri, label) or None if cancelled.
+    """
+
+    CSS = QTREE_CSS
+
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel"),
+        Binding("right", "unfold", "Unfold questions"),
+        Binding("left", "fold", "Fold"),
+    ]
+
+    def __init__(self, tree, root_iri: str, root_label: str,
+                 purpose: str = "Select a type",
+                 bindable: Optional[set] = None) -> None:
+        super().__init__()
+        self._tree = tree
+        self._root = root_iri
+        self._root_label = root_label
+        self._purpose = purpose
+        # when given, rows outside this set are shown DIMMED and unusable — the
+        # reading does not stand in them, so binding there is refused anyway.
+        self._bindable = bindable
+        # which rows are unfolded, by iri; the root starts folded so the panel
+        # opens on the entity alone and the tree is entered deliberately.
+        self._open: set[str] = set()
+
+    def compose(self) -> ComposeResult:
+        with ScrollableContainer(id="qt-container"):
+            yield Static("", id="qt-title", markup=True)
+            yield ListView(id="qt-body")
+
+    def on_mount(self) -> None:
+        self._refresh()
+        self.query_one("#qt-body", ListView).focus()
+
+    # -- the visible rows --------------------------------------------------
+    def _rows(self) -> list[QuestionNodeItem]:
+        """The tree flattened to the rows currently unfolded."""
+        out: list[QuestionNodeItem] = []
+
+        def emit(iri: str, label: str, depth: int, is_entity: bool) -> None:
+            kids = self._tree.children_of(iri)
+            ok = self._bindable is None or iri in self._bindable
+            out.append(QuestionNodeItem(iri, label, depth, len(kids),
+                                        is_entity, usable=ok))
+            if iri in self._open:
+                for k in kids:
+                    emit(k, self._tree.title_of(k) or k, depth + 1, False)
+
+        emit(self._root, self._root_label, 0, True)
+        return out
+
+    def _refresh(self, keep: int = 0) -> None:
+        n_q = len(self._tree.subtypes_of(self._root)) - 1
+        self.query_one("#qt-title", Static).update(
+            f"{esc(self._purpose)}: [b]{esc(self._root_label)}[/b]"
+            f"  [dim]({n_q} question{'' if n_q == 1 else 's'} in its tree)[/dim]\n"
+            f"[dim]→ unfold questions  |  ← fold  |  Enter select  |  Esc cancel"
+            f"[/dim]"
+        )
+        lv = self.query_one("#qt-body", ListView)
+        lv.clear()
+        rows = self._rows()
+        for r in rows:
+            lv.append(r)
+        if rows:
+            lv.call_after_refresh(setattr, lv, "index",
+                                  min(keep, len(rows) - 1))
+
+    # -- navigation --------------------------------------------------------
+    def _current(self) -> Optional[QuestionNodeItem]:
+        item = self.query_one("#qt-body", ListView).highlighted_child
+        return item if isinstance(item, QuestionNodeItem) else None
+
+    def action_unfold(self) -> None:
+        it = self._current()
+        if it is None or not it.n_children:
+            return
+        idx = self.query_one("#qt-body", ListView).index or 0
+        self._open.add(it.iri)
+        self._refresh(keep=idx)
+
+    def action_fold(self) -> None:
+        it = self._current()
+        if it is None:
+            return
+        idx = self.query_one("#qt-body", ListView).index or 0
+        if it.iri in self._open:
+            self._open.discard(it.iri)
+            self._refresh(keep=idx)
+        else:
+            # already folded: step out to the parent, so ← walks up the tree
+            parent = self._tree.parent_of(it.iri)
+            if parent is not None:
+                self._open.discard(parent)
+                self._refresh()
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        it = event.item
+        if isinstance(it, QuestionNodeItem):
+            self.dismiss((it.iri, it.label_text))

@@ -208,6 +208,28 @@ def title_for_abstraction(t: LamTerm) -> Optional[str]:
     return f"{titles[0]}  (+{len(titles) - 1} more)"
 
 
+def _is_question_iri(iri: str) -> bool:
+    """Is this iri a subtype some question names, rather than a KG entity?
+
+    Kept local rather than imported from `question_tree`, which reads the store
+    this module writes; the namespace is the whole test.
+    """
+    return bool(iri) and iri.startswith("https://ahoj-db.org/question#")
+
+
+def _mint_question_id(term_str: str, parent_iri: str, title: str) -> str:
+    """The iri naming the subtype this question defines.
+
+    Duplicated from `question_tree.mint_qid` rather than imported, to keep the
+    module layering flat — `question_tree` reads the store, this module writes
+    it. The two must agree, and `t_qtree` pins that.
+    """
+    import hashlib
+    key = f"{parent_iri} | {term_str} | {title}"
+    h = hashlib.sha1(key.encode()).hexdigest()[:16]
+    return f"https://ahoj-db.org/question#{h}"
+
+
 def _occurs_free(t: LamTerm, iri: str) -> bool:
     """Does `iri` occur FREE in t? A binder for the same entity shadows it."""
     if isinstance(t, LamVar):
@@ -267,7 +289,9 @@ def check_question(term: LamTerm) -> Optional[str]:
     return None
 
 
-def append_lambda_term(name: str, term: LamTerm, g: rdflib.Graph) -> None:
+def append_lambda_term(name: str, term: LamTerm, g: rdflib.Graph,
+                       parent: Optional[str] = None,
+                       origin: Optional[str] = None) -> None:
     """Save a question. Raises ValueError if it is not well formed.
 
     The check is here rather than at the call sites because this is the ONLY way
@@ -278,12 +302,23 @@ def append_lambda_term(name: str, term: LamTerm, g: rdflib.Graph) -> None:
     if why is not None:
         raise ValueError(f"refusing to save {name!r}: {why}")
     records = load_lambda_db()
-    records.append({
+    rec = {
         "chain_label": name,
         "term": lam_to_dict(term),
         "term_str": str(term),
         "claims": collect_edge_claims(g, term),
-    })
+    }
+    # THE PARENT IS THE TYPE THE BINDER HAS (§2): an entity at a tree's root, or
+    # another question's subtype one level down. Passed in rather than derived so
+    # a caller that already knows it need not re-read the term; defaults to the
+    # bound variable's own type, which is the same thing.
+    p = parent or (term.var.iri if isinstance(term, LamAbs) else None)
+    if p:
+        rec["parent"] = p
+        rec["qid"] = _mint_question_id(str(term), p, name)
+    if origin:
+        rec["origin"] = origin
+    records.append(rec)
     save_lambda_db(records)
     abstraction_titles(refresh=True)      # the new title must be visible at once
     abstraction_origins(refresh=True)
@@ -511,7 +546,17 @@ def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
                          child_prefix + "    ", is_last=True,
                          shared=shared, expanded=expanded)
     elif isinstance(term, LamVar):
-        lines.append(f"{prefix}{connector}{mark}[b]{esc(term.label)}[/b]")
+        # A VARIABLE MAY STAND AT A QUESTION'S SUBTYPE, not only at an entity
+        # (§2). The reading holds no abstraction (I6) — only the variable — so
+        # the question is visible ONLY by its title, and without a marker a
+        # reader cannot tell a question apart from an entity of the same name.
+        if _is_question_iri(term.iri):
+            lines.append(
+                f"{prefix}{connector}{mark}[yellow]?[/yellow] "
+                f"[b]{esc(term.label)}[/b]"
+            )
+        else:
+            lines.append(f"{prefix}{connector}{mark}[b]{esc(term.label)}[/b]")
     elif isinstance(term, LamAbs):
         # An abstraction is a QUESTION. Show its TITLE when it is a saved one —
         # the bound variable alone names only the asked entity, not the question.

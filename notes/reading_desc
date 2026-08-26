@@ -119,7 +119,47 @@ fan-in in both cases.
 Typing here is NOT the typing of the usual typed lambda calculus. It answers one
 question: WHERE IS THE USER STANDING?
 
-  - Types are exactly entities of the knowledge graph. Written A, B, C, ...
+  - Types are entities of the knowledge graph AND THE SUBTYPES QUESTIONS NAME.
+    Written A, B, C, ... for entities and A1, A2, ... for subtypes of A.
+
+    A QUESTION NAMES A SUBTYPE OF THE TYPE IT IS ASKED OF:
+
+        q1 = (lam a.((b a) c))      [a]  == A     [q1] == A1,  A1 < A
+        q2 = (lam q1.(e (q1 d)))    [q1] == A1    [q2] == A2,  A2 < A1
+
+    so the questions of an entity form a TREE under it, and THE ENTITY IS THE
+    MOST GENERAL QUESTION OF ITS TYPE — the root. The parent link is not
+    declared: creating q2 means building its body by reading, contracting q1 in
+    BY ITS TITLE (§4.1 admits a title as an option-1 operand), then binding that
+    occurrence — so the binder's type IS q1's type, which makes q1 the parent.
+
+    I6 IS UNTOUCHED. A reading still contains no abstractions: selecting a
+    question puts a VARIABLE of the named subtype into the reading, and the
+    reading renders that question's TITLE. §8.2's title/positive-form split is
+    what allows this — a reading sees titles, ontologies see G(lam a.t).
+
+    WHAT IT IS FOR: THE SUBTYPE CONSTRAINS THE ONTOLOGY SET. Enrichment at a
+    variable of type A1 may use only questions asked of A1 or of a subtype of A1
+    — not every question of A. A more specific question admits fewer models, so
+    this is the reader's direct control over refutation (§8.4).
+
+    A DIFFERENT TITLE IS A DIFFERENT QUESTION, and so names a different subtype,
+    even over the same graph and the same asked entity: the title is part of what
+    is asked. Identity is therefore a minted iri per question, not the term
+    (`question_tree.mint_qid`).
+
+    HOW A SUBTYPE VARIABLE RENDERS. A reading holds no abstraction, so a question
+    is visible only through the variable standing at its subtype. That variable
+    renders as the question's TITLE, marked `?` — without the marker a question
+    and an entity of the same name read alike, and the reader could not tell
+    which of the two they are standing in.
+
+    SELECTING A TYPE is one operation everywhere it occurs — the initial step
+    (§3), a contraction operand from either claims panel (§4.1), and the binder
+    when a question is created. The entity is the tree's root, so choosing it is
+    the general case and choosing a question below it the specific one. In the UI
+    the claim chain runs claim -> claim text -> citation -> the type and its
+    questions, unfolded a level at a time.
   - Variables are written a, b, c, ...  Each variable has a type [a].
   - [t] denotes the type of the term t.
 
@@ -655,6 +695,19 @@ FORM of every abstraction whose type is A. Note that abstracting RETYPES:
 so "of type A" is a test on the BOUND VARIABLE, not on the body. This is what
 makes "all abstractions of type A" a finite, concrete lookup
 (cf. `widgets._record_contains_iri`, which tests `term.var.iri == iri`).
+
+"OF TYPE A" MEANS A OR ANY SUBTYPE OF A (§2). A question's own type — the subtype
+it names — is BELOW the type it is asked of, so at a variable of type A1 the
+admissible questions are those asked of A1 or of something below A1. An ENTITY
+admits its whole tree, since it is the most general question of its type; a
+question admits only what is asked of it or below.
+
+  THE CONSTRAINT IS PER VARIABLE, not per reading: each pointer carries its own
+  type and is constrained by its own position, which is what §8.1's elementwise
+  correspondence already implies.
+
+  Implemented in `ontology_state.abstractions_of_type`, over the tree in
+  `question_tree`.
 
 RENDERING SHOWS BOTH SIDES AT ONCE. A rendered ontology shows the POSITIVE FORM —
 that is what the graph holds — but the positive form names only the asked entity,
