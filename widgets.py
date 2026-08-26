@@ -18,7 +18,8 @@ from kg_store import (
 from optimal_lambda import beta_reduce_sequence
 from term_utils import (
     _term_type, _render_lam_root, collect_edge_claims,
-    _make_ontology_term, _make_beta_term, has_non_ai_question,
+    _make_ontology_term, _make_beta_term, has_non_ai_question, repl_source,
+    repl_legend,
 )
 
 
@@ -38,8 +39,11 @@ Screen {
     color: $accent;
     padding-bottom: 1;
 }
+/* `height: auto`, not `1fr` — see the note on #ont-body. A reading long enough
+   to overflow was clipped instead of scrolling (38 lines in a 14-high
+   container, max_scroll_y 0). */
 #modal-body {
-    height: 1fr;
+    height: auto;
 }
 """
 
@@ -144,13 +148,32 @@ class ReadingDetailModal(ModalScreen):
         Binding("escape", "dismiss", "Close"),
         Binding("q", "dismiss", "Close"),
         Binding("left", "dismiss", "Close"),
+        Binding("o", "ontologies", "Ontologies"),
     ]
 
-    def __init__(self, name: str, term: LamTerm, g: rdflib.Graph) -> None:
+    def __init__(self, name: str, term: LamTerm, g: rdflib.Graph,
+                 ontologies: list | None = None) -> None:
         super().__init__()
         self._name = name
         self._term = term
         self._g = g
+        # The SAVED ontology set of this reading (§1: closing drops the pointer
+        # set, not the ontologies). Passed in already decoded, since the caller
+        # owns the store; None means the caller had none to give.
+        self._ontologies = list(ontologies or [])
+
+    def action_ontologies(self) -> None:
+        """Show this reading's stored ontologies — the models it is valid in (§8).
+
+        The same list the live reading's panel shows, over the SAVED set rather
+        than the one being built, so a closed reading can still be read as the
+        models that account for it.
+        """
+        if not self._ontologies:
+            self.app.notify(f"'{self._name}' has no stored ontologies")
+            return
+        self.app.push_screen(
+            ReadingOntologiesModal(self._g, self._ontologies, True))
 
     def compose(self) -> ComposeResult:
         type_iri = _term_type(self._term)
@@ -161,8 +184,11 @@ class ReadingDetailModal(ModalScreen):
             key = (c["subj_iri"], c["obj_iri"])
             claims_by_edge.setdefault(key, []).append(c["claim_text"])
         with ScrollableContainer(id="modal-container"):
+            hint = (f"  |  o: {len(self._ontologies)} ontologies"
+                    if self._ontologies else "")
             yield Static(
-                f"Reading: [b]{esc(self._name)}[/b]  [dim](type: {esc(type_lbl)}  |  Esc close)[/dim]",
+                f"Reading: [b]{esc(self._name)}[/b]  [dim](type: "
+                f"{esc(type_lbl)}{hint}  |  Esc close)[/dim]",
                 id="modal-title", markup=True,
             )
             lines: list[str] = []
@@ -344,6 +370,11 @@ class LambdaAbstractionModal(ModalScreen):
         self.dismiss(abs_term)
 
 
+# How many ontologies the list RENDERS. A display bound only: the set itself is
+# never trimmed (O7 removed the cap; §8.8's only exit is refutation by omission),
+# and the panel reports both the full count and what it left out.
+MAX_LISTED_ONTOLOGIES = 20
+
 ONTOLOGY_CSS = """
 Screen {
     align: center middle;
@@ -360,8 +391,35 @@ Screen {
     color: $accent;
     padding-bottom: 1;
 }
+/* `height: 1fr` here would size the body to the CONTAINER, clipping a long
+   graph instead of overflowing it: the container's virtual size then equals its
+   own height, max_scroll_y is 0, and the arrows have nothing to scroll.
+   `height: auto` lets the body take its content's height, so the container
+   scrolls (measured: a 26-line body in a 20-high container gave max_scroll_y 0
+   before, 6 after). */
 #ont-body {
-    height: 1fr;
+    height: auto;
+}
+/* The REPL source is ONE line to be copied, so it must not wrap: a terminal
+   copies wrapped text with the break in it and the paste fails to parse.
+   `overflow-x: auto` scrolls it sideways instead (shift+arrows, or the
+   scrollbar); `height: auto` keeps it to the lines it actually has. */
+#ont-legend {
+    height: auto;
+    padding: 0 1;
+}
+#ont-note {
+    height: auto;
+    padding: 1 1 0 1;
+}
+#ont-src {
+    height: 1;
+    width: auto;
+    overflow-x: auto;
+    text-wrap: nowrap;
+    color: $text;
+    background: $panel;
+    padding: 0 1;
 }
 """
 
@@ -381,8 +439,10 @@ Screen {
     color: $warning;
     padding-bottom: 1;
 }
+/* `height: auto`, not `1fr` — see the note on #ont-body. A reduction sequence
+   long enough to overflow would otherwise be clipped rather than scrollable. */
 #beta-body {
-    height: 1fr;
+    height: auto;
 }
 """
 
@@ -526,6 +586,18 @@ class OntologyDetailModal(ModalScreen):
         with ScrollableContainer(id="ont-container"):
             yield Static("", id="ont-title", markup=True)
             yield Static("", id="ont-body", markup=True)
+            # THE REPL SOURCE GETS ITS OWN PANE, and it must not WRAP. The term
+            # is one line the reader copies into the REPL, and a terminal copies
+            # wrapped text with the break in it — the paste then fails to parse.
+            # So this pane scrolls horizontally instead (`#ont-src` in the CSS),
+            # keeping the line intact for selection.
+            #
+            # markup=False as well: the source is not markup, and a label
+            # containing '[' would otherwise be eaten as a tag.
+            yield Static("", id="ont-src", markup=False)
+            # the legend for those one-letter names; wraps freely, unlike the
+            # source line above it
+            yield Static("", id="ont-legend", markup=True)
 
     def on_mount(self) -> None:
         self._refresh()
@@ -570,14 +642,25 @@ class OntologyDetailModal(ModalScreen):
 
         lines: list[str] = []
         _render_lam_root(term, claims_by_edge, lines)
-        # Pointers index the RESOLVED term, so they are not shown over the
-        # original — the paths would point into a different graph.
-        if ptrs and not showing_origin:
-            lines.append("")
-            lines.append("[dim]pointers (reading pid → path):[/dim]")
-            for pid, path in sorted(ptrs.items()):
-                lines.append(f"[dim]  {pid} → {list(path)}[/dim]")
+        # THE TERM AS REPL SOURCE, under whichever graph is shown. The graph view
+        # says what the model is; this says it in a form that can be pasted into
+        # the optimal_lambda REPL and reduced there, which is how a reader checks
+        # what the ontology actually does.
+        #
+        # Rendered for BOTH views, since each is a different term: the original is
+        # the proposal, the resolved one what the reading left of it.
+        lines.append("")
+        lines.append("[dim]term (copy into the optimal_lambda REPL):[/dim]")
         self.query_one("#ont-body", Static).update("\n".join(lines))
+        self.query_one("#ont-src", Static).update(repl_source(term))
+        # THE LEGEND IS WHAT MAKES THE ONE-LETTER TERM READABLE. The source uses
+        # single-character names so it stays short enough to read and paste, and
+        # without the legend it reduces correctly but says nothing about the
+        # graph. Each view has its OWN legend: the two are different terms, so
+        # the letters are assigned separately.
+        legend = ", ".join(f"{n}={lbl}" for n, lbl in repl_legend(term))
+        self.query_one("#ont-legend", Static).update(
+            f"[dim]{esc(legend)}[/dim]" if legend else "")
 
 
 class ReadingOntologiesModal(ModalScreen):
@@ -673,10 +756,31 @@ class ReadingOntologiesModal(ModalScreen):
                                has_non_ai_question(
                                    getattr(o, "origin_term", o.term))),
                 reverse=True)
+            # AT MOST 20 ROWS, and the cut is DISPLAY ONLY — the set itself is
+            # untouched (O7: nothing is evicted, §8.8's only exit is refutation
+            # by omission). A set can run to tens of thousands of members and
+            # they are already ranked, so the rows past the first 20 are the
+            # least-confirmed models in the list; showing them costs a row each
+            # and tells the reader nothing the ranking has not.
+            #
+            # WHAT IS DROPPED IS SAID, not silently truncated: the title reports
+            # the full count, and the note below says how many are not listed.
+            shown = ordered[:MAX_LISTED_ONTOLOGIES]
             yield ListView(
-                *[OntologyItem(o, i) for i, o in enumerate(ordered)],
+                *[OntologyItem(o, i) for i, o in enumerate(shown)],
                 id="ont-body",
             )
+            if len(ordered) > len(shown):
+                rest = len(ordered) - len(shown)
+                least = min(getattr(o, "fired", 0) for o in shown)
+                yield Static(
+                    f"[dim]{rest} further ontolog"
+                    f"{'y' if rest == 1 else 'ies'} not listed — the set holds "
+                    f"{len(ordered)}, ranked, and these are its first "
+                    f"{len(shown)}. The rest fire at most {least} rule"
+                    f"{'' if least == 1 else 's'}.[/dim]",
+                    id="ont-note", markup=True,
+                )
 
     def on_mount(self) -> None:
         """Focus the LIST, not its scroll container.

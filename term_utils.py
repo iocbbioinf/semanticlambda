@@ -75,12 +75,29 @@ def collect_app_edges(term: LamTerm) -> list[tuple[str, str]]:
 
 
 def collect_edge_claims(g: rdflib.Graph, term: LamTerm) -> list[dict]:
-    """For each APP edge in term, collect all matching claims from the graph."""
+    """For each APP edge in term, collect all matching claims from the graph.
+
+    A QUESTION-TYPED POSITION IS LOOKED UP UNDER ITS ENTITY. A reading that
+    stands in questions carries their SUBTYPE iris, not entity iris (§2, and
+    `app.py:_type_var`) — and the knowledge graph asserts no claim whose subject
+    is a question, so keying the lookup on the subtype finds nothing. Measured on
+    Example 5, whose every position is a question: 4 app edges, 0 claims, where
+    the same reading over entities (Example 4) yields 4.
+
+    Standing in a question ABOUT an entity does not stop the claims about that
+    entity from applying — a question names a subtype, and a subtype carries its
+    supertype's claims (§2's subsumption). So the lookup resolves each end to the
+    entity its type is rooted at, and the claim is reported against it.
+
+    THE REPORTED subj_iri/obj_iri STAY THE TERM'S OWN iris, because every caller
+    keys `claims_by_edge` on them to match the edge it is rendering. Only the
+    graph lookup is resolved.
+    """
     seen_claims: set[str] = set()
     result: list[dict] = []
     for subj_iri, obj_iri in collect_app_edges(term):
-        subj = rdflib.URIRef(subj_iri)
-        obj  = rdflib.URIRef(obj_iri)
+        subj = rdflib.URIRef(_claim_lookup_iri(subj_iri))
+        obj  = rdflib.URIRef(_claim_lookup_iri(obj_iri))
         for claim in g.subjects(EX.subject, subj):
             if g.value(claim, EX.object) != obj:
                 continue
@@ -194,6 +211,7 @@ def has_non_ai_question(term: LamTerm) -> bool:
 
 
 _QID_TITLES: Optional[dict[str, str]] = None
+_Q_ENTITY: Optional[dict[str, str]] = None
 
 
 def qid_titles(refresh: bool = False) -> dict[str, str]:
@@ -245,6 +263,50 @@ def _is_question_iri(iri: str) -> bool:
     this module writes; the namespace is the whole test.
     """
     return bool(iri) and iri.startswith("https://ahoj-db.org/question#")
+
+
+def _question_entity_index(refresh: bool = False) -> dict[str, str]:
+    """question subtype iri -> the ENTITY its type is rooted at.
+
+    Built from the store's `parent` chain, which is the same relation
+    `question_tree` walks: a question's parent is either the entity it is asked of
+    or another question, so following parents to a non-question iri gives the
+    entity at the root of that subtype chain (§2).
+
+    Read from the store directly rather than through `question_tree`, for the
+    layering reason given on `_is_question_iri`. Cached like the title indices —
+    a render walks many nodes.
+    """
+    global _Q_ENTITY
+    if _Q_ENTITY is not None and not refresh:
+        return _Q_ENTITY
+    parent: dict[str, str] = {}
+    for rec in load_lambda_db():
+        q, p = rec.get("qid"), rec.get("parent")
+        if q and p:
+            parent[q] = p
+    idx: dict[str, str] = {}
+    for q in parent:
+        seen, cur = set(), q
+        while _is_question_iri(cur) and cur in parent and cur not in seen:
+            seen.add(cur)
+            cur = parent[cur]
+        if not _is_question_iri(cur):
+            idx[q] = cur
+    _Q_ENTITY = idx
+    return idx
+
+
+def _claim_lookup_iri(iri: str) -> str:
+    """The iri to look claims up under: an entity as itself, a question subtype
+    resolved to the entity it is rooted at.
+
+    A question whose chain does not reach an entity is returned unchanged, so it
+    simply finds no claims rather than resolving to something arbitrary.
+    """
+    if not _is_question_iri(iri):
+        return iri
+    return _question_entity_index().get(iri, iri)
 
 
 def _mint_question_id(term_str: str, parent_iri: str, title: str) -> str:
@@ -353,6 +415,9 @@ def append_lambda_term(name: str, term: LamTerm, g: rdflib.Graph,
     abstraction_titles(refresh=True)      # the new title must be visible at once
     abstraction_origins(refresh=True)
     qid_titles(refresh=True)
+    # the new question's `parent` chain must be visible too, or a reading standing
+    # in it finds no claims until the process restarts
+    _question_entity_index(refresh=True)
 
 
 def _term_type(t: LamTerm) -> Optional[str]:
@@ -685,3 +750,125 @@ def _make_ontology_term() -> LamTerm:
 
 def _make_beta_term() -> LamTerm:
     return _make_ontology_term()
+
+
+# ── the term as REPL source text ────────────────────────────────────────────
+#
+# `str(term)` is the DISPLAY form: `·` between the parts of an application, every
+# non-variable parenthesised. The optimal_lambda REPL's parser accepts neither —
+# application is JUXTAPOSITION there, and `·` is not a name. Labels make it worse:
+# the tokenizer splits on whitespace, dots and parens, so "binding pocket" is two
+# names and "molecular dynamics (MD) simulations" does not parse at all.
+#
+# So the REPL form is rendered separately, to that grammar (parser.py):
+#
+#     term := abs | app ;  abs := ('λ'|'\') NAME+ '.' term
+#     app  := atom+     ;  atom := NAME | '(' term ')'
+
+def _repl_names(term: LamTerm) -> dict[str, str]:
+    """iri -> a ONE-CHARACTER variable name, assigned per term.
+
+    Single letters, not sanitised labels: a term is written to be read and pasted,
+    and "molecular_dynamics_MD_simulations Induced_folding Conformational_ensemble"
+    is neither. The measured worst case over every stored term is 13 distinct
+    variables, so 52 letters are ample.
+
+    THE ASSIGNMENT IS BY IRI AND INJECTIVE, which is the load-bearing part: equal
+    names in the output must mean the same node and distinct entities must get
+    distinct letters, or the pasted term would claim sharing the graph does not
+    have. Order of first appearance, so the same term always renders the same way.
+
+    A letter is taken from the entity's own label when that initial is still free
+    (`h` for "holo form"), which keeps the legend easy to follow; otherwise the
+    next unused letter is used.
+    """
+    order: list[tuple[str, str]] = []           # (iri, label) first-seen order
+    seen: set[str] = set()
+
+    def walk(t) -> None:
+        t = _through_fan(t) if _is_fan(t) else t
+        if isinstance(t, LamVar):
+            if t.iri not in seen:
+                seen.add(t.iri); order.append((t.iri, t.label or ""))
+        elif isinstance(t, LamApp):
+            walk(t.func); walk(t.arg)
+        elif isinstance(t, LamAbs):
+            if t.var.iri not in seen:
+                seen.add(t.var.iri); order.append((t.var.iri, t.var.label or ""))
+            walk(t.body)
+
+    walk(term)
+    pool = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    used: set[str] = set()
+    names: dict[str, str] = {}
+    for iri, label in order:
+        pick = ""
+        for ch in label:                        # prefer the label's own initial
+            if ch.isalpha() and ch.lower() not in used:
+                pick = ch.lower(); break
+        if not pick:
+            pick = next((c for c in pool if c not in used), "")
+        if not pick:                            # >52 variables: fall back to v1..
+            pick = f"v{len(names) + 1}"
+        used.add(pick)
+        names[iri] = pick
+    return names
+
+
+def repl_legend(term: LamTerm) -> list[tuple[str, str]]:
+    """[(name, label), ...] for the names `repl_source` gives `term`.
+
+    The source uses one-character names, so the legend is what ties them back to
+    the entities — without it the pasted term is unreadable as a claim about the
+    graph, even though it reduces correctly.
+    """
+    names = _repl_names(term)
+    labels: dict[str, str] = {}
+
+    def walk(t) -> None:
+        t = _through_fan(t) if _is_fan(t) else t
+        if isinstance(t, LamVar):
+            labels.setdefault(t.iri, t.label or local_name(t.iri))
+        elif isinstance(t, LamApp):
+            walk(t.func); walk(t.arg)
+        elif isinstance(t, LamAbs):
+            labels.setdefault(t.var.iri, t.var.label or local_name(t.var.iri))
+            walk(t.body)
+
+    walk(term)
+    return [(names[i], labels.get(i, local_name(i))) for i in names]
+
+
+def repl_source(term: LamTerm) -> str:
+    """`term` as source text the optimal_lambda REPL can parse.
+
+    Parenthesised only where the grammar needs it: application is left
+    associative, so the function side needs parens only when it is an
+    abstraction, and the argument side whenever it is not a variable.
+
+    A LamFan is written as its PRINCIPAL read through each context — the casts
+    are reading-layer annotations with no counterpart in the parser's grammar, so
+    they are dropped rather than invented. The sharing itself is not expressible
+    in source text either: the subject is written out at each occurrence, which
+    is the same term, just no longer sharing a node.
+    """
+    names = _repl_names(term)
+
+    def nm(v: LamVar) -> str:
+        return names.get(v.iri) or "x"
+
+    def go(t, *, fn_pos: bool = False, arg_pos: bool = False) -> str:
+        t = _through_fan(t) if _is_fan(t) else t
+        if isinstance(t, LamVar):
+            return nm(t)
+        if isinstance(t, LamAbs):
+            s = f"\\{nm(t.var)}.{go(t.body)}"
+            # an abstraction binds to the right, so it needs parens anywhere but
+            # at the top or as the last atom of an application
+            return f"({s})" if fn_pos or arg_pos else s
+        if isinstance(t, LamApp):
+            s = f"{go(t.func, fn_pos=True)} {go(t.arg, arg_pos=True)}"
+            return f"({s})" if arg_pos else s
+        return "x"                            # HOLE and anything else
+
+    return go(term)

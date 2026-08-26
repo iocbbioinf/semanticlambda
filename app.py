@@ -989,7 +989,9 @@ class KGBrowser(App):
 
         # ── Readings panel selection ───────────────────────────────────────
         if lv_id == "readings-list" and isinstance(item, ReadingItem):
-            self.push_screen(ReadingDetailModal(item.reading_name, item.reading_term, self.g))
+            self.push_screen(ReadingDetailModal(
+                item.reading_name, item.reading_term, self.g,
+                self._operand_ontologies(item.reading_name)))
             return
 
         # ── Main list selections ───────────────────────────────────────────
@@ -1298,7 +1300,9 @@ class KGBrowser(App):
         if readings_lv.has_focus:
             item = readings_lv.highlighted_child
             if isinstance(item, ReadingItem):
-                self.push_screen(ReadingDetailModal(item.reading_name, item.reading_term, self.g))
+                self.push_screen(ReadingDetailModal(
+                    item.reading_name, item.reading_term, self.g,
+                    self._operand_ontologies(item.reading_name)))
             return
 
         # ── INIT STEP: → on an offered entity opens its question tree (§3) ──
@@ -1344,9 +1348,15 @@ class KGBrowser(App):
             if claim_text:
                 self._claim_chain(claim_text, source_text, node, reverse=True)
         elif isinstance(item, ChainTargetItem):
-            self.call_after_refresh(self.push_screen, ReadingDetailModal(item.reading_name, item.reading_term, self.g))
+            self.call_after_refresh(
+                self.push_screen,
+                ReadingDetailModal(item.reading_name, item.reading_term, self.g,
+                                   self._operand_ontologies(item.reading_name)))
         elif isinstance(item, ReadingItem):
-            self.call_after_refresh(self.push_screen, ReadingDetailModal(item.reading_name, item.reading_term, self.g))
+            self.call_after_refresh(
+                self.push_screen,
+                ReadingDetailModal(item.reading_name, item.reading_term, self.g,
+                                   self._operand_ontologies(item.reading_name)))
 
     def action_reset(self) -> None:
         self.current_node = None
