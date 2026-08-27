@@ -528,6 +528,72 @@ def _wrap_claim(text: str, prefix: str) -> list[str]:
     return [f"{prefix}[dim]{esc(p)}[/dim]" for p in parts]
 
 
+def _wrap_edge(info: dict, prefix: str) -> list[str]:
+    """Markup lines naming a step that carries no claim text.
+
+    Shown in the claim's place: the predicate, and — where the graph reifies the
+    triple as an ExternalStatement — who asserted it and how it was retrieved.
+    For such a step that provenance is the citation.
+    """
+    pred = info.get("predicate") or ""
+    src = info.get("source") or ""
+    via = info.get("via") or ""
+    if not pred and not src:
+        return []
+    head = f"[italic]{esc(pred)}[/italic]" if pred else "[italic](edge)[/italic]"
+    if src:
+        head += f"  [dim]— asserted by {esc(src)}[/dim]"
+    out = [f"{prefix}{head}"]
+    if via:
+        out += _wrap_claim(via, prefix)
+    return out
+
+
+def edge_predicates(g: rdflib.Graph, term: LamTerm) -> dict:
+    """(subj_iri, obj_iri) -> the step's predicate, and where it came from.
+
+    A STEP WITHOUT A CLAIM IS NOT A STEP WITHOUT CONTENT. §4.1 lets a
+    contraction run along any edge the graph asserts, and only some of those
+    carry claim text: `MG --has chemical class--> alkaline earth cation` is a
+    real, meaningful step that the panels drew as a bare `·`, because the claim
+    lookup found nothing and nothing else was shown.
+
+    So the predicate is reported for every edge, together with the EXTERNAL
+    PROVENANCE where the graph records one. A triple taken from an outside
+    dataset is reified as an ExternalStatement carrying prov:wasDerivedFrom and
+    `retrievedVia`, and for such a step that provenance IS the citation — it is
+    the only thing that says who asserted it.
+
+    Values are {"predicate": str, "source": str, "via": str}; source/via are ""
+    for a step the graph asserts on its own authority.
+    """
+    RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    PROV = "http://www.w3.org/ns/prov#"
+    SKIP = {"claim subject", "claim object", "claim predicate", "type"}
+
+    out: dict = {}
+    for a, b in collect_app_edges(term):
+        A, B = rdflib.URIRef(_claim_lookup_iri(a)), rdflib.URIRef(_claim_lookup_iri(b))
+        pred = ""
+        for _s, p, _o in g.triples((A, None, B)):
+            name = str(g.value(p, rdflib.RDFS.label)
+                       or str(p).rsplit("#", 1)[-1].rsplit("/", 1)[-1])
+            if name in SKIP:
+                continue
+            pred = name
+            break
+        source = via = ""
+        for st, _p, _o in g.triples((None, rdflib.URIRef(RDF + "subject"), A)):
+            if g.value(st, rdflib.URIRef(RDF + "object")) != B:
+                continue
+            source = str(g.value(st, rdflib.URIRef(PROV + "wasDerivedFrom")) or "")
+            via = str(g.value(st, EX.retrievedVia) or "")
+            break
+        if pred or source:
+            out[(a, b)] = {"predicate": pred, "source": source, "via": via}
+    return out
+
+
 def _is_fan(t) -> bool:
     """True for a sharing fan-in node (reading_state.LamFan).
 
@@ -611,22 +677,30 @@ def _is_hole(t) -> bool:
 
 
 def _render_ctx(ctx, lines: list, claims_by_edge: dict, prefix: str,
-                shared: dict, expanded: set) -> None:
+                shared: dict, expanded: set, subject=None,
+                edge_info: dict | None = None) -> None:
     """Render one fan branch's context. The HOLE renders as an edge back down to
     the fan's shared subject — NOT as a second copy of it (reading_desc §4.2).
+
+    `subject` is what the HOLE stands for, passed down so a claim on a BRANCH
+    step can be looked up: the context's application has the HOLE on its
+    function side, and without knowing the subject there is no iri to key on.
     """
     if _is_hole(ctx):
         lines.append(f"{prefix}\u2514\u2500\u2500 [cyan]\u25bd[/cyan] [dim]the subject[/dim]")
         return
     _render_lam_body(ctx, lines, claims_by_edge, prefix, is_last=True,
-                     shared=shared, expanded=expanded, hole_ok=True)
+                     shared=shared, expanded=expanded, hole_ok=True,
+                     hole_stands_for=subject, edge_info=edge_info)
 
 
 def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
                      prefix: str = "", is_last: bool = True,
                      shared: dict[int, int] | None = None,
                      expanded: set[int] | None = None,
-                     hole_ok: bool = False) -> None:
+                     hole_ok: bool = False,
+                     hole_stands_for=None,
+                     edge_info: dict | None = None) -> None:
     """Render a lambda term as a box-drawing binary tree.
 
     claims_by_edge: (subj_iri, obj_iri) -> [claim_text], shown on APP nodes.
@@ -686,12 +760,13 @@ def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
                 f"{child_prefix}├── [magenta]{tag}[/magenta]{cast_s}"
             )
             _render_ctx(ctx, lines, claims_by_edge, child_prefix + "│   ",
-                        shared, expanded)
+                        shared, expanded, subject=term.principal,
+                        edge_info=edge_info)
         # the ONE shared subject, drawn once, below the fan
         lines.append(f"{child_prefix}└── [cyan]▽[/cyan]")
         _render_lam_body(term.principal, lines, claims_by_edge,
                          child_prefix + "    ", is_last=True,
-                         shared=shared, expanded=expanded)
+                         shared=shared, expanded=expanded, edge_info=edge_info)
     elif isinstance(term, LamVar):
         # A VARIABLE MAY STAND AT A QUESTION'S SUBTYPE, not only at an entity
         # (§2). The reading holds no abstraction (I6) — only the variable — so
@@ -714,24 +789,35 @@ def _render_lam_body(term: LamTerm, lines: list, claims_by_edge: dict,
             f"{title_s}"
         )
         _render_lam_body(term.body, lines, claims_by_edge, child_prefix,
-                         is_last=True, shared=shared, expanded=expanded)
+                         is_last=True, shared=shared, expanded=expanded, edge_info=edge_info)
     elif isinstance(term, LamApp):
-        rf = _rep_var(term.func)
-        ra = _rep_var(term.arg)
-        edge_claims = claims_by_edge.get((rf.iri, ra.iri), []) if rf and ra else []
+        # A HOLE STANDS FOR THE SUBJECT when this app sits inside a fan branch's
+        # context, so resolve it before the lookup — otherwise `_rep_var` returns
+        # None for that side and the claim on a post-reflection step is silently
+        # dropped. Measured: Example 10's only claim is on such a step and never
+        # appeared; Example 6 showed two of its eight.
+        rf = _rep_var(term.func if not _is_hole(term.func) else hole_stands_for)
+        ra = _rep_var(term.arg if not _is_hole(term.arg) else hole_stands_for)
+        key = (rf.iri, ra.iri) if rf and ra else None
+        edge_claims = claims_by_edge.get(key, []) if key else []
 
         lines.append(f"{prefix}{connector}{mark}[yellow]·[/yellow]")
         _render_lam_body(term.func, lines, claims_by_edge, child_prefix,
                          is_last=False, shared=shared, expanded=expanded,
-                         hole_ok=hole_ok)
+                         hole_ok=hole_ok, hole_stands_for=hole_stands_for, edge_info=edge_info)
         for ct in edge_claims:
             lines.extend(_wrap_claim(ct, child_prefix))
+        if not edge_claims and key and edge_info:
+            # NO CLAIM HERE, but the step still ran along a real edge — name its
+            # predicate rather than leaving a bare `·` (§4.1).
+            lines.extend(_wrap_edge(edge_info.get(key, {}), child_prefix))
         _render_lam_body(term.arg, lines, claims_by_edge, child_prefix,
                          is_last=True, shared=shared, expanded=expanded,
-                         hole_ok=hole_ok)
+                         hole_ok=hole_ok, hole_stands_for=hole_stands_for, edge_info=edge_info)
 
 
-def _render_lam_root(term: LamTerm, claims_by_edge: dict, lines: list) -> None:
+def _render_lam_root(term: LamTerm, claims_by_edge: dict, lines: list,
+                     edge_info: dict | None = None) -> None:
     """Render a lambda term from the root node (no leading connector).
 
     Shared subterms are detected up front and drawn once (see _render_lam_body).
@@ -740,21 +826,24 @@ def _render_lam_root(term: LamTerm, claims_by_edge: dict, lines: list) -> None:
     expanded: set[int] = set()
     if _is_fan(term):
         _render_lam_body(term, lines, claims_by_edge, prefix="",
-                         is_last=True, shared=shared, expanded=expanded)
+                         is_last=True, shared=shared, expanded=expanded, edge_info=edge_info)
     elif isinstance(term, LamApp):
         rf = _rep_var(term.func)
         ra = _rep_var(term.arg)
-        edge_claims = claims_by_edge.get((rf.iri, ra.iri), []) if rf and ra else []
+        key = (rf.iri, ra.iri) if rf and ra else None
+        edge_claims = claims_by_edge.get(key, []) if key else []
         lines.append("[yellow]·[/yellow]")
         _render_lam_body(term.func, lines, claims_by_edge, prefix="",
-                         is_last=False, shared=shared, expanded=expanded)
+                         is_last=False, shared=shared, expanded=expanded, edge_info=edge_info)
         for ct in edge_claims:
             lines.extend(_wrap_claim(ct, "  "))
+        if not edge_claims and key and edge_info:
+            lines.extend(_wrap_edge(edge_info.get(key, {}), "  "))
         _render_lam_body(term.arg, lines, claims_by_edge, prefix="",
-                         is_last=True, shared=shared, expanded=expanded)
+                         is_last=True, shared=shared, expanded=expanded, edge_info=edge_info)
     else:
         _render_lam_body(term, lines, claims_by_edge, prefix="",
-                         is_last=True, shared=shared, expanded=expanded)
+                         is_last=True, shared=shared, expanded=expanded, edge_info=edge_info)
 
 
 def _collect_var_iris(term: LamTerm) -> list[str]:

@@ -19,7 +19,7 @@ from optimal_lambda import beta_reduce_sequence
 from term_utils import (
     _term_type, _render_lam_root, collect_edge_claims,
     _make_ontology_term, _make_beta_term, has_non_ai_question, repl_source,
-    repl_legend, entity_details,
+    repl_legend, entity_details, edge_predicates,
 )
 
 
@@ -264,7 +264,8 @@ class ReadingDetailModal(ModalScreen):
                 id="modal-title", markup=True,
             )
             lines: list[str] = []
-            _render_lam_root(self._term, claims_by_edge, lines)
+            _render_lam_root(self._term, claims_by_edge, lines,
+                             edge_predicates(self._g, self._term))
             yield Static("\n".join(lines), id="modal-body", markup=True)
             # WHAT THE POSITIONS ACTUALLY ARE. The reading graph names entities
             # by label; the reader of a SAVED reading did not take its steps and
@@ -729,7 +730,8 @@ class OntologyDetailModal(ModalScreen):
         )
 
         lines: list[str] = []
-        _render_lam_root(term, claims_by_edge, lines)
+        _render_lam_root(term, claims_by_edge, lines,
+                         edge_predicates(self._g, term))
         # THE TERM AS REPL SOURCE, under whichever graph is shown. The graph view
         # says what the model is; this says it in a form that can be pasted into
         # the optimal_lambda REPL and reduced there, which is how a reader checks
