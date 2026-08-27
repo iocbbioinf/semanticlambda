@@ -16,6 +16,8 @@ env/
 
 # Claude Code local settings
 .claude/settings.local.json
+# agent worktrees: scratch checkouts, not project content
+.claude/worktrees/
 
 # OS
 .DS_Store
