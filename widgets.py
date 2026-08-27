@@ -19,7 +19,7 @@ from optimal_lambda import beta_reduce_sequence
 from term_utils import (
     _term_type, _render_lam_root, collect_edge_claims,
     _make_ontology_term, _make_beta_term, has_non_ai_question, repl_source,
-    repl_legend,
+    repl_legend, entity_details,
 )
 
 
@@ -45,7 +45,36 @@ Screen {
 #modal-body {
     height: auto;
 }
+#modal-entities {
+    height: auto;
+    padding: 1 0 0 0;
+}
 """
+
+
+def _entity_block(g: rdflib.Graph, term) -> str:
+    """The entities a term mentions, as markup — shared by the reading and the
+    ontology detail panels.
+
+    A LABEL IS OFTEN TOO LITTLE to judge a graph by: "binding pocket" and
+    "Unified binding site" read as near synonyms until you see that one is the
+    residues around ONE ligand and the other the union across a whole protein
+    family. The descriptions are already in the graph; they were simply never
+    rendered beside the term.
+    """
+    det: list[str] = []
+    for d in entity_details(g, term):
+        mark = "[yellow]?[/yellow] " if d["question"] else ""
+        ty = f"  [dim]{esc(', '.join(d['types']))}[/dim]" if d["types"] else ""
+        det.append(f"{mark}[b]{esc(d['label'])}[/b]{ty}")
+        if d["description"]:
+            det.append(f"    {esc(d['description'])}")
+        if d["extra"]:
+            bits = ", ".join(f"{esc(k)} {esc(v)}" for k, v in d["extra"])
+            det.append(f"    [dim]{bits}[/dim]")
+    if not det:
+        return ""
+    return "\n[dim]— the entities —[/dim]\n" + "\n".join(det)
 
 
 class NodeItem(ListItem):
@@ -69,10 +98,12 @@ class ClaimTextModal(ModalScreen):
         Binding("c", "copy", "Copy"),
     ]
 
-    def __init__(self, claim_text: str, source_text: str) -> None:
+    def __init__(self, claim_text: str, source_text: str,
+                 paper: dict | None = None) -> None:
         super().__init__()
         self._claim_text = claim_text
         self._source_text = source_text
+        self._paper = paper or {}
 
     def compose(self) -> ComposeResult:
         hint = "→ citation  |  ← back  |  c copy  |  Esc close"
@@ -93,7 +124,7 @@ class ClaimTextModal(ModalScreen):
             elif res:
                 self.dismiss()
         self.app.push_screen(
-            SourceTextModal(self._claim_text, self._source_text),
+            SourceTextModal(self._claim_text, self._source_text, self._paper),
             on_source_dismissed)
 
     def action_copy(self) -> None:
@@ -119,15 +150,47 @@ class SourceTextModal(ModalScreen):
         Binding("c", "copy", "Copy"),
     ]
 
-    def __init__(self, claim_text: str, source_text: str) -> None:
+    def __init__(self, claim_text: str, source_text: str,
+                 paper: dict | None = None) -> None:
         super().__init__()
         self._source_text = source_text
+        self._paper = paper or {}
+
+    def _source_lines(self) -> list[str]:
+        """The paper the quotation comes from, as display lines.
+
+        A CITATION WITHOUT ITS SOURCE IS NOT A CITATION. The panel quotes a
+        sentence from a paper, so the paper has to be named next to it — the
+        reader is being asked to weigh the claim, and cannot without knowing who
+        said it and where.
+
+        Everything is already on the paper node in the graph
+        (`kg_store.paper_reference`); nothing is derived here.
+        """
+        p = self._paper
+        if not p:
+            return []
+        out = ["", "[dim]— source —[/dim]"]
+        if p.get("title"):
+            out.append(f"[b]{esc(p['title'])}[/b]")
+        who = ", ".join(p.get("authors") or [])
+        where = "  ".join(x for x in (p.get("venue"), p.get("year")) if x)
+        if who:
+            out.append(esc(who))
+        if where:
+            out.append(f"[dim]{esc(where)}[/dim]")
+        if p.get("doi"):
+            out.append(f"[dim]{esc(p['doi'])}[/dim]")
+        if p.get("note"):
+            out.append(f"[dim]{esc(p['note'])}[/dim]")
+        return out
 
     def compose(self) -> ComposeResult:
         hint = "→ type & questions  |  ← back  |  c copy  |  Esc close"
         with ScrollableContainer(id="modal-container"):
             yield Static(f"Citation  [dim]({hint})[/dim]", id="modal-title", markup=True)
-            yield Static(esc(self._source_text), id="modal-body")
+            body = [esc(self._source_text)] + self._source_lines()
+            yield Static("\n".join(body), id="modal-body", markup=True)
 
     def action_to_types(self) -> None:
         """Ask the caller to open the question tree — it knows the entity."""
@@ -137,8 +200,17 @@ class SourceTextModal(ModalScreen):
         self.dismiss(True)
 
     def action_copy(self) -> None:
-        pyperclip.copy(self._source_text)
-        self.notify("Source text copied")
+        # the quotation AND its source, so a paste is citable on its own
+        p = self._paper
+        bits = [self._source_text]
+        if p.get("title"):
+            ref = p["title"]
+            who = ", ".join(p.get("authors") or [])
+            where = " ".join(x for x in (p.get("venue"), p.get("year")) if x)
+            ref = "  ".join(x for x in (ref, who, where, p.get("doi", "")) if x)
+            bits.append(ref)
+        pyperclip.copy("\n\n".join(bits))
+        self.notify("Citation and source copied")
 
 
 class ReadingDetailModal(ModalScreen):
@@ -194,6 +266,11 @@ class ReadingDetailModal(ModalScreen):
             lines: list[str] = []
             _render_lam_root(self._term, claims_by_edge, lines)
             yield Static("\n".join(lines), id="modal-body", markup=True)
+            # WHAT THE POSITIONS ACTUALLY ARE. The reading graph names entities
+            # by label; the reader of a SAVED reading did not take its steps and
+            # has only those labels to go on. Same block as the ontology detail.
+            yield Static(_entity_block(self._g, self._term),
+                         id="modal-entities", markup=True)
 
 
 LAMBDA_MODAL_CSS = """
@@ -408,6 +485,10 @@ Screen {
     height: auto;
     padding: 0 1;
 }
+#ont-entities {
+    height: auto;
+    padding: 1 1 0 1;
+}
 #ont-note {
     height: auto;
     padding: 1 1 0 1;
@@ -598,6 +679,13 @@ class OntologyDetailModal(ModalScreen):
             # the legend for those one-letter names; wraps freely, unlike the
             # source line above it
             yield Static("", id="ont-legend", markup=True)
+            # WHAT THE ENTITIES ACTUALLY ARE. The graph view above shows labels,
+            # and labels are often too little to judge a model by: "binding
+            # pocket" and "Unified binding site" read as near synonyms until you
+            # see that one is the residues around ONE ligand and the other the
+            # union across a whole family. The descriptions were already in the
+            # graph; they were simply never rendered here.
+            yield Static("", id="ont-entities", markup=True)
 
     def on_mount(self) -> None:
         self._refresh()
@@ -661,6 +749,9 @@ class OntologyDetailModal(ModalScreen):
         legend = ", ".join(f"{n}={lbl}" for n, lbl in repl_legend(term))
         self.query_one("#ont-legend", Static).update(
             f"[dim]{esc(legend)}[/dim]" if legend else "")
+
+        self.query_one("#ont-entities", Static).update(
+            _entity_block(self._g, term))
 
 
 class ReadingOntologiesModal(ModalScreen):

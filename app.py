@@ -619,7 +619,7 @@ class KGBrowser(App):
         return out
 
     def _claim_chain(self, claim_text: str, source_text: str,
-                     node, reverse: bool) -> None:
+                     node, reverse: bool, paper: dict | None = None) -> None:
         """claim text -> citation -> the type tree, then contract with the pick.
 
         `reverse` says which side the claim reaches, and so which contraction
@@ -638,7 +638,8 @@ class KGBrowser(App):
                 lambda iri, label: self._contract_with_type(iri, label, reverse))
 
         self.call_after_refresh(
-            self.push_screen, ClaimTextModal(claim_text, source_text), after)
+            self.push_screen, ClaimTextModal(claim_text, source_text, paper),
+            after)
 
     def _contract_with_type(self, iri: str, label: str, reverse: bool) -> None:
         """Contract, with an entity OR a question's subtype as the operand.
@@ -1339,14 +1340,16 @@ class KGBrowser(App):
             source_text = cd.get("source_text", "")
             node = cd.get("object")
             if claim_text:
-                self._claim_chain(claim_text, source_text, node, reverse=False)
+                self._claim_chain(claim_text, source_text, node, reverse=False,
+                                  paper=cd.get("paper"))
         elif isinstance(item, ReverseClaimItem):
             cd = item.claim_data
             claim_text = cd.get("claim_text", "")
             source_text = cd.get("source_text", "")
             node = cd.get("subject")
             if claim_text:
-                self._claim_chain(claim_text, source_text, node, reverse=True)
+                self._claim_chain(claim_text, source_text, node, reverse=True,
+                                  paper=cd.get("paper"))
         elif isinstance(item, ChainTargetItem):
             self.call_after_refresh(
                 self.push_screen,

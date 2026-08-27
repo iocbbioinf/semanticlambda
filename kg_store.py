@@ -14,6 +14,7 @@ LAMBDA_DB = Path(__file__).parent / "data" / "lambda_terms.json"
 READINGS_DB = Path(__file__).parent / "data" / "readings.json"
 
 EX = rdflib.Namespace("https://ahoj-db.org/kg#")
+SCHEMA = rdflib.Namespace("https://schema.org/")
 PROV_ACTIVITY = rdflib.URIRef("http://www.w3.org/ns/prov#Activity")
 
 
@@ -118,6 +119,35 @@ def node_description(g: rdflib.Graph, node: rdflib.URIRef) -> str:
     return str(desc) if desc else ""
 
 
+def paper_reference(g: rdflib.Graph, paper) -> dict:
+    """The bibliographic detail of a claim's source paper.
+
+    A citation is a quotation, and a quotation without its source is not a
+    citation — so the panel that shows the quoted sentence needs this alongside
+    it. Everything here is already in the graph on the paper node: dcterms
+    title/creator, schema datePublished/isPartOf, and the DOI as owl:sameAs.
+
+    Returns {} when there is no paper, so callers can test it directly.
+    """
+    if not isinstance(paper, rdflib.URIRef):
+        return {}
+    authors = [str(a) for a in g.objects(paper, DCTERMS.creator)]
+    doi = next((str(o) for o in g.objects(paper, rdflib.OWL.sameAs)
+                if "doi.org" in str(o)), "")
+    return {
+        "iri": str(paper),
+        "title": str(g.value(paper, DCTERMS.title) or ""),
+        "authors": authors,          # absent on 38 of 54 papers in this graph
+        "year": str(g.value(paper, SCHEMA.datePublished) or ""),
+        "venue": str(g.value(paper, SCHEMA.isPartOf) or ""),
+        "doi": doi,
+        # how the paper entered the graph, and what it was read from: a caveat
+        # recorded on the paper node is exactly what a reader weighing the claim
+        # needs, and several carry one.
+        "note": str(g.value(paper, DCTERMS.description) or ""),
+    }
+
+
 def node_types(g: rdflib.Graph, node: rdflib.URIRef) -> frozenset[str]:
     return frozenset(
         str(t).rsplit("/", 1)[-1].rsplit("#", 1)[-1]
@@ -190,6 +220,7 @@ def get_claims_for_subject(g: rdflib.Graph, subject: rdflib.URIRef) -> list[dict
     for claim in g.subjects(EX.subject, subject):
         claim_text = str(g.value(claim, EX.claimText) or "")
         source_text = str(g.value(claim, EX.citation) or "")
+        paper = paper_reference(g, g.value(claim, EX.derivedFromPaper))
         obj = g.value(claim, EX.object)
         obj_lbl = node_label(g, obj) if isinstance(obj, rdflib.URIRef) else str(obj or "?")
         obj_types = node_types(g, obj) if isinstance(obj, rdflib.URIRef) else frozenset()
@@ -201,6 +232,7 @@ def get_claims_for_subject(g: rdflib.Graph, subject: rdflib.URIRef) -> list[dict
             "claim": claim,
             "claim_text": claim_text,
             "source_text": source_text,
+            "paper": paper,
             "object": obj,
             "predicate_label": pred_label,
             "object_label": obj_lbl,
@@ -214,6 +246,7 @@ def get_claims_for_object(g: rdflib.Graph, object_node: rdflib.URIRef) -> list[d
     for claim in g.subjects(EX.object, object_node):
         claim_text = str(g.value(claim, EX.claimText) or "")
         source_text = str(g.value(claim, EX.citation) or "")
+        paper = paper_reference(g, g.value(claim, EX.derivedFromPaper))
         subj = g.value(claim, EX.subject)
         subj_lbl = node_label(g, subj) if isinstance(subj, rdflib.URIRef) else str(subj or "?")
         subj_types = node_types(g, subj) if isinstance(subj, rdflib.URIRef) else frozenset()
@@ -225,6 +258,7 @@ def get_claims_for_object(g: rdflib.Graph, object_node: rdflib.URIRef) -> list[d
             "claim": claim,
             "claim_text": claim_text,
             "source_text": source_text,
+            "paper": paper,
             "subject": subj,
             "predicate_label": pred_label,
             "subject_label": subj_lbl,

@@ -57,9 +57,32 @@ def collect_app_edges(term: LamTerm) -> list[tuple[str, str]]:
         if id(t) in seen:
             return                      # a shared subject is visited ONCE
         seen.add(id(t))
-        t2 = _through_fan(t)
-        if t2 is not t:
-            walk(t2)
+        if _is_fan(t):
+            # A FAN'S CONTEXTS CARRY THE BRANCH STEPS, and they must be walked or
+            # every contraction made after a reflection is lost. `_through_fan`
+            # answers "what is here" with the subject, which is right for
+            # typing and for claim lookup — but it is NOT a traversal: the
+            # material each branch grew sits in grey_ctx/black_ctx, not in the
+            # principal (§4.2, §7.2).
+            #
+            # Measured before this: Example 6's reading took four contractions
+            # and recorded TWO edges, losing both post-reflection steps and the
+            # claims on them.
+            #
+            # Each context is a term with one HOLE standing for the subject, so
+            # the hole is filled with the subject before walking — that is what
+            # makes the branch's own edge (subject, what it was read to) appear.
+            walk(t.principal)
+            # KEEP THE FILLED CONTEXTS ALIVE while both are walked. `seen` is
+            # keyed on id(), and a filled context is a fresh object built here —
+            # if the first is garbage-collected before the second is built,
+            # CPython reuses its id and the second walk is skipped as "already
+            # seen", silently dropping one branch's edge.
+            filled = [_fill(ctx, t.principal)
+                      for ctx in (t.grey_ctx, t.black_ctx)
+                      if ctx is not None and not _is_hole(ctx)]
+            for f in filled:
+                walk(f)
             return
         if isinstance(t, LamApp):
             rf = _rep_var(t.func)
@@ -72,6 +95,34 @@ def collect_app_edges(term: LamTerm) -> list[tuple[str, str]]:
             walk(t.body)
     walk(term)
     return edges
+
+
+def _is_hole(t) -> bool:
+    """True for the HOLE marking a fan context's subject slot.
+
+    Duck-typed for the same reason as `_is_fan`: it keeps this module free of a
+    reading_state import. A HOLE is the only node that is neither a var, an app,
+    an abstraction nor a fan.
+    """
+    return not (isinstance(t, (LamVar, LamApp, LamAbs)) or _is_fan(t))
+
+
+def _fill(ctx, subject):
+    """`ctx` — a term with one HOLE — with the HOLE replaced by `subject`.
+
+    A fan's context is a context in the literal sense: it grew above an
+    occurrence of the shared subject, and the subject's place in it is the HOLE
+    (reading_state.LamFan). Filling it reconstitutes what that branch reads as,
+    which is what an edge walk needs to see.
+    """
+    if _is_hole(ctx):
+        return subject
+    if isinstance(ctx, LamApp):
+        return LamApp(_fill(ctx.func, subject), _fill(ctx.arg, subject))
+    if isinstance(ctx, LamAbs):
+        return LamAbs(var=ctx.var, qid=ctx.qid,
+                      body=_fill(ctx.body, subject))
+    return ctx
 
 
 def collect_edge_claims(g: rdflib.Graph, term: LamTerm) -> list[dict]:
@@ -872,3 +923,70 @@ def repl_source(term: LamTerm) -> str:
         return "x"                            # HOLE and anything else
 
     return go(term)
+
+
+# ── entity detail, for the ontology panel ──────────────────────────────────
+
+def entity_details(g: rdflib.Graph, term: LamTerm) -> list[dict]:
+    """Everything worth saying about each entity the term mentions.
+
+    THE GRAPH VIEW SHOWS ONLY LABELS, and a label is often too little to judge
+    an ontology by: "binding pocket" and "Unified binding site" look like near
+    synonyms until you read that one is the residues within 4.5 Å of ONE ligand
+    and the other the union across a whole protein family. The descriptions are
+    already in the graph (dcterms:description); they were simply never rendered
+    here.
+
+    Returned in the order the entities first appear in the term, so the list
+    reads down the graph above it. A question-typed position resolves to its
+    entity (`_claim_lookup_iri`), since the description lives on the entity, and
+    the question's own title is what the graph view already shows.
+    """
+    from kg_store import node_label, node_description, node_types
+
+    order: list[str] = []
+    seen: set[str] = set()
+
+    def walk(t) -> None:
+        t = _through_fan(t) if _is_fan(t) else t
+        if isinstance(t, LamVar):
+            if t.iri not in seen:
+                seen.add(t.iri); order.append(t.iri)
+        elif isinstance(t, LamApp):
+            walk(t.func); walk(t.arg)
+        elif isinstance(t, LamAbs):
+            if t.var.iri not in seen:
+                seen.add(t.var.iri); order.append(t.var.iri)
+            walk(t.body)
+
+    walk(term)
+
+    # literals worth showing beside the description: the measured columns the KG
+    # carries for ligands and databases. Deliberately a whitelist — the graph
+    # holds bookkeeping literals too, and dumping all of them would bury the
+    # description this is meant to surface.
+    EXTRA = ("iupacName", "molecularFormula", "molecularWeight", "pubchemCID",
+             "totalHoloSites", "apoPairedSites", "apoCoverage",
+             "uniqueUniProtACs", "altLabel")
+
+    out: list[dict] = []
+    for iri in order:
+        ent = _claim_lookup_iri(iri)
+        n = rdflib.URIRef(ent)
+        extra = []
+        for _s, p, o in g.triples((n, None, None)):
+            if not isinstance(o, rdflib.Literal):
+                continue
+            name = str(p).rsplit("#", 1)[-1].rsplit("/", 1)[-1]
+            if name in EXTRA:
+                extra.append((name, str(o)))
+        out.append({
+            "iri": iri,
+            "entity": ent,
+            "label": node_label(g, n),
+            "question": _is_question_iri(iri),
+            "types": sorted(node_types(g, n)),
+            "description": node_description(g, n),
+            "extra": sorted(extra),
+        })
+    return out

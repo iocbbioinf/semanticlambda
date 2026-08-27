@@ -17921,5 +17921,210 @@
     "parent": "https://ahoj-db.org/kg#MG",
     "qid": "https://ahoj-db.org/question#5ccabdcff040f7d8",
     "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 what class does this metal fall under?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#MG",
+        "label": "Magnesium(II) ion"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#MG",
+          "label": "Magnesium(II) ion"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://www.wikidata.org/entity/Q71945275",
+          "label": "alkaline earth cation"
+        }
+      }
+    },
+    "term_str": "\u03bbMagnesium(II) ion.(Magnesium(II) ion \u00b7 alkaline earth cation)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/kg#MG",
+    "qid": "https://ahoj-db.org/question#1c3d2119d47fbbac",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 what is the more general class?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://www.wikidata.org/entity/Q71945275",
+        "label": "alkaline earth cation"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://www.wikidata.org/entity/Q71945275",
+          "label": "alkaline earth cation"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://www.wikidata.org/entity/Q71651918",
+          "label": "monoatomic dication"
+        }
+      }
+    },
+    "term_str": "\u03bbalkaline earth cation.(alkaline earth cation \u00b7 monoatomic dication)",
+    "claims": [],
+    "parent": "https://www.wikidata.org/entity/Q71945275",
+    "qid": "https://ahoj-db.org/question#1d8d25e47caf3038",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 which other ion shares this class?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://www.wikidata.org/entity/Q71651918",
+        "label": "monoatomic dication"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://www.wikidata.org/entity/Q71651918",
+          "label": "monoatomic dication"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#ZN",
+          "label": "Zinc(II) ion"
+        }
+      }
+    },
+    "term_str": "\u03bbmonoatomic dication.(monoatomic dication \u00b7 Zinc(II) ion)",
+    "claims": [],
+    "parent": "https://www.wikidata.org/entity/Q71651918",
+    "qid": "https://ahoj-db.org/question#f211463ef3012f79",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 does the site that forms at an interface bind a metal?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#MultiChainBindingSite",
+        "label": "multi-chain binding site (MBS)"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#MultiChainBindingSite",
+            "label": "multi-chain binding site (MBS)"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ChainInterface",
+            "label": "protein\u2013protein interface"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#MG",
+          "label": "Magnesium(II) ion"
+        }
+      }
+    },
+    "term_str": "\u03bbmulti-chain binding site (MBS).((multi-chain binding site (MBS) \u00b7 protein\u2013protein interface) \u00b7 Magnesium(II) ion)",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#MultiChainBindingSite",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Abrusan2018_c3",
+        "claim_text": "Homomers whose multi-chain binding sites bind cofactors and metals have more conserved quaternary structure than other homomers, implying strong evolutionary selection for quaternary structure in cofactor-binding MBS homomers."
+      }
+    ],
+    "parent": "https://ahoj-db.org/kg#MultiChainBindingSite",
+    "qid": "https://ahoj-db.org/question#3854b2eee47a6949",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 read at the interface, what class does the metal fall under?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#MG",
+        "label": "Magnesium(II) ion"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#MG",
+            "label": "Magnesium(II) ion"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ChainInterface",
+            "label": "protein\u2013protein interface"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://www.wikidata.org/entity/Q71945275",
+          "label": "alkaline earth cation"
+        }
+      }
+    },
+    "term_str": "\u03bbMagnesium(II) ion.((Magnesium(II) ion \u00b7 protein\u2013protein interface) \u00b7 alkaline earth cation)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/kg#MG",
+    "qid": "https://ahoj-db.org/question#00407a2ef9361ea2",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 and above this class, which more general one?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://www.wikidata.org/entity/Q71945275",
+        "label": "alkaline earth cation"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://www.wikidata.org/entity/Q71945275",
+            "label": "alkaline earth cation"
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#MG",
+            "label": "Magnesium(II) ion"
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://www.wikidata.org/entity/Q71651918",
+          "label": "monoatomic dication"
+        }
+      }
+    },
+    "term_str": "\u03bbalkaline earth cation.((alkaline earth cation \u00b7 Magnesium(II) ion) \u00b7 monoatomic dication)",
+    "claims": [],
+    "parent": "https://www.wikidata.org/entity/Q71945275",
+    "qid": "https://ahoj-db.org/question#a4a7510e60a52fd3",
+    "origin": "aiExample"
   }
 ]
