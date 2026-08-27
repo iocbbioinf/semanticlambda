@@ -17731,5 +17731,195 @@
     "parent": "https://ahoj-db.org/kg#MolecularDynamics",
     "qid": "https://ahoj-db.org/question#63e0099c60169d9b",
     "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 does the class reach the frequent ligand as it reaches the general one?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#MG",
+        "label": "Magnesium(II) ion"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#MG",
+              "label": "Magnesium(II) ion"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://www.wikidata.org/entity/Q71651918",
+              "label": "monoatomic dication"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://www.wikidata.org/entity/Q71945275",
+            "label": "alkaline earth cation"
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#MG",
+              "label": "Magnesium(II) ion"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#AHoJDB",
+              "label": "AHoJ-DB"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ZN",
+            "label": "Zinc(II) ion"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bbMagnesium(II) ion.(((Magnesium(II) ion \u00b7 monoatomic dication) \u00b7 alkaline earth cation) \u00b7 ((Magnesium(II) ion \u00b7 AHoJ-DB) \u00b7 Zinc(II) ion))",
+    "claims": [],
+    "parent": "https://ahoj-db.org/kg#MG",
+    "qid": "https://ahoj-db.org/question#2d918b9993da6371",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 read through the interface: what does the metal make of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#MultiChainBindingSite",
+        "label": "multi-chain binding site (MBS)"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ChainInterface",
+            "label": "protein\u2013protein interface"
+          },
+          "arg": {
+            "type": "app",
+            "func": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#MG",
+                "label": "Magnesium(II) ion"
+              },
+              "body": {
+                "type": "app",
+                "func": {
+                  "type": "app",
+                  "func": {
+                    "type": "app",
+                    "func": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#MG",
+                      "label": "Magnesium(II) ion"
+                    },
+                    "arg": {
+                      "type": "var",
+                      "iri": "https://www.wikidata.org/entity/Q71651918",
+                      "label": "monoatomic dication"
+                    }
+                  },
+                  "arg": {
+                    "type": "var",
+                    "iri": "https://www.wikidata.org/entity/Q71945275",
+                    "label": "alkaline earth cation"
+                  }
+                },
+                "arg": {
+                  "type": "app",
+                  "func": {
+                    "type": "app",
+                    "func": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#MG",
+                      "label": "Magnesium(II) ion"
+                    },
+                    "arg": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#AHoJDB",
+                      "label": "AHoJ-DB"
+                    }
+                  },
+                  "arg": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#ZN",
+                    "label": "Zinc(II) ion"
+                  }
+                }
+              }
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#MultiChainBindingSite",
+              "label": "multi-chain binding site (MBS)"
+            }
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#ProteinFamily",
+          "label": "Protein family / domain"
+        }
+      }
+    },
+    "term_str": "\u03bbmulti-chain binding site (MBS).((protein\u2013protein interface \u00b7 ((\u03bbMagnesium(II) ion.(((Magnesium(II) ion \u00b7 monoatomic dication) \u00b7 alkaline earth cation) \u00b7 ((Magnesium(II) ion \u00b7 AHoJ-DB) \u00b7 Zinc(II) ion))) \u00b7 multi-chain binding site (MBS))) \u00b7 Protein family / domain)",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#MultiChainBindingSite",
+        "obj_iri": "https://ahoj-db.org/kg#ProteinFamily",
+        "claim_iri": "https://ahoj-db.org/kg#Abrusan2018_c4",
+        "claim_text": "Among homologous MBS homomers, the bound ligands and the ligand-binding pockets are more similar to each other than those of monomers and other homomers."
+      }
+    ],
+    "parent": "https://ahoj-db.org/kg#MultiChainBindingSite",
+    "qid": "https://ahoj-db.org/question#9badfc584f5cca7b",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 is it the metal, or the cofactor?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#MG",
+        "label": "Magnesium(II) ion"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#MG",
+          "label": "Magnesium(II) ion"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#FAD",
+          "label": "Flavin adenine dinucleotide"
+        }
+      }
+    },
+    "term_str": "\u03bbMagnesium(II) ion.(Magnesium(II) ion \u00b7 Flavin adenine dinucleotide)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/kg#MG",
+    "qid": "https://ahoj-db.org/question#5ccabdcff040f7d8",
+    "origin": "aiExample"
   }
 ]
