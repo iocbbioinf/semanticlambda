@@ -17534,5 +17534,202 @@
     "parent": "https://ahoj-db.org/kg#BindingThermodynamicsBenchmark",
     "qid": "https://ahoj-db.org/question#8e65dad57f8084e2",
     "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 does the force field bias what it is used to describe?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#ForceField",
+        "label": "molecular mechanics force field"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#ForceField",
+              "label": "molecular mechanics force field"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#PhaseSeparation",
+              "label": "Phase separation / biomolecular condensation"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#IntrinsicDisorder",
+            "label": "intrinsic disorder"
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#ForceField",
+              "label": "molecular mechanics force field"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#ShortLinearMotif",
+              "label": "Short linear motif (SLiM)"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#PhaseSeparation",
+            "label": "Phase separation / biomolecular condensation"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bbmolecular mechanics force field.(((molecular mechanics force field \u00b7 Phase separation / biomolecular condensation) \u00b7 intrinsic disorder) \u00b7 ((molecular mechanics force field \u00b7 Short linear motif (SLiM)) \u00b7 Phase separation / biomolecular condensation))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#IntrinsicDisorder",
+        "obj_iri": "https://ahoj-db.org/kg#PhaseSeparation",
+        "claim_iri": "https://ahoj-db.org/kg#TargetingDisorder_c3",
+        "claim_text": "Disordered sequences drive biomolecular condensation via phase separation, whose aberrations (condensatopathies) cause disease; c-mods target the condensate constituents."
+      }
+    ],
+    "parent": "https://ahoj-db.org/kg#ForceField",
+    "qid": "https://ahoj-db.org/question#0b56d62c9877396f",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 read through allostery: what do the trajectories make of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#ciMIST",
+        "label": "ciMIST"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#Allostery",
+            "label": "allostery"
+          },
+          "arg": {
+            "type": "app",
+            "func": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#ForceField",
+                "label": "molecular mechanics force field"
+              },
+              "body": {
+                "type": "app",
+                "func": {
+                  "type": "app",
+                  "func": {
+                    "type": "app",
+                    "func": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#ForceField",
+                      "label": "molecular mechanics force field"
+                    },
+                    "arg": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#PhaseSeparation",
+                      "label": "Phase separation / biomolecular condensation"
+                    }
+                  },
+                  "arg": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#IntrinsicDisorder",
+                    "label": "intrinsic disorder"
+                  }
+                },
+                "arg": {
+                  "type": "app",
+                  "func": {
+                    "type": "app",
+                    "func": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#ForceField",
+                      "label": "molecular mechanics force field"
+                    },
+                    "arg": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#ShortLinearMotif",
+                      "label": "Short linear motif (SLiM)"
+                    }
+                  },
+                  "arg": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#PhaseSeparation",
+                    "label": "Phase separation / biomolecular condensation"
+                  }
+                }
+              }
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#ciMIST",
+              "label": "ciMIST"
+            }
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#GROMACS",
+          "label": "GROMACS"
+        }
+      }
+    },
+    "term_str": "\u03bbciMIST.((allostery \u00b7 ((\u03bbmolecular mechanics force field.(((molecular mechanics force field \u00b7 Phase separation / biomolecular condensation) \u00b7 intrinsic disorder) \u00b7 ((molecular mechanics force field \u00b7 Short linear motif (SLiM)) \u00b7 Phase separation / biomolecular condensation))) \u00b7 ciMIST)) \u00b7 GROMACS)",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#IntrinsicDisorder",
+        "obj_iri": "https://ahoj-db.org/kg#PhaseSeparation",
+        "claim_iri": "https://ahoj-db.org/kg#TargetingDisorder_c3",
+        "claim_text": "Disordered sequences drive biomolecular condensation via phase separation, whose aberrations (condensatopathies) cause disease; c-mods target the condensate constituents."
+      }
+    ],
+    "parent": "https://ahoj-db.org/kg#ciMIST",
+    "qid": "https://ahoj-db.org/question#12d9b08a70e37e42",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 is it the simulation, or the ensemble it samples?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#MolecularDynamics",
+        "label": "molecular dynamics (MD) simulations"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#MolecularDynamics",
+          "label": "molecular dynamics (MD) simulations"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#ConformationalEnsemble",
+          "label": "Conformational ensemble"
+        }
+      }
+    },
+    "term_str": "\u03bbmolecular dynamics (MD) simulations.(molecular dynamics (MD) simulations \u00b7 Conformational ensemble)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/kg#MolecularDynamics",
+    "qid": "https://ahoj-db.org/question#63e0099c60169d9b",
+    "origin": "aiExample"
   }
 ]
