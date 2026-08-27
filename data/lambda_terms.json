@@ -17097,5 +17097,442 @@
     "parent": "https://ahoj-db.org/question#b72e39b2840da322",
     "qid": "https://ahoj-db.org/question#073747ce2cfccc07",
     "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 does the open state reach the pocket as it reaches a cryptic site?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+        "label": "2OSS"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+              "label": "2OSS"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#BindingPocket",
+              "label": "binding pocket"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ZA2_Conformation",
+            "label": "ZA2 (open ZA-loop state)"
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+              "label": "2OSS"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#CrypticSite",
+              "label": "cryptic binding site"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb2OSS.(((2OSS \u00b7 binding pocket) \u00b7 ZA2 (open ZA-loop state)) \u00b7 ((2OSS \u00b7 cryptic binding site) \u00b7 binding pocket))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#ZA2_Conformation",
+        "obj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "claim_iri": "https://ahoj-db.org/kg#Cinaroglu2023_c4",
+        "claim_text": "In the ZA2 state the ZA loop moves outward from the acetyl-lysine pocket and induces a short helix, making the binding pocket open and more accessible."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#CrypticSite",
+        "obj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "claim_iri": "https://ahoj-db.org/kg#Meller2023_c3",
+        "claim_text": "Cryptic pockets expand the scope of drug discovery by enabling targeting of proteins considered undruggable because they lack pockets in their ground-state structures."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#CrypticSite",
+        "obj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "claim_iri": "https://ahoj-db.org/kg#Cimermancic2016_c3",
+        "claim_text": "Cryptic sites tend to be as evolutionarily conserved as traditional binding pockets, but are less hydrophobic and more flexible."
+      }
+    ],
+    "parent": "https://ahoj-db.org/kg#PDB_2OSS",
+    "qid": "https://ahoj-db.org/question#ed5320a98d14058c",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 read through the BET family: what does the structure make of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#BindingThermodynamicsBenchmark",
+        "label": "Non-redundant BRD4-1 ITC/enthalpy benchmark"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BETFamily",
+            "label": "BET family"
+          },
+          "arg": {
+            "type": "app",
+            "func": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+                "label": "2OSS"
+              },
+              "body": {
+                "type": "app",
+                "func": {
+                  "type": "app",
+                  "func": {
+                    "type": "app",
+                    "func": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+                      "label": "2OSS"
+                    },
+                    "arg": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#BindingPocket",
+                      "label": "binding pocket"
+                    }
+                  },
+                  "arg": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#ZA2_Conformation",
+                    "label": "ZA2 (open ZA-loop state)"
+                  }
+                },
+                "arg": {
+                  "type": "app",
+                  "func": {
+                    "type": "app",
+                    "func": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+                      "label": "2OSS"
+                    },
+                    "arg": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#CrypticSite",
+                      "label": "cryptic binding site"
+                    }
+                  },
+                  "arg": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#BindingPocket",
+                    "label": "binding pocket"
+                  }
+                }
+              }
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#BindingThermodynamicsBenchmark",
+              "label": "Non-redundant BRD4-1 ITC/enthalpy benchmark"
+            }
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#AcetylLysine",
+          "label": "acetyl-lysine (Kac)"
+        }
+      }
+    },
+    "term_str": "\u03bbNon-redundant BRD4-1 ITC/enthalpy benchmark.((BET family \u00b7 ((\u03bb2OSS.(((2OSS \u00b7 binding pocket) \u00b7 ZA2 (open ZA-loop state)) \u00b7 ((2OSS \u00b7 cryptic binding site) \u00b7 binding pocket))) \u00b7 Non-redundant BRD4-1 ITC/enthalpy benchmark)) \u00b7 acetyl-lysine (Kac))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#ZA2_Conformation",
+        "obj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "claim_iri": "https://ahoj-db.org/kg#Cinaroglu2023_c4",
+        "claim_text": "In the ZA2 state the ZA loop moves outward from the acetyl-lysine pocket and induces a short helix, making the binding pocket open and more accessible."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#CrypticSite",
+        "obj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "claim_iri": "https://ahoj-db.org/kg#Meller2023_c3",
+        "claim_text": "Cryptic pockets expand the scope of drug discovery by enabling targeting of proteins considered undruggable because they lack pockets in their ground-state structures."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#CrypticSite",
+        "obj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "claim_iri": "https://ahoj-db.org/kg#Cimermancic2016_c3",
+        "claim_text": "Cryptic sites tend to be as evolutionarily conserved as traditional binding pockets, but are less hydrophobic and more flexible."
+      }
+    ],
+    "parent": "https://ahoj-db.org/kg#BindingThermodynamicsBenchmark",
+    "qid": "https://ahoj-db.org/question#57955a2c8ff44282",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 is it the domain, or the whole protein?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#BRD4_1",
+        "label": "BRD4-1"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#BRD4_1",
+          "label": "BRD4-1"
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#BRD4",
+          "label": "BRD4"
+        }
+      }
+    },
+    "term_str": "\u03bbBRD4-1.(BRD4-1 \u00b7 BRD4)",
+    "claims": [],
+    "parent": "https://ahoj-db.org/kg#BRD4_1",
+    "qid": "https://ahoj-db.org/question#403f99952bd62a38",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 does the open state reach the pocket as it reaches a cryptic site?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+        "label": "2OSS"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+              "label": "2OSS"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#ChainInterface",
+              "label": "protein\u2013protein interface"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BindingPocket",
+            "label": "binding pocket"
+          }
+        },
+        "arg": {
+          "type": "app",
+          "func": {
+            "type": "app",
+            "func": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+              "label": "2OSS"
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+              "label": "Unified binding site"
+            }
+          },
+          "arg": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#ChainInterface",
+            "label": "protein\u2013protein interface"
+          }
+        }
+      }
+    },
+    "term_str": "\u03bb2OSS.(((2OSS \u00b7 protein\u2013protein interface) \u00b7 binding pocket) \u00b7 ((2OSS \u00b7 Unified binding site) \u00b7 protein\u2013protein interface))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Gao2012_c5",
+        "claim_text": "Pockets of comparable size to those in experimental structures appear even in artificially generated protein complexes, indicating that pocket formation around interfaces is mainly an intrinsic geometric consequence of protein packing rather than a functionally selected feature."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Gao2012_c1",
+        "claim_text": "In a representative set of 1,611 protein-protein complexes, the majority of small-molecule ligand-binding pockets lie within 6 Angstrom of the protein-protein interface."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Gao2012_c6",
+        "claim_text": "The authors propose that packing near protein-protein or domain-domain interfaces is a major, general route to the formation of ligand-binding pockets, which nature can then select and optimise for function."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Abrusan2018_c1",
+        "claim_text": "Using ligand binding as a proxy for function, the structure of ligand-binding sites significantly influences the evolution of protein complexes."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Gao2012_c4",
+        "claim_text": "The same clustering of ligands around interfaces holds for domain-domain interfaces: analysis of 1,416 nonredundant two-domain protein structures gives similar results to the protein-protein complex analysis."
+      }
+    ],
+    "parent": "https://ahoj-db.org/kg#PDB_2OSS",
+    "qid": "https://ahoj-db.org/question#7a78bc7c6bc555b7",
+    "origin": "aiExample"
+  },
+  {
+    "chain_label": "\u25c7 read through the BET family: what does the structure make of it?",
+    "term": {
+      "type": "abs",
+      "var": {
+        "type": "var",
+        "iri": "https://ahoj-db.org/kg#BindingThermodynamicsBenchmark",
+        "label": "Non-redundant BRD4-1 ITC/enthalpy benchmark"
+      },
+      "body": {
+        "type": "app",
+        "func": {
+          "type": "app",
+          "func": {
+            "type": "var",
+            "iri": "https://ahoj-db.org/kg#BETFamily",
+            "label": "BET family"
+          },
+          "arg": {
+            "type": "app",
+            "func": {
+              "type": "abs",
+              "var": {
+                "type": "var",
+                "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+                "label": "2OSS"
+              },
+              "body": {
+                "type": "app",
+                "func": {
+                  "type": "app",
+                  "func": {
+                    "type": "app",
+                    "func": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+                      "label": "2OSS"
+                    },
+                    "arg": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#ChainInterface",
+                      "label": "protein\u2013protein interface"
+                    }
+                  },
+                  "arg": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#BindingPocket",
+                    "label": "binding pocket"
+                  }
+                },
+                "arg": {
+                  "type": "app",
+                  "func": {
+                    "type": "app",
+                    "func": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#PDB_2OSS",
+                      "label": "2OSS"
+                    },
+                    "arg": {
+                      "type": "var",
+                      "iri": "https://ahoj-db.org/kg#UnifiedBindingSite",
+                      "label": "Unified binding site"
+                    }
+                  },
+                  "arg": {
+                    "type": "var",
+                    "iri": "https://ahoj-db.org/kg#ChainInterface",
+                    "label": "protein\u2013protein interface"
+                  }
+                }
+              }
+            },
+            "arg": {
+              "type": "var",
+              "iri": "https://ahoj-db.org/kg#BindingThermodynamicsBenchmark",
+              "label": "Non-redundant BRD4-1 ITC/enthalpy benchmark"
+            }
+          }
+        },
+        "arg": {
+          "type": "var",
+          "iri": "https://ahoj-db.org/kg#AcetylLysine",
+          "label": "acetyl-lysine (Kac)"
+        }
+      }
+    },
+    "term_str": "\u03bbNon-redundant BRD4-1 ITC/enthalpy benchmark.((BET family \u00b7 ((\u03bb2OSS.(((2OSS \u00b7 protein\u2013protein interface) \u00b7 binding pocket) \u00b7 ((2OSS \u00b7 Unified binding site) \u00b7 protein\u2013protein interface))) \u00b7 Non-redundant BRD4-1 ITC/enthalpy benchmark)) \u00b7 acetyl-lysine (Kac))",
+    "claims": [
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Gao2012_c5",
+        "claim_text": "Pockets of comparable size to those in experimental structures appear even in artificially generated protein complexes, indicating that pocket formation around interfaces is mainly an intrinsic geometric consequence of protein packing rather than a functionally selected feature."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Gao2012_c1",
+        "claim_text": "In a representative set of 1,611 protein-protein complexes, the majority of small-molecule ligand-binding pockets lie within 6 Angstrom of the protein-protein interface."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Gao2012_c6",
+        "claim_text": "The authors propose that packing near protein-protein or domain-domain interfaces is a major, general route to the formation of ligand-binding pockets, which nature can then select and optimise for function."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Abrusan2018_c1",
+        "claim_text": "Using ligand binding as a proxy for function, the structure of ligand-binding sites significantly influences the evolution of protein complexes."
+      },
+      {
+        "subj_iri": "https://ahoj-db.org/kg#BindingPocket",
+        "obj_iri": "https://ahoj-db.org/kg#ChainInterface",
+        "claim_iri": "https://ahoj-db.org/kg#Gao2012_c4",
+        "claim_text": "The same clustering of ligands around interfaces holds for domain-domain interfaces: analysis of 1,416 nonredundant two-domain protein structures gives similar results to the protein-protein complex analysis."
+      }
+    ],
+    "parent": "https://ahoj-db.org/kg#BindingThermodynamicsBenchmark",
+    "qid": "https://ahoj-db.org/question#8e65dad57f8084e2",
+    "origin": "aiExample"
   }
 ]
