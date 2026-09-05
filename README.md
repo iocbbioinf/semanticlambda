@@ -111,6 +111,12 @@ Entities here are **not** KG nodes: they are proposed freely from the query and
 become the **variables** of the term. Entities are reused across steps, and a
 reused entity is *one node* of the sharing graph.
 
+They **persist** in `data/entities.json`, loaded on start and written on
+`resume`, so an entity named in one session is not re-invented under a fresh iri
+in the next — the sharing survives between runs as well as within one. Aliases
+and use counts persist with them, so a later session naming the same thing
+differently still lands on the same entity.
+
 ### The three interaction steps
 
 Each one is a reading step, and the app renders which is in play:

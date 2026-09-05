@@ -21,8 +21,14 @@ When in doubt, do not merge.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
+
+# Where the entities live. USER DATA, like readings and questions: what one
+# person's reading has been made of, not project content.
+ENTITIES_DB = Path(__file__).parent / "data" / "entities.json"
 
 # Words that carry no identity of their own. Dropped only when they are not the
 # whole name — "the case" keeps its article, since "case" alone is different.
@@ -212,3 +218,63 @@ class EntityStore:
         """Merges since the last call — the app reports these to the user."""
         out, self.merges = self.merges, []
         return out
+
+    # ── persistence ───────────────────────────────────────────────────────
+
+    def to_records(self) -> list[dict]:
+        """The store as plain records, most used first."""
+        return [{"iri": e.iri, "label": e.label, "gloss": e.gloss,
+                 "aliases": list(e.aliases), "uses": e.uses}
+                for e in self.all()]
+
+    def load_records(self, records: list[dict]) -> None:
+        """Merge saved entities in, without disturbing what is already held.
+
+        Loading goes through the same match keys as `resolve`, so an entity read
+        back under one name still answers to every other name it was proposed
+        under — the whole point of the store. A saved entity that matches one
+        already present is MERGED into it rather than duplicated, and its
+        aliases and use count are carried over.
+        """
+        for rec in records or []:
+            iri = (rec.get("iri") or "").strip()
+            label = (rec.get("label") or "").strip()
+            if not iri and not label:
+                continue
+            ent = self.resolve(iri or label, label, rec.get("gloss", ""))
+            # `resolve` counts this as a use; the saved count is the real one.
+            ent.uses = max(ent.uses - 1, 0) + int(rec.get("uses") or 0)
+            for a in rec.get("aliases") or []:
+                ent.note_alias(a)
+                # every alias must also RESOLVE to this entity later
+                self._by_key.setdefault(match_key(a), ent)
+                self._by_iri.setdefault(f"local:{slugify(a)}", ent)
+        # Loading is not the user naming things, so it reports no merges.
+        self.merges = []
+
+
+def save_entities(store: "EntityStore", path=None) -> "Path":
+    """Write the entity store to `data/entities.json`."""
+    from pathlib import Path
+    p = Path(path) if path else ENTITIES_DB
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(store.to_records(), indent=2, ensure_ascii=False))
+    return p
+
+
+def load_entities(store: "EntityStore", path=None) -> int:
+    """Read `data/entities.json` into `store`; returns how many were read.
+
+    A missing file is not an error — it is simply the first run.
+    """
+    from pathlib import Path
+    p = Path(path) if path else ENTITIES_DB
+    if not p.exists():
+        return 0
+    try:
+        records = json.loads(p.read_text())
+    except (json.JSONDecodeError, OSError):
+        return 0
+    before = len(store)
+    store.load_records(records)
+    return len(store) - before

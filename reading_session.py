@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from optimal_lambda import LamApp, LamTerm
-from entity_store import EntityStore
+from entity_store import EntityStore, load_entities, save_entities
 from reading_agent import Entity, Option, ReadingAgent, StepProposal
 from reading_state import (EntityRegistry, LamFan, PointerSet, replace_at,
                            subterm_at)
@@ -127,6 +127,10 @@ class ReadingSession:
         # name would otherwise become a separate variable, losing the sharing
         # that makes a reused entity ONE node (§1).
         self.entities = EntityStore()
+        # Entities persist across sessions: an entity named once should not be
+        # re-invented under a fresh iri the next time, or the sharing that makes
+        # a reused entity ONE node is lost between runs as well as within one.
+        self.entities_loaded = load_entities(self.entities)
         self.questions: list[Question] = []
 
     # ── the entity store ──────────────────────────────────────────────────
@@ -513,6 +517,10 @@ class ReadingSession:
         seed = Entity(iri=qid, label=title, gloss=f"a question asked of "
                                                  f"{asked.label}")
         return qid, self.open_reading(seed)
+
+    def save_entities(self):
+        """Write the entity store to data/entities.json."""
+        return save_entities(self.entities)
 
     def save_questions(self) -> tuple[int, list[str]]:
         """Persist the session's questions to the shared question store.

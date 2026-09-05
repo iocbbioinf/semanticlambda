@@ -173,6 +173,7 @@ def test_ui_offers_asking_at_every_step():
     buf = io.StringIO()
     with patch("builtins.input", lambda *a: next(script)), \
          patch("reading_store.save_session", lambda s: "(not saved)"), \
+             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
          patch("sys.stdout", buf):
         try:
             rb.Browser(MockAgent()).run()
@@ -296,6 +297,7 @@ def test_entity_picker_filters_by_typing():
     buf = io.StringIO()
     with patch("builtins.input", lambda *a: next(script)), \
          patch("reading_store.save_session", lambda s: "(not saved)"), \
+             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
          patch("sys.stdout", buf):
         try:
             rb.Browser(MockAgent()).run()

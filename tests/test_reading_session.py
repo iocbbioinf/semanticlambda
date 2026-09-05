@@ -48,7 +48,16 @@ def E(slug, label=None):
 
 
 def session():
-    return ReadingSession("why does aspirin work", StubAgent())
+    """A session with an EMPTY entity store.
+
+    `ReadingSession` loads data/entities.json on start, so without this every
+    test would depend on whatever the user's own store happens to hold — the
+    tests must exercise the calculus, not one machine's reading history.
+    """
+    from unittest.mock import patch
+    # `reading_session` imported the name, so patch it THERE.
+    with patch("reading_session.load_entities", lambda *a, **k: 0):
+        return ReadingSession("why does aspirin work", StubAgent())
 
 
 # ── A: contraction, option 1 ──────────────────────────────────────────────────
@@ -377,6 +386,7 @@ def test_show_term_does_not_refetch_the_proposal():
     # `t` is a --verbose command: the modal shows the calculus.
     with patch("builtins.input", lambda *a: next(script)), \
          patch("reading_store.save_session", lambda s: "(not saved)"), \
+             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
          patch.object(rb, "VERBOSE", True), \
          patch("sys.stdout", buf):
         rb.Browser(Counting()).run()
@@ -403,6 +413,7 @@ def test_context_prompt_and_picker_in_the_ui():
         it = iter(script)
         with patch("builtins.input", lambda *a: next(it)), \
              patch("reading_store.save_session", lambda s: "(not saved)"), \
+             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
              patch.object(rb, "VERBOSE", True), \
              patch("sys.stdout", buf):
             try:
@@ -453,6 +464,7 @@ def test_verbose_gates_the_calculus_trace():
         buf = io.StringIO()
         with patch("builtins.input", lambda *a: next(script)), \
              patch("reading_store.save_session", lambda s: "(not saved)"), \
+             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
              patch.object(rb, "VERBOSE", verbose), \
              patch("sys.stdout", buf):
             try:
@@ -487,6 +499,7 @@ def test_verbose_gates_the_calculus_trace():
         buf = io.StringIO()
         with patch("builtins.input", lambda *a: next(script)), \
              patch("reading_store.save_session", lambda s: "(not saved)"), \
+             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
              patch.object(rb, "VERBOSE", verbose), \
              patch("sys.stdout", buf):
             try:

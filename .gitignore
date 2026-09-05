@@ -29,5 +29,7 @@ Thumbs.db
 data/readings.json
 # questions (abstractions) — the question store
 data/lambda_terms.json
+# entities — the variables a user's readings are made of
+data/entities.json
 # browser sessions: a query and the readings built under it
 data/browser_sessions.json

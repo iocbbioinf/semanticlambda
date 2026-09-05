@@ -242,6 +242,7 @@ def test_the_o_command_is_offered():
     buf = io.StringIO()
     with patch("builtins.input", lambda *a: next(script)), \
          patch("reading_store.save_session", lambda s: "(not saved)"), \
+             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
          patch("sys.stdout", buf):
         try:
             rb.Browser(MockAgent()).run()

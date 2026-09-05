@@ -787,6 +787,10 @@ class Browser:
             print(f"  {red('✗')} {e}")
             return 1
 
+        known = self.session.entities_loaded
+        if known:
+            print("  " + dim("◆ ") +
+                  dim(f"{known} entities known from earlier sessions"))
         print(f"  {green('✓')} {dim('entities proposed:')} "
               f"{', '.join(bold(s.short()) for s in seeds)}")
         report_merges(self.session)
@@ -978,6 +982,14 @@ class Browser:
             return
         from reading_store import save_session
         path = save_session(s)
+
+        # Entities persist too, so the next session knows what this one named.
+        ent_path = s.save_entities()
+        print()
+        print(f"  {green('✓')} saved {bold(str(len(s.entities)))} entit"
+              f"{'y' if len(s.entities) == 1 else 'ies'}")
+        if VERBOSE:
+            print(f"  {dim('→')} {dim(str(ent_path))}")
 
         # Questions go to the SHARED question store, which is where enrichment
         # draws its candidates from — not into the session file.

@@ -145,6 +145,86 @@ def test_short_words_match_at_a_word_boundary():
           "a short word that starts no word matches nothing")
 
 
+def test_entities_persist_across_sessions():
+    """The store is written to data/ and read back — reading_session does this
+    on start and on resume.
+
+    Without it an entity named in one session is re-invented in the next under a
+    fresh iri, and the sharing that makes a reused entity ONE node is lost
+    BETWEEN runs as surely as within one.
+    """
+    print("\nentities persist across sessions")
+    import tempfile
+    from pathlib import Path as P
+    from entity_store import load_entities, save_entities
+
+    with tempfile.TemporaryDirectory() as d:
+        path = P(d) / "entities.json"
+
+        s1 = EntityStore()
+        cox = s1.resolve("cox-enzymes", "COX enzymes", "the target")
+        s1.resolve("the-cox-enzymes", "the COX enzymes")     # an alias
+        s1.resolve("aspirin", "Aspirin", "the drug")
+        save_entities(s1, path)
+
+        s2 = EntityStore()
+        n = load_entities(s2, path)
+        check(n == 2, f"both entities read back (got {n})")
+        check({e.label for e in s2.all()} == {"COX enzymes", "Aspirin"},
+              "with their labels")
+        check(s2.get("local:cox-enzymes").gloss == "the target",
+              "and their glosses")
+
+        # THE POINT: a later session naming the same thing differently must
+        # land on the SAME iri, or the sharing is lost between runs.
+        again = s2.resolve("the-cox-enzyme", "the COX enzyme")
+        check(again.iri == cox.iri,
+              "a differently-named entity resolves to the SAME iri as before")
+        check(again.label == "COX enzymes", "keeping the name it was saved under")
+
+        # Use counts carry over rather than restarting.
+        check(s2.get("local:cox-enzymes").uses >= 2,
+              "the use count survives the round trip")
+        # Loading is not the user naming things, so it reports no merges.
+        s3 = EntityStore()
+        load_entities(s3, path)
+        check(s3.take_merges() == [], "loading reports no merges")
+
+
+def test_loading_a_missing_file_is_not_an_error():
+    """A first run has no file — that is not a failure."""
+    print("\nno entities file yet")
+    import tempfile
+    from pathlib import Path as P
+    from entity_store import load_entities
+
+    with tempfile.TemporaryDirectory() as d:
+        s = EntityStore()
+        check(load_entities(s, P(d) / "nope.json") == 0,
+              "a missing file reads as zero entities")
+        check(len(s) == 0, "and leaves the store empty")
+
+
+def test_loading_merges_into_what_is_already_held():
+    """Loading must not duplicate entities the store already has."""
+    print("\nloading merges rather than duplicating")
+    import tempfile
+    from pathlib import Path as P
+    from entity_store import load_entities, save_entities
+
+    with tempfile.TemporaryDirectory() as d:
+        path = P(d) / "e.json"
+        s1 = EntityStore()
+        s1.resolve("cox-enzymes", "COX enzymes")
+        save_entities(s1, path)
+
+        s2 = EntityStore()
+        s2.resolve("cox-enzymes", "COX enzymes")      # already known
+        s2.resolve("aspirin", "Aspirin")
+        load_entities(s2, path)
+        check(len(s2) == 2, f"still two distinct entities (got {len(s2)})")
+
+
 def test_merges_are_reported():
     print("\nmerges are reported, not done silently")
     s = EntityStore()
@@ -214,6 +294,9 @@ if __name__ == "__main__":
               test_resolve_normalises_the_namespace,
               test_search_filters_like_the_kg_browser,
               test_short_words_match_at_a_word_boundary,
+              test_entities_persist_across_sessions,
+              test_loading_a_missing_file_is_not_an_error,
+              test_loading_merges_into_what_is_already_held,
               test_merges_are_reported,
               test_store_is_authoritative_in_a_session,
               test_seeds_are_deduplicated):
