@@ -22,3 +22,6 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# browser sessions: user reading data, not project content
+data/browser_sessions.json

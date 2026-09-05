@@ -56,3 +56,44 @@ print(optimal_normal_form(parse(r"(\x.x x) (\y.y)")))   # -> λy.(y)
 .venv/bin/python tests/test_sharing_graph.py    # reducer: rules + round-trip + oracle
 .venv/bin/python tests/test_lambda_parser.py    # parser
 ```
+
+## Reading browser (`reading_browser.py`)
+
+A terminal app in the shape of Claude Code: you put a query, the query is
+delegated to Claude Code (`claude -p`), and every choice you make is a **reading
+step** applied to `R = (G(t), Pr)` — the sharing graph of a lambda term without
+abstractions (`notes/reading_desc`, `notes/reading_alg`).
+
+```
+./run_reading_browser.sh              # or: python reading_browser.py
+python reading_browser.py --model opus
+```
+
+Entities here are **not** KG nodes: they are proposed freely from the query and
+become the **variables** of the term. Entities are reused across steps, and a
+reused entity is *one node* of the sharing graph.
+
+### The three interaction steps
+
+Each one is a reading step, and the app renders which is in play:
+
+| | when | reading step | effect |
+| --- | --- | --- | --- |
+| **A** | an entity can be understood several ways | contraction, **option 1** | `app(t1,t2)`; the reader **moves** to B |
+| **B** | a relation can be understood several ways | **reflection** | a sharing fan-in over `t`; the reading **forks**, `\|Pr\|` grows |
+| **C** | several ways this place was **reached** | contraction, **option 2** | `app(t1,t2)`; the reader **stays** at B |
+
+An option of kind A may also be an **already created reading** — a closed
+reading is what the user answers *with* (never what they ask *from*).
+
+When no interaction step remains at any pointer of the current reading, the
+driver closes it and opens a new reading from an entity that has none yet.
+
+`resume` (or Ctrl-C) saves the initial question and all its readings to
+`data/browser_sessions.json`; `term` shows the term and its pointer set.
+
+### Tests
+
+```
+.venv/bin/python tests/test_reading_session.py   # the three steps, against a stub delegate
+```
