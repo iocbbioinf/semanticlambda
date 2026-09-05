@@ -77,6 +77,10 @@ class Reading:
     # pids whose place the agent has declared exhausted, so the driver stops
     # re-asking there.
     exhausted: set[int] = field(default_factory=set)
+    # ont(G(t), P) — the models in which this reading is valid (§8). Maintained
+    # in step with every reading step; the reading itself is a member (§8.1b).
+    ontologies: list = field(default_factory=list)
+    ont_stats: dict = field(default_factory=dict)
 
     # ── access ────────────────────────────────────────────────────────────
 
@@ -177,6 +181,7 @@ class ReadingSession:
             r.pointer_entities[act.pid] = seed
         r.note_entity(seed)
         self.current = r
+        self.init_ontologies(r)
         return r
 
     def next_unread_seed(self) -> Optional[Entity]:
@@ -284,6 +289,9 @@ class ReadingSession:
                 reading.pointer_entities[act.pid] = opt.entity
         if opt.entity is not None:
             reading.note_entity(opt.entity)
+        if act is not None:
+            self._ont_after_contraction(reading, act.pid, option, a_iri, b_iri,
+                                        operand=operand, stayed=stayed)
 
         if option == 1:
             what = (f"reading «{opt.reading_name}»" if opt.reading_name
@@ -320,6 +328,8 @@ class ReadingSession:
             reading.pointer_entities[left.pid] = here
             reading.pointer_entities[right.pid] = here
             reading.exhausted.discard(act.pid)
+            self._ont_after_reflection(reading, act.pid, left.pid, right.pid,
+                                       ea.iri, eb.iri, _term_type(t))
         reading.note_entity(ea)
         reading.note_entity(eb)
 
@@ -361,6 +371,91 @@ class ReadingSession:
         return None
 
     # ── closing ───────────────────────────────────────────────────────────
+
+    # ── the ontology set  (reading_desc §8) ───────────────────────────────
+
+    def _ont_paths(self, reading: Reading) -> dict:
+        """The reading's pointer paths by pid — its mirror's correspondence."""
+        return {p.pid: p.path for p in reading.pointers.pointers}
+
+    @staticmethod
+    def _ont_type_at(term, path):
+        """Type at a position — §2's typing, as the ontology rules need it."""
+        return _term_type(subterm_at(term, path))
+
+    def init_ontologies(self, reading: Reading) -> None:
+        """Open the set for a fresh reading (§8.3)."""
+        import ontology_state as ont
+        act = reading.pointers.act()
+        if act is None:
+            return
+        root = reading.entities.get(reading.seed.iri, reading.seed.label)
+        reading.ontologies = ont.init_from_type(root, act.pid)
+
+    def _ont_after_contraction(self, reading: Reading, pid: int, option: int,
+                               a_iri, b_iri, operand=None, stayed=None,
+                               operand_onts=None) -> None:
+        """UPDATE then ENRICH, in step with the contraction (§8.6).
+
+        THE MIRROR IS PREPARED FIRST, and the order is part of the rule:
+          1 drop the old mirror; 2 add one equal to the reading AFTER this step;
+          3 point it at tb — in BOTH options, since §4.1 makes tb the B side
+            either way; 4 ENRICH that mirror, at that pointer; 5 run the ordinary
+            update over the whole set.
+
+        Step 3 before 4 is what makes the enrichment productive: §8.4 substitutes
+        at a pointed VARIABLE, and tb is one where the application just built is
+        not.
+        """
+        import ontology_state as ont
+
+        candidates = ont.strip_reading_ontology(reading.ontologies)
+        mirror = ont.reading_ontology(reading.term, self._ont_paths(reading))
+        mirror = ont.point_reading_mirror_at_tb([mirror], pid)[0]
+        candidates = candidates + ont.enrich([mirror])
+
+        # A contraction also PROPOSES models: for each saved abstraction of the
+        # type at the pointer, app(q, operand) — a rule-1 redex whose firing IS
+        # this contraction.
+        if operand is not None:
+            ppath = self._ont_paths(reading).get(pid, ())
+            if option == 2 and stayed is not None:
+                candidates = candidates + ont.candidates_for_option2(
+                    pid, ppath, a_iri, stayed)
+            else:
+                candidates = candidates + ont.candidates_for_contraction(
+                    pid, ppath, a_iri, b_iri, operand)
+
+        reading.ontologies, stats = ont.after_contraction(
+            candidates, pid, option, a_iri, b_iri, self._ont_type_at,
+            operand_onts)
+        reading.ontologies = ont.enrich(reading.ontologies)
+        reading.ontologies, dropped = ont.cap(reading.ontologies)
+        # §8.1b: the set is DEFINED to hold the reading, so restore the mirror
+        # if the update refuted it.
+        if not any(o.is_reading for o in reading.ontologies):
+            reading.ontologies = (ont.point_reading_mirror_at_tb([mirror], pid)
+                                  + reading.ontologies)
+        stats["dropped"] = dropped
+        stats["total"] = len(reading.ontologies)
+        reading.ont_stats = stats
+
+    def _ont_after_reflection(self, reading: Reading, pid: int, left_pid: int,
+                              right_pid: int, a_iri, b_iri, c_iri) -> None:
+        """UPDATE then ENRICH, in step with the reflection (§8.7)."""
+        import ontology_state as ont
+
+        candidates = ont.strip_reading_ontology(reading.ontologies)
+        reading.ontologies, stats = ont.after_reflection(
+            candidates, pid, left_pid, right_pid, a_iri, b_iri, c_iri,
+            self._ont_type_at)
+        reading.ontologies = ont.enrich(reading.ontologies)
+        reading.ontologies, dropped = ont.cap(reading.ontologies)
+        reading.ontologies = ont.sync_reading_ontology(
+            reading.ontologies, reading.term, self._ont_paths(reading))
+        stats["dropped"] = dropped
+        stats["total"] = len(reading.ontologies)
+        reading.ont_stats = stats
 
     # ── asking a question ─────────────────────────────────────────────────
 

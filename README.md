@@ -178,6 +178,32 @@ store (`data/lambda_terms.json`, via `term_utils.append_lambda_term`) — the on
 way material reaches enrichment — with an empty graph, since these entities are
 not KG nodes and so carry no claims.
 
+### Ontologies
+
+Every reading carries a **set of ontologies** (`notes/reading_desc` §8): the
+models in which it is valid — each one a hypothesis about what the user is doing.
+The set is maintained at every interaction step, shrinking by **refutation** and
+growing by **enrichment**, so the survivors are better approximations as the
+reading continues.
+
+Validity means **reduction replays the reading**: a contraction is rule 1 firing,
+a reflection is rule 4. The reading layer itself never reduces — only this one
+does. The reading is a member of its own set (§8.1b), qualifying trivially and
+never firing, so the set is never empty; a set holding *only* the reading means
+no available abstraction accounts for what the user is doing, which the app says
+rather than treats as an error.
+
+`o` lists the set; a number opens one ontology in **both forms**:
+
+| | |
+| --- | --- |
+| **original** | the graph as **proposed**, before any reduction — the only form that shows which questions the model claimed, since rule 1 *consumes* the abstraction it fires on |
+| **reduced** | what is left after the firings the reading approved |
+
+Ontologies are built from the **positive forms** of saved questions (`λa.t`), so
+the set is only non-trivially populated once questions exist to enrich with —
+which is what `a` creates.
+
 ### Contexts: choosing where you continue
 
 Reflection is the only step that grows `Pr`, and its two pointers are
@@ -202,4 +228,5 @@ driver closes it and opens a new reading from an entity that has none yet.
 .venv/bin/python tests/test_entity_store.py      # entity identity: what merges, what must not
 .venv/bin/python tests/test_ask_question.py      # questions as abstractions, and the store
 .venv/bin/python tests/test_incremental_select.py # the type-ahead picker, driven under a pty
+.venv/bin/python tests/test_ontologies.py        # the §8 layer: models, firing, both forms
 ```

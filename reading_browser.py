@@ -33,6 +33,9 @@ Commands:  1..n     take that reading — the interaction step
            p        switch context (offered once a reflection has split the
                     reading; the two contexts grow independently)
            s        skip this place
+           o        the ontology set — the models in which this reading is
+                    valid; a number opens one in BOTH forms, original (as
+                    proposed) and reduced (after the firings)
            t        show the reading — term, tree, pointers, steps  (--verbose)
            e        the entity store — uses and aliases              (--verbose)
            resume   save the question and all its readings, and stop
@@ -134,10 +137,10 @@ def banner(mock: bool) -> None:
         print(dim("  backend: ") + green("claude -p") +
               dim("  — the query is delegated to Claude Code"))
     print(dim("  every choice you make is a reading step"))
-    cmds = ("  at each step: a ask · p switch context · s skip · t reading · "
-            "e entities · resume · quit") if VERBOSE else (
-            "  at each step: a ask a question · p switch context · s skip · "
-            "resume · quit")
+    cmds = ("  at each step: a ask · o ontologies · p switch context · "
+            "s skip · t reading · e entities · resume · quit") if VERBOSE else (
+            "  at each step: a ask a question · o ontologies · "
+            "p switch context · s skip · resume · quit")
     print(dim(cmds))
     print()
 
@@ -395,6 +398,97 @@ def ask_yes_no(question: str, default: bool = False) -> bool:
     if not raw:
         return default
     return raw[0] == "y"
+
+
+def show_ontologies(reading: Reading, session) -> None:
+    """The ontology set — the models in which this reading is valid (§8).
+
+    An ontology is a hypothesis about what the user is doing; the set is every
+    hypothesis still consistent with the reading. It shrinks by REFUTATION and
+    grows by ENRICHMENT, so as reading continues the survivors are better
+    approximations.
+    """
+    onts = list(reading.ontologies)
+    print()
+    print("  " + _rule())
+    print(f"  {bold('ontologies')}   {dim(f'{len(onts)} in the set')}")
+    print("  " + _rule())
+    if not onts:
+        print(dim("    none"))
+        return
+
+    for i, o in enumerate(onts, 1):
+        if o.is_reading:
+            # §8.1b: the reading is a member of its own set. It qualifies
+            # trivially and never fires — the degenerate model.
+            head = f"{dim('the reading itself')}  {dim('— never fires')}"
+        else:
+            fired = (green(f"fired ×{o.fired}") if o.fired
+                     else dim("silent so far"))
+            head = f"{bold('a model')}  {fired}"
+        print(f"    {orange(str(i))}  {head}")
+        print(f"        {green(str(o.term)[:66])}")
+    print()
+    # Only the reading left means no available material accounts for what the
+    # user is doing — meaningful, not an error (§8.8).
+    if all(o.is_reading for o in onts):
+        print("  " + dim("only the reading remains — no abstraction "
+                         "available accounts for it"))
+    st = reading.ont_stats
+    if st and VERBOSE:
+        print(f"  {dim('last step:')} " + dim(" · ".join(
+            f"{k} {v}" for k, v in st.items() if v)))
+    print(dim("    a number for the detail · enter to go back"))
+
+    try:
+        raw = input(f"\n  {orange('❯')} ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return
+    if raw.isdigit() and 1 <= int(raw) <= len(onts):
+        show_ontology_detail(onts[int(raw) - 1], reading)
+
+
+def show_ontology_detail(o, reading: Reading) -> None:
+    """One ontology, in BOTH forms — as proposed and as reduced.
+
+    The two differ because an ontology is a HYPOTHESIS and `term` is that
+    hypothesis after the reading has consumed part of it:
+
+      ORIGINAL  the graph as PROPOSED, with every enrichment substitution in
+                place but nothing reduced. Only this shows which questions the
+                model actually claimed — rule 1 CONSUMES the abstraction it
+                fires on, so the reduced term has lost it.
+      REDUCED   what is left after the firings the reading approved. Reduction
+                replays the reading: contraction is R1, reflection is R4.
+    """
+    print()
+    print("  " + _rule())
+    kind = ("the reading itself" if o.is_reading else "a model of this reading")
+    print(f"  {bold('ontology')}   {dim(kind)}")
+    print("  " + _rule())
+
+    print(f"  {bold('original')}  {dim('— as proposed, before any reduction')}")
+    print(f"    {green(str(o.origin_term))}")
+    print()
+    print(f"  {bold('reduced')}   {dim('— after the firings the reading approved')}")
+    print(f"    {green(str(o.term))}")
+    if not o.is_reduced:
+        print(f"    {dim('(nothing has fired here, so the two are the same)')}")
+
+    print()
+    print(f"  {dim('fired')}     {o.fired}  "
+          f"{dim('— how often this model’s hypotheses paid off')}")
+    if o.pointers:
+        print(f"  {dim('pointers')}  " + dim(", ".join(
+            f"p{pid}→{path if path else '()'}"
+            for pid, path in sorted(o.pointers.items()))))
+        print(f"  {dim('          (they correspond elementwise to the reading’s)')}")
+    print()
+    try:
+        input(f"  {dim('enter to go back')} ")
+    except (EOFError, KeyboardInterrupt):
+        print()
 
 
 def _stored_questions() -> dict:
@@ -786,6 +880,7 @@ class Browser:
                 show_step_header(prop.kind, reading, uniq)
                 report_merges(s)
                 extra = {"a": "ask a question", "s": "skip this place"}
+                extra["o"] = "ontologies"
                 if VERBOSE:
                     extra["t"] = "show the reading"
                     extra["e"] = "entities"
@@ -803,6 +898,9 @@ class Browser:
                     continue
                 if picked == "e":
                     show_entities(s, reading)
+                    continue
+                if picked == "o":
+                    show_ontologies(reading, s)
                     continue
                 if picked == "a":
                     # Asking CLOSES this reading and opens one standing in the
