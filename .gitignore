@@ -23,5 +23,11 @@ env/
 .DS_Store
 Thumbs.db
 
-# browser sessions: user reading data, not project content
+# USER DATA — what a user read, asked and named, not project content.
+# The RDF/TTL files in data/ stay tracked: those are the source knowledge graph.
+# closed readings, with their ontology sets
+data/readings.json
+# questions (abstractions) — the question store
+data/lambda_terms.json
+# browser sessions: a query and the readings built under it
 data/browser_sessions.json
