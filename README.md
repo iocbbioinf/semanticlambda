@@ -143,6 +143,41 @@ Merges are reported as they happen (`↺ “the COX enzymes” is COX enzymes`),
 `e` shows the store: each entity, how often it has been reached, its aliases, and
 which are in the reading being built.
 
+### Asking a question
+
+At every step `a` asks a question: you write the text, then choose the entity it
+is about. A question is an **abstraction** `λa.t` (`notes/reading_desc` §2) — the
+reading built so far is the **body**, the chosen entity the **binder** — and it
+names a **subtype** of that entity's type, so the questions of an entity form a
+tree under it with the entity itself as the most general question.
+
+You commit the question text first; then a **type-ahead picker** opens, working
+as the KG browser's search box did (`incremental_select.py`): the list below
+redraws on **every keystroke**, `↑`/`↓` move the highlight, Enter selects, Esc
+cancels. Words match independently, so more words narrow rather than exclude.
+
+What it lists is entities **and questions already asked** — a question names a
+subtype of its entity's type, so asking a further question of one is what makes
+questions form a tree; those rows are marked `?`. Entities already in the reading
+come first and are marked, since asking about one of them needs no contraction.
+Aliases are searched too, so an entity is reachable by any name it was proposed
+under.
+
+When stdin is not a terminal (a pipe, a scripted test) the picker falls back to
+a plain type-then-number prompt. One that is not yet in the reading
+is **contracted in first**, because `term_utils.check_question` refuses an
+abstraction whose bound variable does not occur free: the question would be about
+nothing, and since `[G(λa.t)] == [a]` enrichment would offer it as a candidate of
+a type it can never place. That is exactly how §2 describes building a question —
+read the body, contract the asked material in, then bind that occurrence.
+
+Asking closes the reading that became the body and opens a new one **standing in
+the question**, whose seed carries the minted subtype iri and renders the
+question's title. On `resume` the questions are written to the shared question
+store (`data/lambda_terms.json`, via `term_utils.append_lambda_term`) — the only
+way material reaches enrichment — with an empty graph, since these entities are
+not KG nodes and so carry no claims.
+
 ### Contexts: choosing where you continue
 
 Reflection is the only step that grows `Pr`, and its two pointers are
@@ -165,4 +200,6 @@ driver closes it and opens a new reading from an entity that has none yet.
 ```
 .venv/bin/python tests/test_reading_session.py   # the three steps, against a stub delegate
 .venv/bin/python tests/test_entity_store.py      # entity identity: what merges, what must not
+.venv/bin/python tests/test_ask_question.py      # questions as abstractions, and the store
+.venv/bin/python tests/test_incremental_select.py # the type-ahead picker, driven under a pty
 ```

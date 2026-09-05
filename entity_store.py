@@ -62,6 +62,46 @@ def match_key(text: str) -> str:
     return "-".join(_singular(w) for w in kept)
 
 
+def search_score(text: str, query: str) -> float:
+    """How well `text` answers `query` — 0 for no match.
+
+    The scoring the old KG browser used (`kg_store.search_nodes`): split the
+    query into words and count how many occur in the text, so typing more words
+    narrows rather than excludes. Two additions that matter when the candidates
+    are short entity labels rather than KG nodes:
+
+      a PREFIX hit outranks a hit in the middle, so typing "cox" puts
+      "COX enzymes" above "reduced COX activity";
+      an EXACT label wins outright.
+    """
+    words = [w for w in query.lower().split() if w]
+    if not words:
+        return 0.0
+    hay = text.lower()
+    parts = hay.replace("-", " ").split()
+
+    def hit(w: str) -> bool:
+        # A SHORT word must match at a word boundary. Free substring matching is
+        # right for long words ("infl" -> "inflammation") but on short entity
+        # labels it is mostly noise: "as" would otherwise hit "case", so typing
+        # "aspirin as" would list every entity containing "case".
+        if len(w) <= 3:
+            return any(p == w or p.startswith(w) for p in parts)
+        return w in hay
+
+    hits = sum(1 for w in words if hit(w))
+    if hits == 0:
+        return 0.0
+    score = float(hits)
+    if hay == query.lower().strip():
+        score += 10.0
+    elif hay.startswith(words[0]):
+        score += 2.0
+    elif any(part.startswith(words[0]) for part in hay.split()):
+        score += 1.0
+    return score
+
+
 @dataclass
 class StoredEntity:
     """One entity, with every name it has been proposed under."""
@@ -145,6 +185,25 @@ class EntityStore:
                 seen.add(id(e))
                 out.append(e)
         return sorted(out, key=lambda e: (-e.uses, e.label.lower()))
+
+    def search(self, query: str, limit: int = 12) -> list[StoredEntity]:
+        """Entities matching `query`, best first — the type-to-filter lookup.
+
+        Aliases are searched too, so an entity found under one name is reachable
+        by another it was proposed under.
+        """
+        if not query.strip():
+            return self.all()[:limit]
+        scored = []
+        for e in self.all():
+            best = max([search_score(e.label, query)]
+                       + [search_score(a, query) for a in e.aliases]
+                       + [search_score(e.iri.split(":", 1)[-1].replace("-", " "),
+                                       query)])
+            if best > 0:
+                scored.append((best, e))
+        scored.sort(key=lambda x: (-x[0], x[1].label.lower()))
+        return [e for _s, e in scored[:limit]]
 
     def __len__(self) -> int:
         return len(self.all())

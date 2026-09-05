@@ -97,6 +97,54 @@ def test_resolve_normalises_the_namespace():
     check(a.iri == "local:aspirin", "and the iri is namespaced exactly once")
 
 
+def test_search_filters_like_the_kg_browser():
+    """Type-to-filter, scored as `kg_store.search_nodes` did.
+
+    Words are matched independently, so more words NARROW rather than exclude,
+    and a prefix hit outranks one in the middle.
+    """
+    print("\nsearch — typing filters the entities")
+    s = EntityStore()
+    for lab in ["Aspirin", "Aspirin resistance", "COX enzymes", "COX-1",
+                "COX-2", "reduced COX activity", "Inflammation"]:
+        s.resolve(slugify(lab), lab)
+
+    check([e.label for e in s.search("cox")][0] == "COX enzymes",
+          "a prefix hit ranks above one in the middle")
+    check("reduced COX activity" in [e.label for e in s.search("cox")],
+          "but the middle hit is still offered")
+    check([e.label for e in s.search("cox 1")][0] == "COX-1",
+          "a second word promotes the entity carrying both")
+    check([e.label for e in s.search("infl")] == ["Inflammation"],
+          "a long prefix matches inside a word")
+    check(s.search("zzz") == [], "no match yields nothing")
+    check(len(s.search("")) == len(s), "an empty query lists everything")
+
+    # An exact label must win outright, even against longer names containing it.
+    check(s.search("aspirin")[0].label == "Aspirin",
+          "an exact label wins over one that merely contains it")
+
+    # Aliases are searchable: an entity found under one name stays reachable by
+    # another it was proposed under.
+    s.resolve("aspirin", "ASA")
+    check(s.search("ASA")[0].label == "Aspirin", "aliases are searched too")
+
+
+def test_short_words_match_at_a_word_boundary():
+    """Free substring matching is noise on short labels — "as" would hit "case"."""
+    print("\nshort query words match at a word boundary")
+    s = EntityStore()
+    for lab in ["aspirin", "aspirin as a whole", "the underlying case"]:
+        s.resolve(slugify(lab), lab)
+
+    found = [e.label for e in s.search("aspirin as")]
+    check("the underlying case" not in found,
+          "“as” does not drag in every entity containing “case”")
+    check("aspirin as a whole" in found, "while the real matches remain")
+    check([e.label for e in s.search("act")] == [],
+          "a short word that starts no word matches nothing")
+
+
 def test_merges_are_reported():
     print("\nmerges are reported, not done silently")
     s = EntityStore()
@@ -164,6 +212,8 @@ if __name__ == "__main__":
               test_plural_rules_are_timid,
               test_articles_dropped_but_not_the_whole_name,
               test_resolve_normalises_the_namespace,
+              test_search_filters_like_the_kg_browser,
+              test_short_words_match_at_a_word_boundary,
               test_merges_are_reported,
               test_store_is_authoritative_in_a_session,
               test_seeds_are_deduplicated):

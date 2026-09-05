@@ -27,6 +27,9 @@ Options:   --verbose, -v     show the calculus: the term as it grows, the
            --seed N          vary the mock (default: derived from the query)
 
 Commands:  1..n     take that reading — the interaction step
+           a        ask a question — write it, choose the entity it is about;
+                    the question is saved as `lam a.t` and a new reading starts
+                    standing in it
            p        switch context (offered once a reflection has split the
                     reading; the two contexts grow independently)
            s        skip this place
@@ -131,9 +134,10 @@ def banner(mock: bool) -> None:
         print(dim("  backend: ") + green("claude -p") +
               dim("  — the query is delegated to Claude Code"))
     print(dim("  every choice you make is a reading step"))
-    cmds = ("  at each step: p switch context · s skip · t reading · "
+    cmds = ("  at each step: a ask · p switch context · s skip · t reading · "
             "e entities · resume · quit") if VERBOSE else (
-            "  at each step: p switch context · s skip · resume · quit")
+            "  at each step: a ask a question · p switch context · s skip · "
+            "resume · quit")
     print(dim(cmds))
     print()
 
@@ -393,6 +397,146 @@ def ask_yes_no(question: str, default: bool = False) -> bool:
     return raw[0] == "y"
 
 
+def _stored_questions() -> dict:
+    """Every question in the shared store, as qid -> title.
+
+    Read once per process: the store holds hundreds, and re-reading it on every
+    keystroke of the picker would make typing crawl.
+    """
+    global _STORED_Q
+    if _STORED_Q is None:
+        try:
+            from term_utils import qid_titles
+            _STORED_Q = dict(qid_titles())
+        except Exception:
+            _STORED_Q = {}
+    return _STORED_Q
+
+
+_STORED_Q = None
+
+
+def pick_entity(reading: Reading, session, prompt: str):
+    """Choose an entity by TYPING to filter, as the KG browser's search box did.
+
+    Type any text to narrow the list (words are matched independently, so more
+    words narrow rather than exclude); type a number to take that entity. The
+    entities of the current reading are shown first and marked, since asking
+    about one of them needs no contraction.
+
+    Returns the chosen `Entity`, or None if cancelled.
+    """
+    from incremental_select import select
+
+    here_iris = {e.iri for e in reading.used}
+    # Questions already asked are offered alongside entities: a question names a
+    # SUBTYPE of its entity's type (reading_desc §2), so it is a legitimate thing
+    # to ask a further question of — that is what makes questions form a tree.
+    #
+    # BOTH this session's and the STORE's. The store is where every question ever
+    # asked lives — this app's and the KG browser's alike — so a reading can be
+    # built on a question asked long before, which is the point of keeping them.
+    asked_before = [Entity(iri=q.qid, label=q.title,
+                           gloss=f"a question asked of {q.asked.short()}")
+                    for q in session.questions]
+    seen_q = {q.iri for q in asked_before}
+    for qid, title in _stored_questions().items():
+        if qid not in seen_q:
+            asked_before.append(Entity(iri=qid, label=title,
+                                       gloss="a question in the store"))
+
+    # This session's own material, in the order the user is likeliest to want it.
+    session_pool = list(reading.used)
+    session_pool += [Entity(iri=e.iri, label=e.label, gloss=e.gloss)
+                     for e in session.entities.all() if e.iri not in here_iris]
+    session_qids = {q.qid for q in session.questions}
+    session_pool += [q for q in asked_before if q.iri in session_qids]
+
+    def ranked(query: str) -> list[Entity]:
+        if not query:
+            # UNFILTERED, show only what this session is made of. The store holds
+            # hundreds of questions from earlier work; listing them all would
+            # bury the entity the user is almost certainly after. They are one
+            # keystroke away.
+            return sorted(session_pool,
+                          key=lambda e: e.iri not in here_iris)[:8]
+
+        from entity_store import search_score
+        seen, pool = set(), []
+        for e in session_pool + asked_before:
+            if e.iri not in seen:
+                seen.add(e.iri)
+                pool.append(e)
+        scored = [(max(search_score(e.label, query),
+                       search_score(e.iri.split(":", 1)[-1].replace("-", " "),
+                                    query)), e)
+                  for e in pool]
+        hits = [(sc, e) for sc, e in scored if sc > 0]
+        # Session material outranks the store at equal score: it is what the
+        # user has in hand.
+        in_session = {e.iri for e in session_pool}
+        hits.sort(key=lambda x: (-x[0], x[1].iri not in in_session,
+                                 x[1].label.lower()))
+        return [e for _sc, e in hits][:8]
+
+    def render(e: Entity, selected: bool) -> str:
+        from question_tree import is_question_type
+        mark = orange("▸ ") if selected else "  "
+        label = e.short()
+        # Stored titles can be long; keep a row to one line.
+        if len(label) > 56:
+            label = label[:55] + "…"
+        name = bold(label) if selected else label
+        tag = ""
+        if is_question_type(e.iri):
+            # A question, not a plain entity (§2). Say which are already in hand
+            # and which come from the store, since only the latter were asked in
+            # some earlier session.
+            tag = mauve("  ?") + (dim(" stored") if e.iri not in session_qids
+                                  else dim(" asked here"))
+        elif e.iri in here_iris:
+            tag = dim("  (in this reading)")
+        return f"{mark}{name}{tag}"
+
+    return select(prompt, ranked, render,
+                  empty_note=dim("nothing matches"))
+
+
+def ask_a_question(reading: Reading, session) -> bool:
+    """Ask a question of an entity: write the text, then choose what it is about.
+
+    A question is an ABSTRACTION `lam a.t` (reading_desc §2) — the reading built
+    so far as the body, the chosen entity as the binder. It names a SUBTYPE of
+    that entity's type, and the new reading starts standing IN the question.
+
+    The entity may be any the session knows, not only those in this reading; one
+    that is not yet in the body is contracted in first, since a question whose
+    bound variable does not occur free would be "about nothing".
+    """
+    print()
+    try:
+        title = input(f"  {bold('your question')} {dim('(blank to cancel)')}\n"
+                      f"  {orange('❯')} ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+    if not title:
+        return False
+
+    asked = pick_entity(reading, session, "what is the question about?")
+    if asked is None:
+        return False
+    qid, _ = session.ask_question(reading, title, asked)
+    print()
+    print(f"  {green('✓')} asked {bold(title)} {dim('of')} {bold(asked.short())}")
+    if VERBOSE:
+        q = session.questions[-1]
+        print(f"    {dim('abstraction:')} {green(str(q.term))}")
+        print(f"    {dim('names subtype:')} {dim(_short(qid))}")
+    print(f"  {green('◆')} reading on from {bold(title)}")
+    return True
+
+
 def _pointer_line(reading: Reading, p, act) -> str:
     """One pointer, described as a place the user could stand.
 
@@ -641,7 +785,7 @@ class Browser:
             while choice is None:
                 show_step_header(prop.kind, reading, uniq)
                 report_merges(s)
-                extra = {"s": "skip this place"}
+                extra = {"a": "ask a question", "s": "skip this place"}
                 if VERBOSE:
                     extra["t"] = "show the reading"
                     extra["e"] = "entities"
@@ -660,6 +804,13 @@ class Browser:
                 if picked == "e":
                     show_entities(s, reading)
                     continue
+                if picked == "a":
+                    # Asking CLOSES this reading and opens one standing in the
+                    # question, so the loop must pick the new reading up.
+                    if ask_a_question(reading, s):
+                        choice = "asked"
+                        break
+                    continue
                 if picked == "p":
                     # Moving re-points the reading; the options on screen belong
                     # to where the user WAS, so go back for a fresh proposal.
@@ -669,6 +820,10 @@ class Browser:
                     continue
                 choice = picked
 
+            if choice == "asked":
+                reading = s.current
+                show_term(reading)
+                continue
             if choice == "moved":
                 continue
 
@@ -725,6 +880,18 @@ class Browser:
             return
         from reading_store import save_session
         path = save_session(s)
+
+        # Questions go to the SHARED question store, which is where enrichment
+        # draws its candidates from — not into the session file.
+        if s.questions:
+            n, failed = s.save_questions()
+            print()
+            print(f"  {green('✓')} saved {bold(str(n))} question(s) to the "
+                  f"question store")
+            for q in s.questions:
+                print(f"      {dim('·')} {q.title}  {dim('of')} {q.asked.short()}")
+            for why in failed:
+                print(f"      {red('✗')} {dim(why)}")
         print()
         print(f"  {green('✓')} saved {bold(str(len(s.closed)))} reading(s) for "
               f"{bold(s.query)}")

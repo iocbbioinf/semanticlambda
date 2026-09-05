@@ -14,8 +14,7 @@ THE THREE INTERACTION STEPS ARE THE READING STEPS.
     B  a relation understood several ways  -> REFLECTION
        G(t) |-> a sharing fan-in over t; actPtr is replaced by TWO pointers on
        the aux-port edges, cast to A and B. This SPLITS the reading into two
-       contexts, and
-       the only step that grows |Pr|.
+       contexts, and is the only step that grows |Pr|.
 
     C  how this place was reached          -> CONTRACTION, option 2
        actPtr at t2 [B], operand t1 [A]; app(t1, t2); the reader STAYS at B and
@@ -45,6 +44,22 @@ class ClosedReading:
     term: LamTerm
     seed: Entity
     steps: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Question:
+    """A question the user asked — an abstraction, reading_desc §2.
+
+    `term` is `lam a.t`: the reading built so far as the body, the asked entity
+    as the binder. `qid` is the SUBTYPE it names, minted from (asked, term,
+    title) so that a different title is a different question even over the same
+    body (§2).
+    """
+    title: str
+    term: LamTerm
+    asked: Entity
+    qid: str
+    query: str = ""
 
 
 @dataclass
@@ -108,6 +123,7 @@ class ReadingSession:
         # name would otherwise become a separate variable, losing the sharing
         # that makes a reused entity ONE node (§1).
         self.entities = EntityStore()
+        self.questions: list[Question] = []
 
     # ── the entity store ──────────────────────────────────────────────────
 
@@ -346,6 +362,90 @@ class ReadingSession:
 
     # ── closing ───────────────────────────────────────────────────────────
 
+    # ── asking a question ─────────────────────────────────────────────────
+
+    def ask_question(self, reading: Reading, title: str,
+                     asked: Entity) -> tuple[str, Reading]:
+        """Ask `title` of `asked`: save the question, then read on from it.
+
+        A QUESTION IS AN ABSTRACTION (reading_desc §2): `lam a.t`, where `t` is
+        the reading built so far and `a` the entity being asked about. It names a
+        SUBTYPE of that entity's type, and the questions of an entity form a tree
+        under it — the entity itself being the most general question of its type.
+
+        THE ASKED ENTITY MUST OCCUR IN THE BODY. `term_utils.check_question`
+        refuses an abstraction whose bound variable does not occur free: the
+        question would claim to be about an entity its graph never mentions, and
+        since [G(lam a.t)] == [a] enrichment would then offer it as a candidate of
+        that type although reducing it can never place the entity. So an entity
+        that is not yet in the reading is CONTRACTED IN first — which is exactly
+        how §2 describes building a question's body: read the body, contract the
+        asked material in, then bind that occurrence.
+
+        The new reading starts AT THE QUESTION: its seed carries the minted
+        subtype iri, so the reader is standing in the question rather than back at
+        the plain entity (§2, "how a subtype variable renders").
+        """
+        from optimal_lambda import LamAbs
+        from question_tree import mint_qid
+
+        # A QUESTION SUBTYPE IS ALREADY AN IDENTITY and must not go through the
+        # entity store: `canon` would slugify its qid into a fresh `local:` id,
+        # which destroys the subtype the question names and points the parent
+        # link at an entity that does not exist. Only plain entities are merged.
+        from question_tree import is_question_type
+        if not is_question_type(asked.iri):
+            asked = self.canon(asked)
+
+        # (1) make sure the asked entity is IN the body — see the docstring.
+        if not _occurs(reading.term, asked.iri):
+            self._contract(reading, Option(kind="A", label=asked.label,
+                                           entity=asked), option=1)
+
+        var = reading.entities.get(asked.iri, asked.label)
+        term = LamAbs(var=var, qid=None, body=reading.term)
+
+        # (2) the subtype this question names. Derived from (parent, term,
+        # title), so it is stable and a different TITLE is a different question
+        # even over the same body and the same asked entity (§2).
+        qid = mint_qid(str(term), asked.iri, title)
+        self.questions.append(Question(title=title, term=term, asked=asked,
+                                       qid=qid, query=self.query))
+
+        # (3) close what was being read — the question's body is finished work —
+        # and open a new reading standing IN the question.
+        self.close_current()
+        seed = Entity(iri=qid, label=title, gloss=f"a question asked of "
+                                                 f"{asked.label}")
+        return qid, self.open_reading(seed)
+
+    def save_questions(self) -> tuple[int, list[str]]:
+        """Persist the session's questions to the shared question store.
+
+        Goes through `term_utils.append_lambda_term`, which is the ONLY way
+        material enters that store — enrichment draws its candidates from exactly
+        there, so everything in it must be a question a user actually asked.
+
+        The graph passed is EMPTY: these entities are not KG nodes, so there are
+        no claims to collect. That is a real absence, not a lookup failure.
+        """
+        import rdflib
+        from term_utils import append_lambda_term
+
+        g = rdflib.Graph()
+        saved, failed = 0, []
+        for q in self.questions:
+            try:
+                append_lambda_term(q.title, q.term, g, parent=q.asked.iri,
+                                   origin="reading-browser")
+                saved += 1
+            except ValueError as e:
+                failed.append(str(e))
+        if saved:
+            # AFTER the writes, so what the picker reads next includes them.
+            _invalidate_question_cache()
+        return saved, failed
+
     def close_current(self, name: Optional[str] = None) -> Optional[ClosedReading]:
         """SAVE (reading_alg §3.3): total, and collapses the pointer set."""
         r = self.current
@@ -356,6 +456,40 @@ class ReadingSession:
         self.closed.append(cr)
         self.current = None
         return cr
+
+
+def _invalidate_question_cache() -> None:
+    """Drop the caches over the question store, so a write is visible at once.
+
+    `term_utils` memoises its title lookups and the picker memoises the store's
+    questions; both would otherwise keep showing what was there before the save.
+    """
+    try:
+        from term_utils import abstraction_titles, qid_titles
+        qid_titles(refresh=True)
+        abstraction_titles(refresh=True)
+    except Exception:
+        pass
+    try:
+        import reading_browser
+        reading_browser._STORED_Q = None
+    except Exception:
+        pass
+
+
+def _occurs(t: LamTerm, iri: str) -> bool:
+    """Does `iri` occur anywhere in `t`? — the body test of §2."""
+    from optimal_lambda import LamAbs, LamVar
+
+    if isinstance(t, LamVar):
+        return t.iri == iri
+    if isinstance(t, LamApp):
+        return _occurs(t.func, iri) or _occurs(t.arg, iri)
+    if isinstance(t, LamFan):
+        return _occurs(t.branch(0), iri) or _occurs(t.branch(1), iri)
+    if isinstance(t, LamAbs):
+        return _occurs(t.body, iri)
+    return False
 
 
 def _copy_term(t: LamTerm, reg: EntityRegistry) -> LamTerm:
