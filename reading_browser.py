@@ -3,18 +3,36 @@
     $ python reading_browser.py
     > how does aspirin reduce inflammation
 
-The user puts a query; the app delegates it to Claude Code (`reading_agent`),
-which proposes the entities and the options. Every choice the user makes is a
-READING STEP applied to R = (G(t), Pr) — see `reading_session` for the mapping of
-the three interaction kinds onto contraction (options 1 and 2) and reflection.
+The user puts a query; a DELEGATE proposes the entities and the options. Every
+choice the user makes is a READING STEP applied to R = (G(t), Pr) — see
+`reading_session` for the mapping of the three interaction kinds onto contraction
+(options 1 and 2) and reflection.
+
+Two delegates, same interface:
+
+    reading_mock.MockAgent   THE DEFAULT — no Claude call, no cost, no CLI
+                             needed. Nonsense as knowledge, well formed as
+                             readings, and it reaches all three step kinds.
+    reading_agent.ReadingAgent   `claude -p`, with `--claude`.
 
 Rendering is deliberately Claude-Code-shaped: a prompt line, streamed status
 lines while the delegate is working, boxed option lists, and a running view of
 the reading being built.
 
-Commands:  resume   save the question and all its readings, and stop
-           term     show the current term and its pointer set
-           readings list what has been saved so far
+Options:   --verbose, -v     show the calculus: the term as it grows, the
+                             pointer set, which reading step each choice makes,
+                             and the `t` view of the whole reading
+           --claude          delegate to Claude Code instead of the mock
+           --model NAME      model for --claude (default: sonnet)
+           --seed N          vary the mock (default: derived from the query)
+
+Commands:  1..n     take that reading — the interaction step
+           p        switch context (offered once a reflection has split the
+                    reading; the two contexts grow independently)
+           s        skip this place
+           t        show the reading — term, tree, pointers, steps  (--verbose)
+           e        the entity store — uses and aliases              (--verbose)
+           resume   save the question and all its readings, and stop
            quit     leave without saving
 """
 
@@ -27,12 +45,19 @@ import time
 from typing import Optional
 
 from reading_agent import AgentError, Entity, ReadingAgent
+from reading_mock import MockAgent
 from reading_session import Reading, ReadingSession
 from term_utils import _term_type
 
 # ── styling ───────────────────────────────────────────────────────────────────
 
 _TTY = sys.stdout.isatty()
+
+# --verbose shows the CALCULUS behind the interaction: the term as it grows, the
+# pointer set, which reading step each choice performs, and the `t` view of the
+# whole reading. Without it the app shows only what the user is choosing between
+# — the reading is still built exactly the same way, just not narrated.
+VERBOSE = False
 
 
 def _c(code: str, s: str) -> str:
@@ -95,18 +120,28 @@ class Spinner:
 
 # ── rendering ─────────────────────────────────────────────────────────────────
 
-def banner() -> None:
+def banner(mock: bool) -> None:
     print()
     print(f"  {orange('◆')} {bold('reading browser')}  "
           f"{dim('— a query, read as a term')}")
-    print(dim("  the query is delegated to Claude Code; every choice you make "
-              "is a reading step"))
-    print(dim("  commands: resume · term · readings · quit"))
+    if mock:
+        print(dim("  backend: ") + mauve("mock") +
+              dim("  — no Claude call, no cost; --claude to delegate for real"))
+    else:
+        print(dim("  backend: ") + green("claude -p") +
+              dim("  — the query is delegated to Claude Code"))
+    print(dim("  every choice you make is a reading step"))
+    cmds = ("  at each step: p switch context · s skip · t reading · "
+            "e entities · resume · quit") if VERBOSE else (
+            "  at each step: p switch context · s skip · resume · quit")
+    print(dim(cmds))
     print()
 
 
 def show_term(reading: Reading) -> None:
-    """The reading as it stands: term, pointer set, entities."""
+    """The reading as it stands: term, pointer set, entities. VERBOSE only."""
+    if not VERBOSE:
+        return
     print()
     print(f"  {dim('reading')} {bold(reading.seed.short())}")
     print(f"  {dim('term')}     {green(str(reading.term))}")
@@ -129,9 +164,323 @@ def show_term(reading: Reading) -> None:
     print()
 
 
+def _rule(width: int = 74) -> str:
+    return dim("─" * width)
+
+
+def _plain_step(line: str) -> str:
+    """A step line with the calculus stripped out.
+
+    The stored line carries both what the user did and how it was built —
+    "[A] contraction opt.1 — moved → X  [a asks, b answers]". Without --verbose
+    only the first half is shown; the reading is built identically either way.
+    """
+    text = line
+    if text.startswith("[") and "] " in text:
+        text = text.split("] ", 1)[1]
+    # the trailing bracket is the type/pointer annotation
+    if "  [" in text and text.rstrip().endswith("]"):
+        text = text[:text.rindex("  [")]
+    for noise in ("contraction opt.1 — ", "contraction opt.2 — ",
+                  "reflection — "):
+        text = text.replace(noise, "")
+    return text.strip()
+
+
+def render_reading(reading: Reading, lines: list[str]) -> None:
+    """The reading drawn as a tree, one node per line.
+
+    An application is drawn as its two children under a `·` node; a sharing
+    fan-in as `▽` with its two OCCURRENCES beneath it — both descending to the
+    one shared subject, which is drawn once and marked where it is reached again
+    (reading_desc §4.2: "occurs twice in the term but exists once in the graph").
+    """
+    from optimal_lambda import LamApp, LamVar
+    from reading_state import LamFan
+
+    act = reading.act_pointer()
+    by_path = {}
+    for p in reading.pointers.pointers:
+        by_path.setdefault(tuple(p.path), []).append(p)
+
+    def marks(path: tuple) -> str:
+        out = []
+        for p in by_path.get(path, []):
+            tag = f"p{p.pid}"
+            if p.cast_type:
+                tag += f"·{_short(p.cast_type)}"
+            out.append(bold(orange(f"◀ {tag}")) if act and p.pid == act.pid
+                       else dim(f"◀ {tag}"))
+        return "  " + " ".join(out) if out else ""
+
+    seen: dict[int, str] = {}
+
+    def walk(t, path: tuple, prefix: str, branch: str, under_fan: bool = False) -> None:
+        here = prefix + branch
+        # A subject reached a second time is the SAME node — say so rather than
+        # drawing it twice, which would misrepresent the sharing.
+        #
+        # A bare VARIABLE is the one case to draw again: an entity reused across
+        # steps is one node, but it reads as the entity itself wherever it turns
+        # up, and collapsing it to "shared with…" hides which entity is there.
+        # Under a FAN-IN that reasoning does not apply — both branches ARE the
+        # one subject, which is the whole content of the reflection — so there
+        # the second occurrence is always marked.
+        if id(t) in seen and (under_fan or not isinstance(t, LamVar)):
+            what = seen[id(t)]
+            lines.append(f"{here}{dim('↺ shared — ' + what)}{marks(path)}")
+            return
+        child_prefix = prefix + ("   " if branch.startswith("└") else
+                                 "│  " if branch else "")
+        if isinstance(t, LamApp):
+            seen[id(t)] = "the application above"
+            lines.append(f"{here}{dim('·')}{marks(path)}")
+            walk(t.func, path + (0,), child_prefix, "├─ ")
+            walk(t.arg, path + (1,), child_prefix, "└─ ")
+        elif isinstance(t, LamFan):
+            seen[id(t)] = "the fan above"
+            casts = []
+            if t.grey_cast:
+                casts.append(f"grey ▸ {_short(t.grey_cast)}")
+            if t.black_cast:
+                casts.append(f"black ▸ {_short(t.black_cast)}")
+            lines.append(f"{here}{mauve('▽ fan-in')}  "
+                         f"{dim(' · '.join(casts))}{marks(path)}")
+            # The subject exists ONCE: name it so the second branch can say what
+            # it shares with, rather than drawing it again.
+            # Name the subject. A compound subject has no label of its own, so
+            # fall back to its own rendering — "the subject" says nothing.
+            subj = getattr(t.principal, "label", None) or str(t.principal)
+            seen.setdefault(id(t.principal), f"one subject: {subj}")
+            # `branch()` REBUILDS its term on every call, so the two must be held
+            # at once. Walking `t.branch(0)` and then `t.branch(1)` lets the first
+            # be collected and its id() REUSED by the second, which then reads as
+            # "shared with" the first — sharing reported where there is none.
+            grey, black = t.branch(0), t.branch(1)
+            walk(grey, path + (0,), child_prefix, "├─ ", True)
+            walk(black, path + (1,), child_prefix, "└─ ", True)
+        elif isinstance(t, LamVar):
+            label = getattr(t, "label", None) or _short(t.iri)
+            # A variable is drawn wherever it occurs (see above), but say when it
+            # is the SAME node turning up again — that is the sharing, and it is
+            # invisible otherwise.
+            again = dim("  ↺ same node") if id(t) in seen else ""
+            seen.setdefault(id(t), f"the entity {label}")
+            lines.append(f"{here}{green(label)}  {dim(_short(t.iri))}{again}"
+                         f"{marks(path)}")
+        else:
+            lines.append(f"{here}{dim(str(t))}{marks(path)}")
+
+    walk(reading.term, (), "", "")
+
+
+def show_term_modal(reading: Reading, session) -> None:
+    """A full view of the reading, held until the user dismisses it.
+
+    `t` used to print and fall straight through to the next step, so the term
+    flashed past. This holds the screen, and — importantly — the caller then
+    re-presents THE SAME options rather than asking the delegate again.
+    """
+    lines: list[str] = []
+    print()
+    print("  " + _rule())
+    print(f"  {bold('the reading so far')}"
+          f"   {dim('query:')} {dim(session.query)}")
+    print("  " + _rule())
+    print(f"  {dim('seed')}     {bold(reading.seed.short())}")
+    print(f"  {dim('term')}     {green(str(reading.term))}")
+    print(f"  {dim('type')}     {dim(_short(_term_type(reading.term)))}"
+          f"   {dim('— [app(a,b)] = [b]')}")
+    print()
+
+    render_reading(reading, lines)
+    for ln in lines:
+        print("  " + ln)
+
+    print()
+    act = reading.act_pointer()
+    print(f"  {dim('pointers')} {dim(f'|Pr| = {len(reading.pointers)}')}"
+          f"   {dim('(◀ marks where each stands;')} "
+          f"{bold(orange('orange'))} {dim('is actPtr)')}")
+    for p in reading.pointers.pointers:
+        here = reading.pointer_entities.get(p.pid)
+        flag = bold(orange("actPtr")) if act and p.pid == act.pid else dim("      ")
+        cast = f"  {dim('cast')} {mauve(_short(p.cast_type))}" if p.cast_type else ""
+        spent = dim("  (exhausted)") if p.pid in reading.exhausted else ""
+        print(f"    {flag}  {dim(f'p{p.pid}')}  "
+              f"{dim('path')} {dim(str(tuple(p.path)) if p.path else '()')}  "
+              f"{here.short() if here else dim('?')}"
+              f"  {dim(p.origin)}{cast}{spent}")
+
+    if reading.used:
+        print()
+        print(f"  {dim('entities')} " +
+              ", ".join(green(e.short()) for e in reading.used))
+
+    if reading.steps:
+        print()
+        print(f"  {dim('steps')}")
+        for i, line in enumerate(reading.steps, 1):
+            print(f"    {dim(f'{i}.')} {line}")
+
+    if session.closed:
+        print()
+        print(f"  {dim('closed readings')}")
+        for c in session.closed:
+            print(f"    {dim('·')} {c.name}  {green(str(c.term))}")
+
+    print()
+    print("  " + _rule())
+    try:
+        input(f"  {dim('enter to go back to the options')} ")
+    except (EOFError, KeyboardInterrupt):
+        print()
+
+
+def report_merges(session) -> None:
+    """Say when a proposed name resolved to an entity already held.
+
+    A merge changes what gets built — the two names become ONE node — so it is
+    shown rather than done silently.
+    """
+    for name, kept in session.entities.take_merges():
+        # Only worth saying when the two names actually READ differently. The
+        # delegate often sends an id that differs from the label while the label
+        # is unchanged, and "“X” is X" is noise, not information.
+        if name.strip().lower() == kept.strip().lower():
+            continue
+        print(f"  {dim('↺')} {dim(f'“{name}” is')} {bold(kept)}"
+              f"{dim(' — same entity, one node')}")
+
+
+def show_entities(session, reading=None) -> None:
+    """The entity store: what this session is made of."""
+    ents = session.entities.all()
+    print()
+    print("  " + _rule())
+    print(f"  {bold('entities')}   {dim(f'{len(ents)} distinct')}")
+    print("  " + _rule())
+    if not ents:
+        print(dim("  none yet"))
+        return
+    in_reading = {e.iri for e in reading.used} if reading is not None else set()
+    for e in ents:
+        here = orange("●") if e.iri in in_reading else dim("·")
+        uses = dim(f"×{e.uses}") if e.uses > 1 else "   "
+        print(f"   {here} {bold(e.label)}  {uses}  {dim(e.iri)}")
+        if e.gloss:
+            print(f"       {dim(e.gloss)}")
+        if e.aliases:
+            # The other names this entity arrived under — the merges, made
+            # visible after the fact.
+            print(f"       {dim('also proposed as: ' + ', '.join(e.aliases))}")
+    if reading is not None:
+        print()
+        print(f"  {orange('●')} {dim('in the reading being built')}")
+    print()
+
+
+def ask_yes_no(question: str, default: bool = False) -> bool:
+    """A y/n prompt. Anything unrecognised — or EOF — takes the default."""
+    suffix = dim("[y/N]") if not default else dim("[Y/n]")
+    try:
+        raw = input(f"{question} {suffix} ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return default
+    if not raw:
+        return default
+    return raw[0] == "y"
+
+
+def _pointer_line(reading: Reading, p, act) -> str:
+    """One pointer, described as a place the user could stand.
+
+    Quietly, a pointer is named by the entity it stands at plus the CONTEXT it
+    carries — the cast a reflection put on that occurrence — since that is the
+    choice being made. --verbose adds the machinery behind it: the pointer's id
+    and which aux port of the fan it sits on.
+    """
+    here = reading.pointer_entities.get(p.pid)
+    at = bold(here.short()) if here else dim("?")
+    mark = bold(orange("▸")) if act and p.pid == act.pid else " "
+
+    if not VERBOSE:
+        # The cast IS the context's reading of the subject, so it is what
+        # distinguishes the two places — not calculus, the actual choice.
+        cast = (f"{dim('  context:')} {mauve(_short(p.cast_type))}"
+                if p.cast_type else "")
+        spent = dim("  (nothing left here)") if p.pid in reading.exhausted else ""
+        return f"{mark} {at}{cast}{spent}"
+
+    bits = []
+    if p.cast_type:
+        # The context's own reading of the subject: what was cast onto THIS
+        # occurrence by the reflection that made it (§4.2).
+        bits.append(f"{dim('reflected as')} {mauve(_short(p.cast_type))}")
+    if p.origin.startswith("reflect"):
+        side = "grey · left-up" if p.origin.endswith("left") else "black · right-up"
+        bits.append(dim(side))
+    elif p.origin == "init":
+        bits.append(dim("the root"))
+    if p.pid in reading.exhausted:
+        bits.append(dim("exhausted"))
+    tail = ("  " + dim(" · ").join(bits)) if bits else ""
+    return f"{mark} {dim(f'p{p.pid}')}  {at}{tail}"
+
+
+def choose_pointer(reading: Reading, session) -> bool:
+    """Let the user pick which pointer to stand at — which context to continue in.
+
+    Reflection is the only step that grows Pr (§4.2), and its two pointers are
+    genuinely independent positions: this is where the user says which of them
+    the reading continues from.
+    """
+    ptrs = list(reading.pointers.pointers)
+    act = reading.act_pointer()
+    if len(ptrs) < 2:
+        print(dim("  only one pointer in this reading — nowhere else to stand"))
+        return False
+
+    print()
+    count = f"  {dim(f'|Pr| = {len(ptrs)}')}" if VERBOSE else ""
+    print(f"  {bold('where do you want to continue?')}{count}")
+    for i, p in enumerate(ptrs, 1):
+        print(f"    {orange(str(i))}  {_pointer_line(reading, p, act)}")
+    print(f"    {dim('c')}  {dim('cancel')}")
+
+    valid = {str(i) for i in range(1, len(ptrs) + 1)} | {"c"}
+    while True:
+        try:
+            raw = input(f"\n  {orange('❯')} ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return False
+        if raw == "c":
+            return False
+        if raw in valid:
+            p = ptrs[int(raw) - 1]
+            if p.pid == (act.pid if act else None):
+                print(dim("  already standing there"))
+                return False
+            session.select_pointer(reading, p.pid)
+            if VERBOSE:
+                here = reading.pointer_entities.get(p.pid)
+                cast = (f"  {dim('reflected as')} {mauve(_short(p.cast_type))}"
+                        if p.cast_type else "")
+                print(f"  {green('✓')} now standing at {dim(f'p{p.pid}')} "
+                      f"{bold(here.short() if here else '?')}{cast}")
+            return True
+        print(dim(f"    choose one of: {', '.join(sorted(valid))}"))
+
+
 def show_step_header(kind: str, reading: Reading, entities: list[str]) -> None:
     """Which of A/B/C this is, and the entities it uses."""
     style, letter, what, calculus = KIND_STYLE[kind]
+    if not VERBOSE:
+        # The prompt below already puts the question in the user's own terms;
+        # naming the KIND of step is calculus, so it says nothing extra here.
+        return
     print()
     print(f"  {style('●')} {style(bold(f'step {letter}'))} {dim('·')} {what}")
     print(f"    {dim('reading step:')} {style(calculus)}")
@@ -171,14 +520,18 @@ def ask_choice(prompt: str, labels: list[str], extra: dict[str, str]) -> str:
 # ── the loop ──────────────────────────────────────────────────────────────────
 
 class Browser:
-    def __init__(self, model: str) -> None:
-        self.agent = ReadingAgent(model=model)
+    def __init__(self, agent) -> None:
+        self.agent = agent
         self.session: Optional[ReadingSession] = None
+
+    @property
+    def is_mock(self) -> bool:
+        return getattr(self.agent, "model", "") == "mock"
 
     # ── entry ─────────────────────────────────────────────────────────────
 
     def run(self) -> int:
-        banner()
+        banner(self.is_mock)
         try:
             query = input(f"  {orange('❯')} ").strip()
         except (EOFError, KeyboardInterrupt):
@@ -189,7 +542,8 @@ class Browser:
 
         self.session = ReadingSession(query, self.agent)
         try:
-            with Spinner("delegating the query to Claude Code"):
+            with Spinner("reading the query" if self.is_mock
+                         else "delegating the query to Claude Code"):
                 seeds = self.session.start()
         except AgentError as e:
             print(f"  {red('✗')} {e}")
@@ -197,6 +551,7 @@ class Browser:
 
         print(f"  {green('✓')} {dim('entities proposed:')} "
               f"{', '.join(bold(s.short()) for s in seeds)}")
+        report_merges(self.session)
         self.session.seed_cursor = 0
         seed = self.session.next_unread_seed()
         if seed is None:
@@ -219,8 +574,10 @@ class Browser:
 
         while True:
             try:
-                with Spinner(f"asking for the next step at "
-                             f"{reading.act_entity().short() if reading.act_entity() else '?'}"):
+                at = reading.act_entity()
+                verb = "finding" if self.is_mock else "asking for"
+                with Spinner(f"{verb} the next step at "
+                             f"{at.short() if at else '?'}"):
                     prop = s.propose(reading)
             except AgentError as e:
                 print(f"  {red('✗')} {e}")
@@ -263,8 +620,6 @@ class Browser:
                 if e not in seen:
                     seen.add(e)
                     uniq.append(e)
-            show_step_header(prop.kind, reading, uniq)
-
             labels = []
             for o in prop.options:
                 if prop.kind == "B":
@@ -278,20 +633,51 @@ class Browser:
                     labels.append(f"{o.label}  {bold(tgt)}"
                                   + (f"\n       {dim(o.rationale)}" if o.rationale else ""))
 
-            choice = ask_choice(
-                prop.prompt or "which reading do you take?", labels,
-                {"s": "skip this place", "t": "show the term",
-                 "r": "resume (save and stop)", "q": "quit without saving"},
-            )
+            # Present THIS proposal until the user picks or leaves. `t` opens the
+            # modal and comes back here — it must NOT fall through to the outer
+            # loop, which would ask the delegate for a fresh proposal and throw
+            # away the options on screen (and, on --claude, pay for them again).
+            choice = None
+            while choice is None:
+                show_step_header(prop.kind, reading, uniq)
+                report_merges(s)
+                extra = {"s": "skip this place"}
+                if VERBOSE:
+                    extra["t"] = "show the reading"
+                    extra["e"] = "entities"
+                # Only offer the pointer picker when there is a choice to make —
+                # which, since only reflection grows Pr, means after a split.
+                if len(reading.pointers) > 1:
+                    extra["p"] = (f"switch context "
+                                  f"({len(reading.pointers)} open)")
+                extra["r"] = "resume (save and stop)"
+                extra["q"] = "quit without saving"
+                picked = ask_choice(
+                    prop.prompt or "which reading do you take?", labels, extra)
+                if picked == "t":
+                    show_term_modal(reading, s)
+                    continue
+                if picked == "e":
+                    show_entities(s, reading)
+                    continue
+                if picked == "p":
+                    # Moving re-points the reading; the options on screen belong
+                    # to where the user WAS, so go back for a fresh proposal.
+                    if choose_pointer(reading, s):
+                        choice = "moved"
+                        break
+                    continue
+                choice = picked
+
+            if choice == "moved":
+                continue
+
             if choice in ("q", "quit"):
                 print(dim("  left without saving"))
                 return 0
             if choice == "r":
                 self.do_resume()
                 return 0
-            if choice == "t":
-                show_term(reading)
-                continue
             if choice == "s":
                 if s.mark_exhausted(reading) is None:
                     print(dim("  no other pointer here"))
@@ -299,8 +685,31 @@ class Browser:
 
             opt = prop.options[int(choice) - 1]
             line = s.apply(reading, prop, opt)
-            print(f"\n  {green('✓')} {line}")
+            print(f"\n  {green('✓')} {line if VERBOSE else _plain_step(line)}")
             show_term(reading)
+
+            if prop.kind == "B":
+                # The split just happened: the two occurrences are independent
+                # positions, and the reading continues in whichever the user
+                # picks. Offer the choice here, while it is the live question,
+                # rather than leaving them on whichever side reflection selected.
+                act = reading.act_pointer()
+                twin = next((p for p in reading.pointers.pointers
+                             if p.reflect_id is not None and act is not None
+                             and p.reflect_id == act.reflect_id
+                             and p.pid != act.pid), None)
+                if twin is not None:
+                    print(f"  {dim('the reading split — you are in context')} "
+                          f"{mauve(_short(act.cast_type))}{dim(';')} "
+                          f"{dim('the other is')} "
+                          f"{mauve(_short(twin.cast_type))}")
+                    if ask_yes_no("  continue in the other context instead?"):
+                        s.select_pointer(reading, twin.pid)
+                        if VERBOSE:
+                            here = reading.pointer_entities.get(twin.pid)
+                            print(f"  {green('✓')} now in context "
+                                  f"{mauve(_short(twin.cast_type))} at "
+                                  f"{bold(here.short() if here else '?')}")
 
     # ── resume ────────────────────────────────────────────────────────────
 
@@ -320,20 +729,43 @@ class Browser:
         print(f"  {green('✓')} saved {bold(str(len(s.closed)))} reading(s) for "
               f"{bold(s.query)}")
         for c in s.closed:
-            print(f"      {dim('·')} {c.name}  {green(str(c.term))}")
+            # The term itself is the calculus; without --verbose say how many
+            # steps the reading took instead. Both are saved either way.
+            detail = (green(str(c.term)) if VERBOSE
+                      else dim(f"{len(c.steps)} step"
+                               f"{'' if len(c.steps) == 1 else 's'}"))
+            print(f"      {dim('·')} {c.name}  {detail}")
         print(f"  {dim('→')} {dim(str(path))}")
         if self.agent.total_cost_usd:
             print(f"  {dim(f'delegation cost: ${self.agent.total_cost_usd:.4f}')}")
         print()
 
 
-def main(argv: list[str]) -> int:
-    model = "sonnet"
-    if "--model" in argv:
-        i = argv.index("--model")
+def _arg(argv: list[str], name: str) -> Optional[str]:
+    if name in argv:
+        i = argv.index(name)
         if i + 1 < len(argv):
-            model = argv[i + 1]
-    return Browser(model).run()
+            return argv[i + 1]
+    return None
+
+
+def main(argv: list[str]) -> int:
+    if "--help" in argv or "-h" in argv:
+        print(__doc__)
+        return 0
+
+    global VERBOSE
+    VERBOSE = "--verbose" in argv or "-v" in argv
+
+    # The MOCK is the default: an ordinary run costs nothing and needs no CLI.
+    # `--claude` delegates for real.
+    if "--claude" in argv or "--real" in argv:
+        agent = ReadingAgent(model=_arg(argv, "--model") or "sonnet")
+    else:
+        raw = _arg(argv, "--seed")
+        agent = MockAgent(seed=int(raw) if raw and raw.lstrip("-").isdigit()
+                          else None)
+    return Browser(agent).run()
 
 
 if __name__ == "__main__":

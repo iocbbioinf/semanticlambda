@@ -13,7 +13,8 @@ THE THREE INTERACTION STEPS ARE THE READING STEPS.
 
     B  a relation understood several ways  -> REFLECTION
        G(t) |-> a sharing fan-in over t; actPtr is replaced by TWO pointers on
-       the aux-port edges, cast to A and B. This is the fork of the reading, and
+       the aux-port edges, cast to A and B. This SPLITS the reading into two
+       contexts, and
        the only step that grows |Pr|.
 
     C  how this place was reached          -> CONTRACTION, option 2
@@ -30,6 +31,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from optimal_lambda import LamApp, LamTerm
+from entity_store import EntityStore
 from reading_agent import Entity, Option, ReadingAgent, StepProposal
 from reading_state import (EntityRegistry, LamFan, PointerSet, replace_at,
                            subterm_at)
@@ -101,11 +103,51 @@ class ReadingSession:
         self.current: Optional[Reading] = None
         self.closed: list[ClosedReading] = []
         self.log: list[str] = []
+        # Identity lives here, not in the delegate's answers. The delegate names
+        # things loosely — "COX enzymes", then "the COX enzymes" — and each new
+        # name would otherwise become a separate variable, losing the sharing
+        # that makes a reused entity ONE node (§1).
+        self.entities = EntityStore()
+
+    # ── the entity store ──────────────────────────────────────────────────
+
+    def canon(self, ent: Optional[Entity]) -> Optional[Entity]:
+        """The canonical entity for a proposed one — merging near-duplicates.
+
+        Everything the delegate proposes passes through here, so an entity that
+        the store already holds comes back with the SAME iri, and therefore ends
+        up as the same node of the reading's graph.
+        """
+        if ent is None:
+            return None
+        st = self.entities.resolve(ent.iri, ent.label, ent.gloss)
+        if st.iri == ent.iri and st.label == ent.label:
+            return ent
+        return Entity(iri=st.iri, label=st.label, gloss=st.gloss or ent.gloss)
+
+    def canon_option(self, opt: Option) -> Option:
+        """An option with each of its entities resolved against the store."""
+        return Option(
+            kind=opt.kind, label=opt.label, rationale=opt.rationale,
+            entity=self.canon(opt.entity),
+            entity_a=self.canon(opt.entity_a),
+            entity_b=self.canon(opt.entity_b),
+            reading_name=opt.reading_name,
+        )
 
     # ── opening ───────────────────────────────────────────────────────────
 
     def start(self) -> list[Entity]:
-        self.seeds = self.agent.seed_entities(self.query)
+        raw = self.agent.seed_entities(self.query)
+        # Seeds go through the store too: two seeds naming one thing must not
+        # start two readings of it.
+        seen, seeds = set(), []
+        for e in raw:
+            c = self.canon(e)
+            if c.iri not in seen:
+                seen.add(c.iri)
+                seeds.append(c)
+        self.seeds = seeds
         return self.seeds
 
     def open_reading(self, seed: Entity) -> Reading:
@@ -159,6 +201,7 @@ class ReadingSession:
             known=reading.used,
             allow_c=allow_c,
         )
+        prop.options = [self.canon_option(o) for o in prop.options]
         # Offer the user's own finished work as an option-1 operand (§3.1).
         if prop.kind == "A" and self.closed:
             for c in self.closed[-2:]:
@@ -239,7 +282,7 @@ class ReadingSession:
         return line
 
     def _reflect(self, reading: Reading, opt: Option) -> str:
-        """REFLECT (reading_alg §3.2) — the fork of the reading.
+        """REFLECT (reading_alg §3.2) — the reading splits into two contexts.
 
         G(t) becomes a sharing fan-in over t: t occurs twice and exists once.
         actPtr is replaced by TWO pointers on the aux-port edges, cast to A and
@@ -266,11 +309,30 @@ class ReadingSession:
 
         line = (f"[B] reflection — {ea.short()} (question) ⋅ "
                 f"{eb.short()} (answer) over {here.short() if here else '?'}  "
-                f"[fork: |Pr| = {len(reading.pointers)}]")
+                f"[split: |Pr| = {len(reading.pointers)}]")
         reading.steps.append(line)
         return line
 
     # ── advancing ─────────────────────────────────────────────────────────
+
+    @staticmethod
+    def select_pointer(reading: Reading, pid: int) -> bool:
+        """Make `pid` the actPtr — "the place where the user stays" (§1).
+
+        Before each step the user SELECTS one pointer (reading_alg §8). Reflection
+        is what makes that a real choice: it replaces actPtr with two pointers on
+        the fan-in's aux ports, and the two contexts grow INDEPENDENTLY — contracting
+        at one occurrence leaves the others alone. Without this the user is stuck
+        with whichever context the reflection happened to leave selected.
+
+        Selecting also un-exhausts the place: "nothing to propose here" was an
+        answer about a moment, not a verdict on the position, and the user asking
+        to stand there again is reason enough to ask once more.
+        """
+        if not reading.pointers.select(pid):
+            return False
+        reading.exhausted.discard(pid)
+        return True
 
     def mark_exhausted(self, reading: Reading) -> Optional[int]:
         """No step here; move actPtr to another open pointer if there is one."""

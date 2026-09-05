@@ -69,15 +69,43 @@ print(optimal_normal_form(parse(r"(\x.x x) (\y.y)")))   # -> λy.(y)
 
 ## Reading browser (`reading_browser.py`)
 
-A terminal app in the shape of Claude Code: you put a query, the query is
-delegated to Claude Code (`claude -p`), and every choice you make is a **reading
+A terminal app in the shape of Claude Code: you put a query, a **delegate**
+proposes the entities and options, and every choice you make is a **reading
 step** applied to `R = (G(t), Pr)` — the sharing graph of a lambda term without
 abstractions (`notes/reading_desc`, `notes/reading_alg`).
 
 ```
-./run_reading_browser.sh              # or: python reading_browser.py
-python reading_browser.py --model opus
+./run_reading_browser.sh              # mock backend — free, offline, instant
+python reading_browser.py --verbose   # show the calculus behind each choice
+python reading_browser.py --claude    # delegate to Claude Code for real
+python reading_browser.py --claude --model opus
+python reading_browser.py --seed 7    # vary the mock
 ```
+
+### `--verbose`
+
+By default the app shows only what you are choosing between: the delegate's
+question and its options. `--verbose` (`-v`) adds the calculus — the term as it
+grows, the pointer set `Pr`, which reading step each choice performs
+(`contraction · option 1`), where you are standing, and the `t` (whole reading)
+and `e` (entity store) views.
+
+The context switcher `p` is offered in both modes, since choosing which context
+to continue in is a real choice rather than a trace of one; quietly it names each
+place by the entity and the context it carries (`aspirin as an agent  context:
+its-mechanism`), and under `--verbose` by its pointer id and aux port. The reading is built identically either way — the flag only
+decides how much is narrated.
+
+### The two delegates
+
+`reading_mock.MockAgent` is the **default**: no Claude call, no cost, no CLI
+needed. Its entities come from the query's own words plus a stock vocabulary, so
+a reading is nonsense *as knowledge* — but well formed *as a reading*, and it
+cycles A → B → C so all three step kinds are reached in a short session. It is
+deterministic per query, so a run repeats exactly.
+
+`reading_agent.ReadingAgent` (`--claude`) delegates to `claude -p` with a JSON
+schema. Real runs cost roughly $0.10–0.25 per session on Sonnet.
 
 Entities here are **not** KG nodes: they are proposed freely from the query and
 become the **variables** of the term. Entities are reused across steps, and a
@@ -90,11 +118,41 @@ Each one is a reading step, and the app renders which is in play:
 | | when | reading step | effect |
 | --- | --- | --- | --- |
 | **A** | an entity can be understood several ways | contraction, **option 1** | `app(t1,t2)`; the reader **moves** to B |
-| **B** | a relation can be understood several ways | **reflection** | a sharing fan-in over `t`; the reading **forks**, `\|Pr\|` grows |
+| **B** | a relation can be understood several ways | **reflection** | a sharing fan-in over `t`; the reading **splits into two contexts**, `\|Pr\|` grows |
 | **C** | several ways this place was **reached** | contraction, **option 2** | `app(t1,t2)`; the reader **stays** at B |
 
 An option of kind A may also be an **already created reading** — a closed
 reading is what the user answers *with* (never what they ask *from*).
+
+### The entity store
+
+Entities are the term's variables, and an entity the user reuses must be **one
+node** of the sharing graph. The delegate, though, invents the names: asked twice
+about one thing it may answer "COX enzymes", then "the COX enzymes", then "COX
+enzyme" — three ids, three variables, and the sharing silently lost.
+
+`entity_store.EntityStore` is therefore authoritative for identity. Every
+proposed entity passes through it, and a name that matches one already held comes
+back as that entity, so it lands as the same node. Matching normalises away only
+what carries no meaning — case, punctuation, articles, a trailing plural — and is
+otherwise **conservative**: `COX-1` and `COX-2` stay apart, as do `aspirin` and
+`aspirin resistance`. A false merge would destroy a distinction the user drew; a
+missed merge only fails to share.
+
+Merges are reported as they happen (`↺ “the COX enzymes” is COX enzymes`), and
+`e` shows the store: each entity, how often it has been reached, its aliases, and
+which are in the reading being built.
+
+### Contexts: choosing where you continue
+
+Reflection is the only step that grows `Pr`, and its two pointers are
+**independent positions** over one shared subject — contracting at one leaves the
+other alone. Each is a **context**: the same subject read under a different
+cast. So after a **B** step the app asks which context to continue in, and `p`
+re-opens that choice at any time, listing each place with the entity it stands
+at, the context (cast) it carries, and — under `--verbose` — which aux port it is
+(grey/left-up or black/right-up). Continuing somewhere again also clears its
+"exhausted" mark.
 
 When no interaction step remains at any pointer of the current reading, the
 driver closes it and opens a new reading from an entity that has none yet.
@@ -106,4 +164,5 @@ driver closes it and opens a new reading from an entity that has none yet.
 
 ```
 .venv/bin/python tests/test_reading_session.py   # the three steps, against a stub delegate
+.venv/bin/python tests/test_entity_store.py      # entity identity: what merges, what must not
 ```
