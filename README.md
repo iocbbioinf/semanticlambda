@@ -1,5 +1,15 @@
 # semanticlambda
 
+The terminal app on this branch is the **reading browser** (below). The earlier
+Textual KG browser (`app.py`, `widgets.py`, `kg_browser.py`) was removed from
+`main` and is preserved on the **`browser`** branch.
+
+The layers it shared with the reading calculus are kept here, because
+`notes/reading_desc`, `notes/reading_alg` and the `reading`/`ontology` skills
+cite them as normative: `term_utils` (typing, `_term_type`), `reading_state`
+(the pointer set), `ontology_state` (the §8 ontology layer), `kg_store`
+(persistence and the RDF graph) and `question_tree`.
+
 ## Optimal lambda reduction (`optimal_lambda`)
 
 The `optimal_lambda/` package implements optimal lambda reduction via sharing
