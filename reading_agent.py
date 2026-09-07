@@ -19,6 +19,14 @@ Delegation runs `claude -p` with `--json-schema`, so every reply is machine
 checked against a schema before it reaches the calculus. The CLI returns an
 envelope whose `result` field holds the payload AS A JSON STRING — hence the
 second decode in `_invoke`.
+
+ONE SESSION PER QUERY. All the delegations of one interaction share a single
+`claude` session: the first call pins a fresh `--session-id`, later ones
+`--resume` it. A new query calls `new_session()` and starts from an empty
+context, since the senses settled for one query are not senses of the next.
+This is a cost decision as much as a coherence one — a cold `claude -p` pays
+full startup (system prompt, tool schemas, no cache warmth) before doing any
+work, which on the 5-HT2C query was ~$0.02 of a ~$0.026 call.
 """
 
 from __future__ import annotations
@@ -26,6 +34,8 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -146,12 +156,40 @@ class ReadingAgent:
 
     def __init__(self, model: str = DEFAULT_MODEL,
                  timeout: int = DEFAULT_TIMEOUT,
-                 cwd: Optional[str] = None) -> None:
+                 cwd: Optional[str] = None,
+                 session: bool = True) -> None:
         self.model = model
         self.timeout = timeout
         self.cwd = cwd
         self.last_cost_usd = 0.0
         self.total_cost_usd = 0.0
+        # ONE SESSION PER QUERY. The first call pins a fresh session id; every
+        # later call in the same interaction RESUMES it, so the query and the
+        # choices already made are context the delegate still holds, and the
+        # per-process overhead that dominates a cold `claude -p` is paid once.
+        # Measured on the 5-HT2C query: a cold call reads ~24k cache tokens and
+        # costs ~$0.02 before any reasoning; a resumed one reads ~28k and writes
+        # 63, costing ~$0.006 — the difference IS the startup.
+        self.use_session = session
+        self.session_id: Optional[str] = None
+        self.calls = 0
+        # How long the last delegation took, and where the time went. The CLI
+        # reports its own `duration_ms`/`duration_api_ms`, so the gap between
+        # our wall clock and its api time IS the process startup we pay for
+        # spawning `claude -p` at all — worth seeing under --verbose, since it
+        # is the reason the clarification phase batches.
+        self.last_wall_s = 0.0
+        self.last_api_s = 0.0
+        self.last_duration_s = 0.0
+        self.total_wall_s = 0.0
+
+    def new_session(self) -> None:
+        """Drop the session, so the NEXT call starts from an empty context.
+
+        A new query must not inherit the previous query's clarifications: the
+        senses settled there are not senses of this one.
+        """
+        self.session_id = None
 
     # ── transport ─────────────────────────────────────────────────────────
 
@@ -164,6 +202,18 @@ class ReadingAgent:
                "--output-format", "json",
                "--json-schema", json.dumps(schema),
                "--model", self.model]
+        # `--session-id` pins a NEW session (it must not already exist);
+        # `--resume` continues it. So the first call of a query mints the id and
+        # every later one resumes, which is what keeps the interaction in one
+        # context. `--no-session-persistence` is deliberately NOT passed: the
+        # session has to survive between our separate processes.
+        if self.use_session:
+            if self.session_id is None:
+                self.session_id = str(uuid.uuid4())
+                cmd += ["--session-id", self.session_id]
+            else:
+                cmd += ["--resume", self.session_id]
+        t0 = time.monotonic()
         try:
             proc = subprocess.run(
                 cmd, capture_output=True, text=True, timeout=self.timeout,
@@ -185,9 +235,21 @@ class ReadingAgent:
             raise AgentError(f"delegate reported an error: "
                              f"{str(envelope.get('result'))[:300]}")
 
+        self.last_wall_s = time.monotonic() - t0
+        self.total_wall_s += self.last_wall_s
+        self.last_api_s = (envelope.get("duration_api_ms") or 0) / 1000.0
+        self.last_duration_s = (envelope.get("duration_ms") or 0) / 1000.0
+
         cost = envelope.get("total_cost_usd") or 0.0
         self.last_cost_usd = cost
         self.total_cost_usd += cost
+        self.calls += 1
+        # Trust the CLI's own id over ours: a resume may fork (`--fork-session`
+        # elsewhere, or a session the CLI declines to reuse), and following the
+        # id it reports keeps the chain intact instead of resuming a dead one.
+        got = envelope.get("session_id")
+        if self.use_session and isinstance(got, str) and got:
+            self.session_id = got
 
         # The schema-conforming payload arrives as a STRING in `result`.
         payload = envelope.get("result")

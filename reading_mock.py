@@ -74,6 +74,12 @@ class MockAgent:
         self._seed = seed
         self.total_cost_usd = 0.0
         self.last_cost_usd = 0.0
+        # The driver renders timing for whatever backend it has; the mock does no
+        # I/O, so these stay at 0.0 and the /cost line stays absent.
+        self.last_wall_s = 0.0
+        self.last_api_s = 0.0
+        self.last_duration_s = 0.0
+        self.total_wall_s = 0.0
         self._rng = random.Random(seed)
         self._steps = 0
 
@@ -105,6 +111,99 @@ class MockAgent:
                 ents.append(Entity(iri=f"local:{slug}", label=extra,
                                    gloss="a stock entity of the mock"))
         return ents[:limit]
+
+    # ── the clarification phase ───────────────────────────────────────────
+
+    def _invoke(self, prompt: str, schema: dict) -> dict:
+        """Stand in for the batched clarification call (clarify_plan).
+
+        The planner talks to the TRANSPORT, not to `propose_step`, so the mock
+        has to answer here too or the default free run cannot clarify anything.
+        Points are built from the query's own phrases and the step kinds cycle
+        A → B → C, keeping the mock's purpose: exercise the calculus, mean
+        nothing. Costs stay 0.0, so `--verbose` prints no /cost line.
+
+        The `prompt` is ignored beyond finding the query in it — a top-up gets
+        the same treatment as the first call, which is right for a mock: there
+        is no ranking to improve on.
+        """
+        m = re.search(r"THE QUERY:\n(.+?)\n", prompt, re.S)
+        query = (m.group(1) if m else prompt).strip()
+        if self._seed is None:
+            self._rng = random.Random(_slug(query))
+
+        phrases = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9-]+", query)
+                   if w.lower() not in _STOP and len(w) > 2] or ["the query"]
+        root = {"id": _slug(query)[:32] or "the-query", "label": "the query",
+                "gloss": "what the whole query is about"}
+
+        # The first call of the phase asks for EXACTLY ONE point (it is the one
+        # the user waits for); the follow-up asks for the rest. Honour that here
+        # too, or the mock cannot exercise the fast-first-question path.
+        first_only = "EXACTLY ONE point" in prompt
+        already = re.findall(r"· \[[ABC]\] “(.+?)”", prompt)
+        phrases = [w for w in phrases if w not in already]
+        points, kinds = [], ("A", "B", "C")
+        for i, phrase in enumerate(phrases[:1 if first_only else 6]):
+            kind = kinds[i % 3]
+            if kind == "B":
+                opts = [
+                    {"label": f"“{phrase}” restricts what follows",
+                     "sense": {"id": _slug(f"{phrase} restricts"),
+                               "label": f"{phrase} restricts"},
+                     "sense_b": {"id": _slug(f"{phrase} restricted"),
+                                 "label": f"what {phrase} restricts"},
+                     "rationale": "the two conditions are not independent"},
+                    {"label": f"“{phrase}” stands on its own",
+                     "sense": {"id": _slug(f"{phrase} alone"),
+                               "label": f"{phrase} alone"},
+                     "sense_b": {"id": "plain-conjunction",
+                                 "label": "a plain conjunction"},
+                     "rationale": "both hold, neither bears on the other"},
+                ]
+            elif kind == "A":
+                opts = [
+                    {"label": f"“{phrase}” read narrowly",
+                     "sense": {"id": _slug(f"{phrase} narrow"),
+                               "label": f"{phrase}, narrowly"},
+                     "rationale": "the strictest reading of those words"},
+                    {"label": f"“{phrase}” read broadly",
+                     "sense": {"id": _slug(f"{phrase} broad"),
+                               "label": f"{phrase}, broadly"},
+                     "rationale": "the most permissive reading"},
+                    {"label": f"“{phrase}” as the query as a whole meant it",
+                     "sense": dict(root),
+                     "rationale": "a sense the reading already holds — reused, "
+                                  "so it stays ONE node"},
+                ]
+            else:
+                # C's options are VANTAGES onto where the user stands, not
+                # readings of the phrase itself — so they name a point of view.
+                # The third reuses an id, which is how a C option maps back to
+                # an entity the reading already holds (one node, not a twin).
+                opts = [
+                    {"label": f"taking “{phrase}” as strictly as the rest",
+                     "sense": {"id": _slug(f"{phrase} strict-vantage"),
+                               "label": f"the strict view of {phrase}"},
+                     "rationale": "one evidential standard across the query"},
+                    {"label": f"taking “{phrase}” on its own terms",
+                     "sense": {"id": _slug(f"{phrase} own-terms"),
+                               "label": f"{phrase} on its own terms"},
+                     "rationale": "independent of how the rest was read"},
+                    {"label": f"taking “{phrase}” as the query as a whole meant it",
+                     "sense": dict(root),
+                     "rationale": "a vantage the reading already holds — reused, "
+                                  "so it stays ONE node"},
+                ]
+            points.append({
+                "quote": phrase, "kind": kind,
+                "question": (f"how should “{phrase}” be understood?"
+                             if kind != "C" else
+                             f"from which point of view should “{phrase}” "
+                             f"be taken?"),
+                "options": opts,
+            })
+        return {"root": root, "points": points}
 
     def propose_step(self, query: str, term_text: str, here: Entity,
                      history: list[str], reached_from: Optional[str],

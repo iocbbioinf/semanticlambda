@@ -80,15 +80,82 @@ python reading_browser.py --verbose   # show the calculus behind each choice
 python reading_browser.py --claude    # delegate to Claude Code for real
 python reading_browser.py --claude --model opus
 python reading_browser.py --seed 7    # vary the mock
+python reading_browser.py --per-step  # skip the clarification phase (older mode)
 ```
+
+### The clarification phase (`clarify_plan.py`)
+
+The **first phase** of reading a query is not answering it: it is settling **what
+was asked**. Each interaction step resolves one ambiguity in the user's own
+words, and the entities of the reading are the ways those words can be
+understood — so the reading `R` built here *is* the disambiguated query.
+
+The query is mapped to one entity, which becomes the reading's seed (§3's "open
+on a type A"), and each step is then one point of the query put back to the user:
+
+```
+  in your query: “experimentally shown to interact”
+
+  What counts as qualifying experimental evidence of interaction?
+    1  binding assay only
+       Narrowest, most literal reading of 'interact with'
+    2  functional activity
+       Some readers mean pharmacological effect, not mere affinity
+    3  any experimental evidence
+       Broadest reading, includes structural/co-crystal data too
+```
+
+The three kinds are the three reading steps unchanged: **A** the quoted words
+themselves read several ways (contraction option 1), **B** how two parts of the
+query bear on each other (reflection), **C** which vantage the current place
+should be taken under (contraction option 2). The calculus needed no new
+operation — only a different answer to *what an entity denotes*.
+
+**One call per step, one model.** Each call asks for exactly one point, from
+where the user now stands. An earlier version batched all the points into one
+call — cheapest in total, and much worse to use: latency tracks OUTPUT SIZE
+because generation is serial, so six points with their options was ~2000 output
+tokens and **36s of silence** before the first question, where one point is ~420
+tokens and **~7s**. Asking one at a time costs the same per step and shows the
+first question sooner. It also asks a better question, since a point planned
+before the user chose anything has its options written in ignorance of that
+choice — it cannot ask "given that you meant binding affinity, does the BBB
+condition mean X or Y". Nothing is *invalidated* by a choice (a point's
+candidates are a property of the query text, which is why step C needs no
+knowledge of the path taken) — the pre-planned version is simply ranked and
+phrased for a reader who has not yet decided.
+
+Labels are **names**, at most four words, with the meaning in a required
+one-clause gloss: labels print inline in the term, in pointer lines and in
+option rows, so a sentence there wrecks the display. That is enforced in the
+schema, at the decode boundary, and in `entity_store.StoredEntity` — the last of
+those being the one that matters, since a label saved long is handed back to
+every later run by `resolve`.
 
 ### `--verbose`
 
 By default the app shows only what you are choosing between: the delegate's
 question and its options. `--verbose` (`-v`) adds the calculus — the term as it
 grows, the pointer set `Pr`, which reading step each choice performs
-(`contraction · option 1`), where you are standing, and the `t` (whole reading)
-and `e` (entity store) views.
+(`contraction · option 1`), where you are standing, the `t` (whole reading)
+and `e` (entity store) views, and — under `--claude` — what each delegation
+cost:
+
+```
+  /time  next step prepared in 7.0s  · delegated to claude -p
+  /cost  this step $0.0574  ·  session $0.1147  ·  took 7.0s (api 7.0s + startup 0.0s)
+```
+
+`/time` says how long preparing the step took and whether it cost a delegation —
+worth seeing, since a step served without a call should be instant and one that
+waits on `claude -p` should say so rather than look like the app being slow.
+`/cost` reports the `total_cost_usd` that call's envelope returned, the running
+total for the session, and the wall/api split (the gap is process startup).
+
+Both are printed only when a delegation actually happened: opening the
+`t`/`e`/`o` views or switching context asks the delegate nothing, and reprinting
+the previous call's figures would read as if the step had cost them again. Under
+the mock every counter stays `0.0` and the lines are omitted.
 
 The context switcher `p` is offered in both modes, since choosing which context
 to continue in is a real choice rather than a trace of one; quietly it names each
@@ -105,7 +172,9 @@ cycles A → B → C so all three step kinds are reached in a short session. It 
 deterministic per query, so a run repeats exactly.
 
 `reading_agent.ReadingAgent` (`--claude`) delegates to `claude -p` with a JSON
-schema. Real runs cost roughly $0.10–0.25 per session on Sonnet.
+schema. Real runs cost roughly $0.10–0.25 per session on Sonnet; `--verbose`
+shows the running cost step by step, and the resume summary prints the session
+total either way.
 
 Entities here are **not** KG nodes: they are proposed freely from the query and
 become the **variables** of the term. Entities are reused across steps, and a

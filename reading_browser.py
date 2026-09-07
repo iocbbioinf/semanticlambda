@@ -21,7 +21,11 @@ the reading being built.
 
 Options:   --verbose, -v     show the calculus: the term as it grows, the
                              pointer set, which reading step each choice makes,
-                             and the `t` view of the whole reading
+                             the `t` view of the whole reading, and — under
+                             --claude — what each delegation cost
+           --per-step        skip the clarification phase: ask the delegate
+                             afresh at every step (the older, costlier mode)
+           --points N        how many ambiguities to enumerate up front (6)
            --claude          delegate to Claude Code instead of the mock
            --model NAME      model for --claude (default: sonnet)
            --seed N          vary the mock (default: derived from the query)
@@ -45,6 +49,7 @@ Commands:  1..n     take that reading — the interaction step
 from __future__ import annotations
 
 import itertools
+import shutil
 import sys
 import threading
 import time
@@ -60,9 +65,10 @@ from term_utils import _term_type
 _TTY = sys.stdout.isatty()
 
 # --verbose shows the CALCULUS behind the interaction: the term as it grows, the
-# pointer set, which reading step each choice performs, and the `t` view of the
-# whole reading. Without it the app shows only what the user is choosing between
-# — the reading is still built exactly the same way, just not narrated.
+# pointer set, which reading step each choice performs, the `t` view of the whole
+# reading, and what each delegation cost. Without it the app shows only what the
+# user is choosing between — the reading is still built exactly the same way,
+# just not narrated.
 VERBOSE = False
 
 
@@ -104,14 +110,31 @@ class Spinner:
             print(f"  {self.label}…")
         return self
 
+    @staticmethod
+    def _width() -> int:
+        """Columns available. Only the label clip needs this — erasing uses
+        clear-to-EOL, so a wrong guess here cannot leave whitespace behind."""
+        try:
+            return max(shutil.get_terminal_size((80, 24)).columns, 20)
+        except Exception:
+            return 80
+
     def _spin(self) -> None:
         t0 = time.monotonic()
+        # The label can be long (an entity label is free text), so clip it to the
+        # terminal: a spinner line that wraps cannot be erased by one \r, and its
+        # tail is what was left dangling after the line below it was printed.
+        w = self._width()
+        label = self.label
+        room = w - 14
+        if room > 8 and len(label) > room:
+            label = label[:room - 1] + "…"
         for frame in itertools.cycle(self.FRAMES):
             if self._stop.is_set():
                 break
             el = time.monotonic() - t0
             sys.stdout.write(
-                f"\r  {orange(frame)} {dim(self.label)} {dim(f'({el:.0f}s)')}  ")
+                f"\r\033[2K  {orange(frame)} {dim(label)} {dim(f'({el:.0f}s)')}")
             sys.stdout.flush()
             time.sleep(0.12)
 
@@ -119,14 +142,18 @@ class Spinner:
         self._stop.set()
         if self._thread is not None:
             self._thread.join(timeout=0.5)
-            sys.stdout.write("\r" + " " * 78 + "\r")
+            # Erase with the ANSI clear-to-end-of-line, not a run of spaces:
+            # spaces have to guess the width, and on a wide terminal a guess
+            # that is too long IS the trailing whitespace it was meant to remove
+            # (and one too short leaves the tail behind).
+            sys.stdout.write("\r\033[2K" if _TTY else "\r")
             sys.stdout.flush()
         return False
 
 
 # ── rendering ─────────────────────────────────────────────────────────────────
 
-def banner(mock: bool) -> None:
+def banner(mock: bool, clarify: bool = True) -> None:
     print()
     print(f"  {orange('◆')} {bold('reading browser')}  "
           f"{dim('— a query, read as a term')}")
@@ -137,6 +164,9 @@ def banner(mock: bool) -> None:
         print(dim("  backend: ") + green("claude -p") +
               dim("  — the query is delegated to Claude Code"))
     print(dim("  every choice you make is a reading step"))
+    if clarify:
+        print(dim("  first phase: ") + orange("clarify the query") +
+              dim("  — each step settles one ambiguity in what you asked"))
     cmds = ("  at each step: a ask · o ontologies · p switch context · "
             "s skip · t reading · e entities · resume · quit") if VERBOSE else (
             "  at each step: a ask a question · o ontologies · "
@@ -728,6 +758,83 @@ def show_step_header(kind: str, reading: Reading, entities: list[str]) -> None:
         print(f"    {dim('entities:')}     {', '.join(entities)}")
 
 
+def show_cost(agent, only_if_new: bool = False) -> None:
+    """What the delegation just cost and how long it took.
+
+    Only in --verbose, and only when there is something to show: the mock keeps
+    every counter at 0.0, so an ordinary run stays silent. Costs are the
+    `total_cost_usd` the `claude -p` envelope reports per call — the same figure
+    /cost totals for a Claude Code session — accumulated over this reading
+    session's delegations.
+
+    THE TIMING BREAKDOWN MATTERS as much as the cost. `api` is what the CLI
+    reports as time spent on the request; the rest of the wall clock is process
+    startup, paid for spawning `claude -p` at all. Seeing that gap is what
+    justifies the clarification phase batching: the overhead is per-PROCESS, so
+    one call for many steps beats one call per step on time as well as money.
+    """
+    if not VERBOSE:
+        return
+    # `last_*` still holds the PREVIOUS call's figures when this step delegated
+    # nothing, so reprinting them would read as if the step had cost that again.
+    # Callers that may not have delegated pass only_if_new.
+    if only_if_new:
+        return
+    last, total = agent.last_cost_usd, agent.total_cost_usd
+    wall = getattr(agent, "last_wall_s", 0.0)
+    if not total and not wall:
+        return
+    bits = [f"this step ${last:.4f}", f"session ${total:.4f}"]
+    if wall:
+        api = getattr(agent, "last_api_s", 0.0)
+        overhead = max(wall - api, 0.0)
+        t = f"took {wall:.1f}s"
+        if api:
+            t += f" (api {api:.1f}s + startup {overhead:.1f}s)"
+        bits.append(t)
+        tw = getattr(agent, "total_wall_s", 0.0)
+        if tw and abs(tw - wall) > 0.05:
+            bits.append(f"session {tw:.1f}s")
+    print(f"  {dim('/cost  ' + '  ·  '.join(bits))}")
+
+
+def named(ent) -> str:
+    """`label — gloss`, or just the label when there is no gloss.
+
+    The label is deliberately terse, so the gloss is what makes it legible; but
+    appending an empty one leaves a name with trailing separator and dead space,
+    which is what a bare `opening a reading from X  ` looked like.
+    """
+    gloss = (getattr(ent, "gloss", "") or "").strip()
+    name = bold(ent.short())
+    if not gloss or gloss.lower() == ent.short().lower():
+        return name
+    return f"{name}  {dim(gloss)}"
+
+
+def show_prep_time(seconds: float, delegated: bool) -> None:
+    """How long preparing this step took, and whether it cost a delegation.
+
+    The spinner shows elapsed time while it runs but wipes the line on exit, so
+    nothing survives to say how long a step actually took. That matters here:
+    the whole point of the clarification phase is that most steps are served
+    from the batched plan and should be INSTANT, so a step that suddenly waits
+    on `claude -p` is worth seeing as such rather than being mistaken for the
+    app being slow.
+    """
+    if not VERBOSE:
+        return
+    if delegated:
+        print(f"  {dim(f'/time  next step prepared in {seconds:.1f}s')}"
+              f"  {dim('· delegated to claude -p')}")
+    elif seconds >= 0.05:
+        print(f"  {dim(f'/time  next step prepared in {seconds:.2f}s')}"
+              f"  {dim('· from the plan, no call')}")
+    else:
+        print(f"  {dim(f'/time  next step prepared in {seconds*1000:.0f}ms')}"
+              f"  {dim('· from the plan, no call')}")
+
+
 def _short(iri: Optional[str]) -> str:
     if not iri:
         return "?"
@@ -758,9 +865,14 @@ def ask_choice(prompt: str, labels: list[str], extra: dict[str, str]) -> str:
 # ── the loop ──────────────────────────────────────────────────────────────────
 
 class Browser:
-    def __init__(self, agent) -> None:
+    def __init__(self, agent, clarify: bool = True, points: int = 6) -> None:
         self.agent = agent
         self.session: Optional[ReadingSession] = None
+        # The clarification phase is the DEFAULT first phase: the reading settles
+        # what the query MEANS before anything is answered. --per-step restores
+        # the older behaviour, where each step costs its own delegation.
+        self.clarify = clarify
+        self.points = points
 
     @property
     def is_mock(self) -> bool:
@@ -769,7 +881,7 @@ class Browser:
     # ── entry ─────────────────────────────────────────────────────────────
 
     def run(self) -> int:
-        banner(self.is_mock)
+        banner(self.is_mock, self.clarify)
         try:
             query = input(f"  {orange('❯')} ").strip()
         except (EOFError, KeyboardInterrupt):
@@ -779,26 +891,66 @@ class Browser:
             return 0
 
         self.session = ReadingSession(query, self.agent)
-        try:
-            with Spinner("reading the query" if self.is_mock
-                         else "delegating the query to Claude Code"):
-                seeds = self.session.start()
-        except AgentError as e:
-            print(f"  {red('✗')} {e}")
-            return 1
 
-        known = self.session.entities_loaded
-        if known:
-            print("  " + dim("◆ ") +
-                  dim(f"{known} entities known from earlier sessions"))
-        print(f"  {green('✓')} {dim('entities proposed:')} "
-              f"{', '.join(bold(s.short()) for s in seeds)}")
-        report_merges(self.session)
-        self.session.seed_cursor = 0
-        seed = self.session.next_unread_seed()
-        if seed is None:
-            print(f"  {red('✗')} nothing to read")
-            return 1
+        # THE FIRST PHASE: settle what was asked. One batched call enumerates the
+        # query's ambiguities; every step afterwards is served from it locally, so
+        # clarifying costs about one delegation however many steps it takes.
+        if self.clarify:
+            try:
+                t0 = time.monotonic()
+                with Spinner("reading the query" if self.is_mock
+                             else "finding what is ambiguous in the query"):
+                    plan = self.session.start_clarifying(points=self.points)
+                plan_s = time.monotonic() - t0
+            except AgentError as e:
+                print(f"  {red('✗')} {e}")
+                return 1
+            # This is the ONE call the phase pays for, so its wait is the wait
+            # that matters — every step after it should come back instantly.
+            if VERBOSE and plan_s >= 0.05:
+                print(f"  {dim(f'/time  the plan took {plan_s:.1f}s')}"
+                      f"  {dim('· one call for the whole phase')}")
+            show_cost(self.agent)
+            known = self.session.entities_loaded
+            if known:
+                print("  " + dim("◆ ") +
+                      dim(f"{known} entities known from earlier sessions"))
+            print(f"  {green('✓')} {dim('the query is about')} "
+                  f"{bold(plan.root.short())}")
+            n = len(plan.points)
+            kinds = "".join(pt.kind for pt in plan.points)
+            print(f"  {green('✓')} {dim('found')} {bold(str(n))} "
+                  f"{dim('point' + ('' if n == 1 else 's') + ' to clarify')}"
+                  f"  {dim('[' + kinds + ']')}")
+            if VERBOSE:
+                for pt in plan.points:
+                    print(f"      {dim('·')} {dim('[' + pt.kind + ']')} "
+                          f"{pt.quote or dim('(unquoted)')}  "
+                          f"{dim(f'{len(pt.options)} options')}")
+            report_merges(self.session)
+            seed = plan.root
+        else:
+            try:
+                with Spinner("reading the query" if self.is_mock
+                             else "delegating the query to Claude Code"):
+                    seeds = self.session.start()
+            except AgentError as e:
+                print(f"  {red('✗')} {e}")
+                return 1
+            show_cost(self.agent)
+
+            known = self.session.entities_loaded
+            if known:
+                print("  " + dim("◆ ") +
+                      dim(f"{known} entities known from earlier sessions"))
+            print(f"  {green('✓')} {dim('entities proposed:')} "
+                  f"{', '.join(bold(s.short()) for s in seeds)}")
+            report_merges(self.session)
+            self.session.seed_cursor = 0
+            seed = self.session.next_unread_seed()
+            if seed is None:
+                print(f"  {red('✗')} nothing to read")
+                return 1
 
         try:
             return self.loop(seed)
@@ -810,20 +962,29 @@ class Browser:
     def loop(self, seed: Entity) -> int:
         s = self.session
         reading = s.open_reading(seed)
-        print(f"\n  {green('◆')} opening a reading from {bold(seed.short())}"
-              f"  {dim(seed.gloss)}")
+        print(f"\n  {green('◆')} opening a reading from {named(seed)}")
         show_term(reading)
 
         while True:
             try:
                 at = reading.act_entity()
-                verb = "finding" if self.is_mock else "asking for"
+                # A step served from the plan does no I/O, so say "finding"
+                # rather than "asking for" — the wording tells the user whether
+                # this wait is a delegation or not before the timing confirms it.
+                planned = s.plan is not None
+                verb = "finding" if (self.is_mock or planned) else "asking for"
+                calls_before = getattr(self.agent, "calls", 0)
+                t0 = time.monotonic()
                 with Spinner(f"{verb} the next step at "
                              f"{at.short() if at else '?'}"):
                     prop = s.propose(reading)
+                prep_s = time.monotonic() - t0
+                delegated = getattr(self.agent, "calls", 0) > calls_before
             except AgentError as e:
                 print(f"  {red('✗')} {e}")
                 return 1
+            show_prep_time(prep_s, delegated)
+            show_cost(self.agent, only_if_new=not delegated)
 
             if prop.kind == "none":
                 # No interaction step from this pointer. Try the reading's other
@@ -845,8 +1006,7 @@ class Browser:
                     self.do_resume()
                     return 0
                 reading = s.open_reading(nxt)
-                print(f"\n  {green('◆')} opening a reading from "
-                      f"{bold(nxt.short())}  {dim(nxt.gloss)}")
+                print(f"\n  {green('◆')} opening a reading from {named(nxt)}")
                 show_term(reading)
                 continue
 
@@ -862,18 +1022,23 @@ class Browser:
                 if e not in seen:
                     seen.add(e)
                     uniq.append(e)
+            # WHAT THE USER CHOOSES BETWEEN is how a point of their query is
+            # understood — so the label carries the whole choice, and the SENSE
+            # it maps to is calculus, shown only under --verbose. Without the
+            # plan (per-step mode) the entity is the choice, so it still shows.
             labels = []
             for o in prop.options:
                 if prop.kind == "B":
-                    head = (f"{bold(o.entity_a.short())} {dim('(question) ⋅')} "
-                            f"{bold(o.entity_b.short())} {dim('(answer)')}")
-                    labels.append(f"{o.label}  {head}"
-                                  + (f"\n       {dim(o.rationale)}" if o.rationale else ""))
+                    ents = (f"  {mauve(o.entity_a.short())} {dim('(question) ⋅')} "
+                            f"{mauve(o.entity_b.short())} {dim('(answer)')}")
                 else:
                     tgt = (f"«{o.reading_name}»" if o.reading_name
                            else o.entity.short())
-                    labels.append(f"{o.label}  {bold(tgt)}"
-                                  + (f"\n       {dim(o.rationale)}" if o.rationale else ""))
+                    ents = f"  {mauve(tgt)}"
+                if self.clarify and not VERBOSE and not o.reading_name:
+                    ents = ""
+                labels.append(f"{o.label}{ents}"
+                              + (f"\n       {dim(o.rationale)}" if o.rationale else ""))
 
             # Present THIS proposal until the user picks or leaves. `t` opens the
             # modal and comes back here — it must NOT fall through to the outer
@@ -895,6 +1060,12 @@ class Browser:
                                   f"({len(reading.pointers)} open)")
                 extra["r"] = "resume (save and stop)"
                 extra["q"] = "quit without saving"
+                # The words of the query at issue: the point being clarified is
+                # the user's OWN phrase, so showing it is what makes the step
+                # legible without any calculus.
+                if prop.note.startswith("clarifying: "):
+                    print(f"\n  {dim('in your query:')} "
+                          f"{orange(prop.note[len('clarifying: '):])}")
                 picked = ask_choice(
                     prop.prompt or "which reading do you take?", labels, extra)
                 if picked == "t":
@@ -1042,7 +1213,10 @@ def main(argv: list[str]) -> int:
         raw = _arg(argv, "--seed")
         agent = MockAgent(seed=int(raw) if raw and raw.lstrip("-").isdigit()
                           else None)
-    return Browser(agent).run()
+    pts = _arg(argv, "--points")
+    return Browser(agent,
+                   clarify="--per-step" not in argv,
+                   points=int(pts) if pts and pts.isdigit() else 6).run()
 
 
 if __name__ == "__main__":

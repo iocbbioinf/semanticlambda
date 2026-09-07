@@ -285,6 +285,46 @@ def test_seeds_are_deduplicated():
           "the first naming is the one kept")
 
 
+
+def test_the_store_clamps_over_long_labels():
+    """A label is a NAME. The store is the last line of defence for that.
+
+    Labels print inline everywhere, and a label SAVED long is handed back to
+    every later run by `resolve` — so one sentence-length answer would poison the
+    display permanently. A real run hit exactly this: the delegate offered the
+    short name "BBB-Permeant Hydrophobic 5-HT2C Ligands", the store matched it to
+    a record saved earlier whose label was a 117-character sentence, and `canon`
+    handed the sentence back.
+    """
+    print("\nthe store keeps labels short")
+    from entity_store import EntityStore, MAX_LABEL, StoredEntity, shorten_label
+
+    long = ("Search for molecules that are CNS-penetrant, lipophilic, and "
+            "experimentally confirmed 5-HT2C receptor ligands/actives")
+    st = StoredEntity(iri="local:x", label=long)
+    check(len(st.label) <= MAX_LABEL + 1,
+          f"the stored label is a name ({len(st.label)} chars)")
+    check(st.gloss == long, "the sentence survives as the gloss")
+    check(long in st.aliases,
+          "and as an alias, so resolve still matches on its words")
+
+    keep = StoredEntity(iri="local:y", label="measured BBB permeability")
+    check(keep.label == "measured BBB permeability",
+          "a label that is already a name is untouched")
+    check(keep.aliases == [], "and gains no alias")
+
+    # loading from disk goes through the same clamp
+    store = EntityStore()
+    store.load_records([{"iri": "local:z", "label": long, "gloss": "",
+                         "aliases": [], "uses": 3}])
+    got = store.resolve("local:z", long)
+    check(len(got.label) <= MAX_LABEL + 1,
+          f"a record loaded from disk is clamped too ({len(got.label)} chars)")
+
+    short, full = shorten_label("a b c")
+    check((short, full) == ("a b c", ""), "a short name reports no overflow")
+
+
 if __name__ == "__main__":
     for t in (test_slugify,
               test_merges_variants,
@@ -299,7 +339,8 @@ if __name__ == "__main__":
               test_loading_merges_into_what_is_already_held,
               test_merges_are_reported,
               test_store_is_authoritative_in_a_session,
-              test_seeds_are_deduplicated):
+              test_seeds_are_deduplicated,
+              test_the_store_clamps_over_long_labels):
         t()
     print()
     if FAILED:

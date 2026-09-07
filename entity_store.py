@@ -108,6 +108,30 @@ def search_score(text: str, query: str) -> float:
     return score
 
 
+# A LABEL IS A NAME, NOT A DESCRIPTION. Labels print inline — in the term, in
+# pointer lines, in option rows, in "standing at" — so a sentence-length one
+# wraps every line of the display. The delegate is asked for short labels and the
+# clarification planner clamps what it returns, but THE STORE IS THE LINE THAT
+# MATTERS: a label saved long is handed back to every later run by `resolve`, so
+# a single bad answer would otherwise poison the display permanently. Clamping in
+# __post_init__ covers minting, loading from disk and resolving alike.
+MAX_LABEL = 44
+
+
+def shorten_label(text: str) -> tuple[str, str]:
+    """(name, full) — a short name, plus the original when it had to be cut."""
+    text = (text or "").strip()
+    if len(text) <= MAX_LABEL:
+        return text, ""
+    words, name = text.replace("—", " ").replace("-", " ").split(), []
+    for w in words:
+        if len(" ".join(name + [w])) > MAX_LABEL - 1:
+            break
+        name.append(w)
+    short = (" ".join(name) + "…") if name else text[:MAX_LABEL - 1] + "…"
+    return short, text
+
+
 @dataclass
 class StoredEntity:
     """One entity, with every name it has been proposed under."""
@@ -117,6 +141,17 @@ class StoredEntity:
     aliases: list[str] = field(default_factory=list)
     # how many times this entity has been reached, for the manage view
     uses: int = 0
+
+    def __post_init__(self) -> None:
+        short, full = shorten_label(self.label)
+        if full:
+            # The sentence is not lost: it becomes the gloss when there is none,
+            # and an alias regardless, so `resolve` still matches on its words.
+            self.label = short
+            if not (self.gloss or "").strip():
+                self.gloss = full
+            if full not in self.aliases:
+                self.aliases.append(full)
 
     def note_alias(self, name: str) -> None:
         if name and name != self.label and name not in self.aliases:

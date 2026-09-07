@@ -32,6 +32,7 @@ from typing import Optional
 from optimal_lambda import LamApp, LamTerm
 from entity_store import EntityStore, load_entities, save_entities
 from reading_agent import Entity, Option, ReadingAgent, StepProposal
+from clarify_plan import ClarificationPlan, ClarificationPlanner
 from reading_state import (EntityRegistry, LamFan, PointerSet, replace_at,
                            subterm_at)
 from term_utils import _term_type
@@ -132,6 +133,24 @@ class ReadingSession:
         # a reused entity ONE node is lost between runs as well as within one.
         self.entities_loaded = load_entities(self.entities)
         self.questions: list[Question] = []
+        # The clarification phase (clarify_plan): one batched call enumerates the
+        # query's ambiguities, and every interaction step is then served from it
+        # locally. None means the older per-step delegation is in force.
+        self.plan: Optional[ClarificationPlan] = None
+        self.planner: Optional[ClarificationPlanner] = None
+        self.topups = 0
+        self._want_points = 6
+        # ONE SESSION PER QUERY: a ReadingSession IS one query, so its delegate
+        # starts from an empty CONTEXT here and keeps that one session for the
+        # whole interaction — the choices made while clarifying THIS query are
+        # what the delegate should still hold; another query's are not.
+        #
+        # That is about context, not about identity. ENTITIES REMAIN GLOBAL: the
+        # store below is loaded from data/entities.json across all queries, so an
+        # entity named once is not re-invented under a fresh iri next time, and a
+        # reused entity stays ONE node (§1) between runs as well as within one.
+        if hasattr(agent, "new_session"):
+            agent.new_session()
 
     # ── the entity store ──────────────────────────────────────────────────
 
@@ -145,9 +164,16 @@ class ReadingSession:
         if ent is None:
             return None
         st = self.entities.resolve(ent.iri, ent.label, ent.gloss)
-        if st.iri == ent.iri and st.label == ent.label:
+        # The store's gloss is worth keeping even when iri and label already
+        # agree: a delegate that names an entity it has met before often sends no
+        # gloss at all, and returning `ent` untouched would drop the description
+        # the store holds — the reading then prints a bare label with nothing
+        # after it. Take the delegate's gloss when it offered one (it is about
+        # THIS use), the store's otherwise.
+        gloss = (ent.gloss or "").strip() or st.gloss
+        if st.iri == ent.iri and st.label == ent.label and gloss == ent.gloss:
             return ent
-        return Entity(iri=st.iri, label=st.label, gloss=st.gloss or ent.gloss)
+        return Entity(iri=st.iri, label=st.label, gloss=gloss)
 
     def canon_option(self, opt: Option) -> Option:
         """An option with each of its entities resolved against the store."""
@@ -160,6 +186,35 @@ class ReadingSession:
         )
 
     # ── opening ───────────────────────────────────────────────────────────
+
+    def start_clarifying(self, points: int = 6) -> ClarificationPlan:
+        """THE FIRST PHASE — settle what was asked (clarify_plan).
+
+        The query is mapped to one entity, which becomes the reading's seed: this
+        is §3's "open on a type A", with the type being what the query is about.
+        Every interaction step afterwards resolves one ambiguity IN THE QUERY.
+
+        TIME TO FIRST QUESTION IS THE THING THE USER WAITS FOR, so this asks for
+        the ROOT AND ONE POINT only (~6s), then fetches the remaining points on a
+        BACKGROUND THREAD while the user reads that first question. Asking for
+        all of them up front was one call but ~36s of silence — cheaper in total,
+        and much worse to use.
+        """
+        self.planner = ClarificationPlanner(self.agent)
+        self.plan = self.planner.plan_first(self.query)
+        self._want_points = points
+        root = self.canon(self.plan.root)
+        self.plan.root = root
+        # The senses of the plan are entities like any other: they go through the
+        # store so a sense named twice is ONE node (§1).
+        for pt in self.plan.points:
+            for o in pt.options:
+                o.sense = self.canon(o.sense)
+                if o.sense_b is not None:
+                    o.sense_b = self.canon(o.sense_b)
+        self.seeds = [root]
+        self.seed_cursor = 0
+        return self.plan
 
     def start(self) -> list[Entity]:
         raw = self.agent.seed_entities(self.query)
@@ -207,10 +262,12 @@ class ReadingSession:
     # ── proposing ─────────────────────────────────────────────────────────
 
     def propose(self, reading: Reading) -> StepProposal:
-        """Ask the delegate for the next step at actPtr."""
+        """The next step at actPtr — from the plan when clarifying, else asked."""
         here = reading.act_entity()
         if here is None:
             return StepProposal(kind="none", note="no entity at this pointer")
+        if self.plan is not None:
+            return self._propose_from_plan(reading, here)
         # Kind C asks how this place was REACHED, and option 2 answers it by
         # building app(operand, stayed) AROUND where the user stands — so a bare
         # variable is a fine target (reading_alg §4 applies option 2 to exactly
@@ -228,6 +285,53 @@ class ReadingSession:
         )
         prop.options = [self.canon_option(o) for o in prop.options]
         # Offer the user's own finished work as an option-1 operand (§3.1).
+        if prop.kind == "A" and self.closed:
+            for c in self.closed[-2:]:
+                prop.options.append(Option(
+                    kind="A", label=f"reading «{c.name}»",
+                    rationale="a reading you already finished, used as the answer",
+                    entity=c.seed, reading_name=c.name))
+        return prop
+
+    def _propose_from_plan(self, reading: Reading,
+                           here: Entity) -> StepProposal:
+        """Serve one planned point, topping up only when the plan runs dry.
+
+        `allow_c` is False only where there is nothing to have been reached from
+        — the untouched root. A planned C point is otherwise always servable: its
+        vantage is a sense of the QUERY, so it needs no knowledge of the path the
+        user took, and option 2 leaves the type unchanged whatever has been built
+        (verified: `A · B` with operand A gives `A · (A · B)`, A one shared node).
+        """
+        assert self.plan is not None
+        allow_c = bool(reading.steps)
+        prop = self.plan.proposal_for(here, allow_c)
+
+        # ONE STEP AT A TIME. The plan holds only what has been asked so far, so
+        # when it has nothing left we ask for the next point FROM HERE — with the
+        # reading, the position and what the user already settled in the prompt.
+        # A point planned before those choices could only be ranked worse, and
+        # the wait is the same either way (~6s: latency is output size, and one
+        # point is one point).
+        if prop is None and self.planner is not None:
+            n = self.planner.plan_next(
+                self.plan, term_text=str(reading.term), here=here,
+                known=reading.used or [reading.seed], allow_c=allow_c)
+            if n:
+                for pt in self.plan.points[-n:]:
+                    for o in pt.options:
+                        o.sense = self.canon(o.sense)
+                        if o.sense_b is not None:
+                            o.sense_b = self.canon(o.sense_b)
+                prop = self.plan.proposal_for(here, allow_c)
+
+        if prop is None:
+            return StepProposal(kind="none",
+                                note="nothing left to clarify in the query")
+        self.plan.spend(prop)
+        prop.options = [self.canon_option(o) for o in prop.options]
+        # A finished reading may be what the user answers WITH (§3.1) — the same
+        # offer the per-step path makes.
         if prop.kind == "A" and self.closed:
             for c in self.closed[-2:]:
                 prop.options.append(Option(

@@ -9,6 +9,7 @@ what is under test is the calculus, not the proposals.
 """
 
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -28,6 +29,38 @@ def check(cond, msg):
     else:
         print(f"  FAIL {msg}")
         FAILED.append(msg)
+
+
+def _leaf_nodes(t) -> dict:
+    """label -> (occurrences, distinct nodes), descending into fan contexts.
+
+    Sharing shows up two ways in the term representation — a node reached twice
+    by identity, or a LamFan recording casts — so both must be walked (the
+    `reading` skill's "one kind of sharing").
+    """
+    from collections import defaultdict
+    from optimal_lambda import LamApp, LamVar
+    from reading_state import LamFan
+
+    found = []
+
+    def walk(x):
+        if isinstance(x, LamApp):
+            walk(x.func); walk(x.arg)
+        elif isinstance(x, LamVar):
+            found.append(x)
+        elif isinstance(x, LamFan):
+            walk(x.principal)
+            for ctx in (getattr(x, "grey_ctx", None), getattr(x, "black_ctx", None)):
+                if ctx is not None:
+                    walk(ctx)
+
+    walk(t)
+    d = defaultdict(set)
+    for v in found:
+        d[v.label].add(id(v))
+    return {lab: (sum(1 for v in found if v.label == lab), len(ids))
+            for lab, ids in d.items()}
 
 
 class StubAgent:
@@ -371,7 +404,17 @@ def test_show_term_does_not_refetch_the_proposal():
     from reading_mock import MockAgent
 
     class Counting(MockAgent):
+        """Counts DELEGATIONS, whichever phase asks for them.
+
+        Under the clarification phase (the default) steps are served from the
+        one batched plan, so `propose_step` is never reached — what must not grow
+        when the modal opens is the number of calls to the TRANSPORT.
+        """
         calls = 0
+
+        def _invoke(self, prompt, schema):
+            Counting.calls += 1
+            return super()._invoke(prompt, schema)
 
         def propose_step(self, **kw):
             Counting.calls += 1
@@ -394,10 +437,13 @@ def test_show_term_does_not_refetch_the_proposal():
 
     check(out.count("the reading so far") == 2, "the modal opened both times")
     check(out.count("✓ [") == 2, "both chosen steps were applied")
-    # one proposal per step taken, plus the one in flight when resume was hit;
-    # a modal open must add NONE.
+    # A modal must not re-ask the delegate: the options on screen belong to the
+    # place the user is at, and re-asking would both discard them and (on
+    # --claude) pay again. Two steps were taken, so two questions were asked —
+    # the first with the plan's opening point, the second asked from there — and
+    # opening the modal twice must have added NOTHING to that.
     check(Counting.calls == 3,
-          f"the modal cost no extra proposal (calls={Counting.calls})")
+          f"the modal cost no extra delegation (calls={Counting.calls})")
 
 
 def test_context_prompt_and_picker_in_the_ui():
@@ -488,7 +534,8 @@ def test_verbose_gates_the_calculus_trace():
         check(token in loud, f"verbose: {what} IS shown")
 
     # what must survive in BOTH: the user still has to see the choice
-    for token, what in [("which do you take?", "the delegate's own question"),
+    for token, what in [("how should", "the question put to the user"),
+                        ("in your query:", "the words of the query at issue"),
                         ("saved", "the resume confirmation")]:
         check(token in quiet and token in loud, f"both: {what} is shown")
 
@@ -567,6 +614,362 @@ def test_render_reading_shows_sharing_once():
           "both occurrences of t are marked as the one node")
 
 
+
+def test_the_first_question_is_one_small_call():
+    """The first wait is ONE call for ONE point — that is the whole latency.
+
+    Latency tracks output size, so asking for six points up front meant ~36s of
+    silence before anything appeared; one point is ~6s. The phase therefore asks
+    for the root plus a single point, and asks again per step.
+    """
+    print("\nclarification — the first question is one small call")
+    from reading_mock import MockAgent
+    from reading_session import ReadingSession
+
+    class Counting(MockAgent):
+        def __init__(self):
+            super().__init__()
+            self.invokes = 0
+
+        def _invoke(self, prompt, schema):
+            self.invokes += 1
+            return super()._invoke(prompt, schema)
+
+    agent = Counting()
+    s = ReadingSession("molecules that pass the blood-brain barrier and bind 5-HT2C",
+                       agent)
+    plan = s.start_clarifying()
+    check(agent.invokes == 1, "the first question cost exactly one call")
+    check(len(plan.points) == 1,
+          f"and carries ONE point, not a batch ({len(plan.points)})")
+    check(plan.root is not None, "the query was mapped to a root entity")
+
+    r = s.open_reading(plan.root)
+    taken = 0
+    for _ in range(12):
+        prop = s.propose(r)
+        if prop.kind == "none":
+            break
+        s.apply(r, prop, prop.options[0])
+        taken += 1
+    check(taken >= 3, f"the phase kept going ({taken} steps)")
+    # one call for the first question, then one per further step
+    check(agent.invokes <= taken + 2,
+          f"about one call per step ({agent.invokes} calls, {taken} steps)")
+
+
+def test_all_three_kinds_are_reachable_in_a_phase():
+    """A/B/C all occur across a phase, and each applies as its reading step.
+
+    Not within one reply any more — each call asks for a single point — so the
+    property is about the PHASE: over its steps, all three kinds are proposed and
+    applied, and a B really reflects (|Pr| grows).
+    """
+    print("\nclarification — all three kinds occur across the phase")
+    from reading_mock import MockAgent
+    from reading_session import ReadingSession
+
+    s = ReadingSession("molecules that pass the blood-brain barrier and bind 5-HT2C",
+                       MockAgent())
+    plan = s.start_clarifying()
+    r = s.open_reading(plan.root)
+    seen = set()
+    for _ in range(12):
+        prop = s.propose(r)
+        if prop.kind == "none":
+            break
+        before = len(r.pointers)
+        s.apply(r, prop, prop.options[0])
+        seen.add(prop.kind)
+        if prop.kind == "B":
+            check(len(r.pointers) == before + 1,
+                  "a B step really reflected — |Pr| grew")
+    check(seen == {"A", "B", "C"},
+          f"all three kinds were applied across the phase ({sorted(seen)})")
+
+
+def test_step_c_is_not_retrospective():
+    """C may re-ask the SAME point, and may take a vantage already in the reading.
+
+    Both are what make ONE up-front call sufficient for C: a vantage is a sense
+    of the QUERY, so it needs no knowledge of the path the user took.
+    """
+    print("\nclarification — step C is not restricted to the last move")
+    from reading_agent import Entity, Option, StepProposal
+    from reading_session import ReadingSession
+    from reading_mock import MockAgent
+    from term_utils import _term_type
+
+    A = Entity("local:sense-a", "A")
+    B = Entity("local:sense-b", "B")
+    B2 = Entity("local:sense-b2", "B2")
+
+    # (a) the same point, re-asked after the reading has grown
+    s = ReadingSession("q", MockAgent())
+    r = s.open_reading(A)
+    s.apply(r, StepProposal(kind="A"), Option(kind="A", label="", entity=B))
+    before = _term_type(r.term)
+    s.apply(r, StepProposal(kind="C"), Option(kind="C", label="", entity=A))
+    check(_term_type(r.term) == before,
+          "re-asking the same point leaves the type unchanged (option 2)")
+    check(r.act_entity().iri == B.iri, "and leaves the user standing at B")
+    check(_leaf_nodes(r.term)[A.label] == (2, 1),
+          "the re-asked point is ONE shared node, twice occurring")
+
+    # (b) a LATER, unrelated point whose vantage maps back into the reading
+    s2 = ReadingSession("q", MockAgent())
+    r2 = s2.open_reading(A)
+    s2.apply(r2, StepProposal(kind="A"), Option(kind="A", label="", entity=B))
+    s2.apply(r2, StepProposal(kind="A"), Option(kind="A", label="", entity=B2))
+    s2.apply(r2, StepProposal(kind="C"), Option(kind="C", label="", entity=A))
+    check(_term_type(r2.term) == B2.iri,
+          "the later C step still leaves the type where the user stands")
+    check(_leaf_nodes(r2.term)[A.label] == (2, 1),
+          "a vantage already in the reading is reused as ONE node")
+
+
+def test_one_call_per_step_asked_from_here():
+    """Each step costs ONE delegation, and it is asked from where the user is.
+
+    Time to first question is what the user waits for, and latency tracks output
+    size — six points at once was ~36s of silence, one point ~6s. So the phase
+    asks one at a time, and each call is told the reading, the position and what
+    was already settled, which a point planned in advance could not know.
+    """
+    print("\nclarification — one call per step, asked from the current place")
+    from reading_mock import MockAgent
+    from reading_session import ReadingSession
+
+    seen_prompts = []
+
+    class Counting(MockAgent):
+        def __init__(self):
+            super().__init__()
+            self.invokes = 0
+
+        def _invoke(self, prompt, schema):
+            self.invokes += 1
+            seen_prompts.append(prompt)
+            return super()._invoke(prompt, schema)
+
+    agent = Counting()
+    s = ReadingSession("molecules that pass the blood-brain barrier and bind 5-HT2C",
+                       agent)
+    plan = s.start_clarifying()
+    check(agent.invokes == 1, "the first question cost exactly one call")
+    check(len(plan.points) == 1,
+          f"and asked for ONE point, not a batch ({len(plan.points)})")
+
+    r = s.open_reading(plan.root)
+    taken = 0
+    while taken < 4:
+        prop = s.propose(r)
+        if prop.kind == "none":
+            break
+        s.apply(r, prop, prop.options[0])
+        taken += 1
+    check(taken >= 3, f"the phase kept going ({taken} steps)")
+    check(agent.invokes == taken + 1 or agent.invokes >= taken,
+          f"one call per step ({agent.invokes} calls for {taken} steps)")
+
+    # the later prompts must carry the state a pre-made plan could not have
+    later = seen_prompts[-1]
+    for token, what in [("STANDING AT", "where the user stands"),
+                        ("SETTLED", "what was already settled"),
+                        ("READING SO FAR", "the reading built so far")]:
+        check(token in later, f"the call is told {what}")
+
+
+def test_plan_order_beats_the_at_sense_hint():
+    """The delegate's RANKING decides what is asked first, not `at_sense`.
+
+    `at_sense` is a guess about where the user will be standing, made before they
+    chose anything — the least reliable field in the plan. Letting it jump a point
+    ahead of higher-ranked ones reorders the phase by that guess, which is what a
+    real run did: it opened with a B point tagged for the root while four A points
+    the delegate had ranked above it waited.
+    """
+    print("\nclarification — plan order wins over the at_sense hint")
+    from clarify_plan import ClarificationPlan, PlannedPoint, PlannedOption
+    from reading_agent import Entity
+
+    root = Entity("local:root", "root")
+
+    def a_opts(n):
+        return [PlannedOption(label=f"o{i}",
+                              sense=Entity(f"local:s{n}{i}", f"s{n}{i}"))
+                for i in (1, 2)]
+
+    def b_opts():
+        return [PlannedOption(label=f"b{i}",
+                              sense=Entity(f"local:ba{i}", "ba"),
+                              sense_b=Entity(f"local:bb{i}", "bb"))
+                for i in (1, 2)]
+
+    pts = [
+        PlannedPoint(quote="1", kind="A", question="qA1", options=a_opts(1)),
+        PlannedPoint(quote="2", kind="A", question="qA2", options=a_opts(2)),
+        # tagged for exactly where the user starts, but ranked third
+        PlannedPoint(quote="3", kind="B", question="qB", options=b_opts(),
+                     at_sense="local:root"),
+    ]
+    plan = ClarificationPlan(query="q", root=root, points=pts)
+    served = []
+    for _ in range(3):
+        prop = plan.proposal_for(root, allow_c=True)
+        if prop is None:
+            break
+        served.append(prop.prompt)
+        plan.spend(prop)
+    check(served == ["qA1", "qA2", "qB"],
+          f"served in the plan's own order ({served})")
+
+
+def test_over_long_labels_become_glosses():
+    """A label is a NAME: a delegate that answers with a sentence is corrected.
+
+    Labels print inline — in the term, in pointer lines, in option rows — so a
+    sentence-length one wraps every line of the display. A real run returned a
+    23-word root label and made the reading unreadable.
+    """
+    print("\nclarification — a sentence label is moved into the gloss")
+    from clarify_plan import ClarificationPlanner
+
+    long = ("find molecules meeting three joint criteria: BBB permeability, "
+            "hydrophobicity, and experimentally validated 5-HT2C binding")
+    out = ClarificationPlanner._shorten({"id": "x", "label": long})
+    check(len(out["label"]) <= ClarificationPlanner.MAX_LABEL,
+          f"the label is short enough to print inline ({len(out['label'])} chars)")
+    check(out["gloss"] == long, "the sentence survives, as the gloss")
+    check(not out["label"].rstrip("…").endswith(" "),
+          "the name is cut on a word boundary")
+
+    keep = {"id": "y", "label": "measured BBB permeability"}
+    check(ClarificationPlanner._shorten(keep) == keep,
+          "a label that is already a name is left alone")
+
+    # The label is not the only way long text gets in: with no label,
+    # `ReadingAgent._entity` uses the raw ID as one. A real run hit exactly
+    # this — a sentence-length slug, no label — and printed it in full.
+    pl = ClarificationPlanner(None)
+    for d in ({"id": "search-for-molecules-that-are-cns-penetrant-and-"
+                     "experimentally-confirmed-5ht2c-actives", "label": ""},
+              {"id": "local:a-very-long-slug-that-goes-on-and-on-for-ages",
+               "label": None}):
+        ent = pl._sense(dict(d), {})
+        check(len(ent.label) <= ClarificationPlanner.MAX_LABEL + 1,
+              f"a long id yields a short label too ({len(ent.label)} chars)")
+
+
+def test_spinner_erases_the_whole_line():
+    """The spinner must clip to the terminal and erase what it wrote.
+
+    A label wider than the eraser leaves its tail on screen after the next line
+    is printed — visible in a real run as text dangling after the /time line.
+    """
+    print("\nUI — the spinner clips and erases to the terminal width")
+    import io
+    from unittest.mock import patch
+    import reading_browser as rb
+
+    buf = io.StringIO()
+    long_label = "x" * 400
+    with patch.object(rb, "_TTY", True), patch("sys.stdout", buf):
+        with rb.Spinner(long_label):
+            time.sleep(0.3)
+    out = buf.getvalue()
+    width = rb.Spinner._width()
+    # Measure what is DISPLAYED: the colour escapes cost bytes but no columns,
+    # so counting raw characters would fail a line that fits perfectly.
+    import re
+    visible = [len(re.sub(r"\033\[[0-9;]*m|\033\[2K", "", seg))
+               for seg in out.split("\r") if seg]
+    check(max(visible, default=0) <= width,
+          f"no written line exceeds the terminal width "
+          f"({max(visible, default=0)} vs {width})")
+    # Erasing must NOT pad with spaces: the width is only ever a guess, and on a
+    # wide terminal an over-long run of spaces IS the trailing whitespace it was
+    # supposed to remove. A real run showed exactly that.
+    check("\033[2K" in out, "the line is cleared with clear-to-EOL")
+    check(not re.search(r"  {20,}", out), "no long run of padding spaces")
+    check(out.endswith("\033[2K"), "the spinner leaves the line erased")
+
+
+
+def test_canon_keeps_the_stored_gloss():
+    """A stored gloss survives when the delegate sends none.
+
+    `canon` returned the delegate's own Entity untouched whenever iri AND label
+    already matched — dropping the store's gloss. That went unnoticed while
+    stored labels differed from what the delegate sent (the merge branch ran and
+    picked the gloss up); the moment labels agreed, readings started printing a
+    bare label with nothing after it.
+    """
+    print("\nthe store's gloss is not lost when the label already matches")
+    from reading_agent import Entity
+    from reading_mock import MockAgent
+    from reading_session import ReadingSession
+
+    s = ReadingSession("q", MockAgent())
+    s.entities.load_records([{"iri": "local:bbb", "label": "BBB ligands",
+                              "gloss": "molecules that reach the brain",
+                              "aliases": [], "uses": 2}])
+
+    got = s.canon(Entity(iri="local:bbb", label="BBB ligands", gloss=""))
+    check(got.gloss == "molecules that reach the brain",
+          "no gloss offered: the stored one is recovered")
+    check(got.iri == "local:bbb" and got.label == "BBB ligands",
+          "and identity is unchanged")
+
+    own = s.canon(Entity(iri="local:bbb", label="BBB ligands",
+                         gloss="what it means HERE"))
+    check(own.gloss == "what it means HERE",
+          "a gloss the delegate offered wins — it is about this use")
+
+
+
+def test_gloss_is_required_and_quotes_are_short():
+    """The two fields the display depends on are constrained at the boundary.
+
+    A terse label needs its gloss to be legible, so `gloss` is REQUIRED in the
+    schema — left optional, the delegate omitted it most of the time and readings
+    printed a name with nothing after it. And a `quote` is shown as "in your
+    query: …" to say WHERE the doubt is, so a whole-clause quote defeats it.
+    """
+    print("\nclarification — gloss required, quote minimal")
+    from clarify_plan import ClarificationPlanner, _PLAN_SCHEMA
+
+    root = _PLAN_SCHEMA["properties"]["root"]
+    check("gloss" in root["required"],
+          "the schema requires a gloss on every entity")
+
+    clause = ("molecules that can pass the blood-brain barrier, are hydrophobic "
+              "and have been experimentally shown to interact with the receptor")
+    clipped = ClarificationPlanner._clip_quote(clause)
+    check(len(clipped) <= ClarificationPlanner.MAX_QUOTE,
+          f"a whole-clause quote is clipped ({len(clipped)} chars)")
+    check(ClarificationPlanner._clip_quote("are hydrophobic") == "are hydrophobic",
+          "a phrase-length quote is left exactly as the user wrote it")
+
+
+def test_a_missing_gloss_leaves_no_dangling_name():
+    """`named()` never renders a separator with nothing after it."""
+    print("\nUI — a name with no gloss renders cleanly")
+    import reading_browser as rb
+    from reading_agent import Entity
+
+    with_gloss = rb.named(Entity("local:x", "Short name", "a useful clause"))
+    check("a useful clause" in with_gloss, "a gloss is shown when there is one")
+
+    bare = rb.named(Entity("local:y", "Short name", ""))
+    check(bare.rstrip() == bare and bare.endswith("Short name"),
+          f"no trailing separator when the gloss is empty ({bare!r})")
+
+    echo = rb.named(Entity("local:z", "Same", "same"))
+    check(echo.count("Same") == 1 or "same" not in echo.replace("Same", ""),
+          "a gloss that merely repeats the label is not printed twice")
+
+
 if __name__ == "__main__":
     for t in (test_kind_a_is_contraction_option_1,
               test_entity_id_normalisation,
@@ -583,7 +986,17 @@ if __name__ == "__main__":
               test_argument_position_sharing,
               test_entity_reuse_is_one_node,
               test_exhausted_pointer_then_next_seed,
-              test_closed_reading_as_operand):
+              test_closed_reading_as_operand,
+              test_the_first_question_is_one_small_call,
+              test_all_three_kinds_are_reachable_in_a_phase,
+              test_step_c_is_not_retrospective,
+              test_one_call_per_step_asked_from_here,
+              test_plan_order_beats_the_at_sense_hint,
+              test_over_long_labels_become_glosses,
+              test_spinner_erases_the_whole_line,
+              test_canon_keeps_the_stored_gloss,
+              test_gloss_is_required_and_quotes_are_short,
+              test_a_missing_gloss_leaves_no_dangling_name):
         t()
     print()
     if FAILED:
