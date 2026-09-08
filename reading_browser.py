@@ -31,9 +31,8 @@ Options:   --verbose, -v     show the calculus: the term as it grows, the
            --seed N          vary the mock (default: derived from the query)
 
 Commands:  1..n     take that reading — the interaction step
-           a        ask a question — write it, choose the entity it is about;
-                    the question is saved as `lam a.t` and a new reading starts
-                    standing in it
+                    (a QUESTION is not asked here: `resume` builds one
+                    automatically from whatever was left unclarified)
            p        switch context (offered once a reflection has split the
                     reading; the two contexts grow independently)
            s        skip this place
@@ -167,10 +166,10 @@ def banner(mock: bool, clarify: bool = True) -> None:
     if clarify:
         print(dim("  first phase: ") + orange("clarify the query") +
               dim("  — each step settles one ambiguity in what you asked"))
-    cmds = ("  at each step: a ask · o ontologies · p switch context · "
+    cmds = ("  at each step: o ontologies · p switch context · "
             "s skip · t reading · e entities · resume · quit") if VERBOSE else (
-            "  at each step: a ask a question · o ontologies · "
-            "p switch context · s skip · resume · quit")
+            "  at each step: o ontologies · p switch context · "
+            "s skip · resume · quit")
     print(dim(cmds))
     print()
 
@@ -626,41 +625,6 @@ def pick_entity(reading: Reading, session, prompt: str):
                   empty_note=dim("nothing matches"))
 
 
-def ask_a_question(reading: Reading, session) -> bool:
-    """Ask a question of an entity: write the text, then choose what it is about.
-
-    A question is an ABSTRACTION `lam a.t` (reading_desc §2) — the reading built
-    so far as the body, the chosen entity as the binder. It names a SUBTYPE of
-    that entity's type, and the new reading starts standing IN the question.
-
-    The entity may be any the session knows, not only those in this reading; one
-    that is not yet in the body is contracted in first, since a question whose
-    bound variable does not occur free would be "about nothing".
-    """
-    print()
-    try:
-        title = input(f"  {bold('your question')} {dim('(blank to cancel)')}\n"
-                      f"  {orange('❯')} ").strip()
-    except (EOFError, KeyboardInterrupt):
-        print()
-        return False
-    if not title:
-        return False
-
-    asked = pick_entity(reading, session, "what is the question about?")
-    if asked is None:
-        return False
-    qid, _ = session.ask_question(reading, title, asked)
-    print()
-    print(f"  {green('✓')} asked {bold(title)} {dim('of')} {bold(asked.short())}")
-    if VERBOSE:
-        q = session.questions[-1]
-        print(f"    {dim('abstraction:')} {green(str(q.term))}")
-        print(f"    {dim('names subtype:')} {dim(_short(qid))}")
-    print(f"  {green('◆')} reading on from {bold(title)}")
-    return True
-
-
 def _pointer_line(reading: Reading, p, act) -> str:
     """One pointer, described as a place the user could stand.
 
@@ -915,20 +879,25 @@ class Browser:
             if known:
                 print("  " + dim("◆ ") +
                       dim(f"{known} entities known from earlier sessions"))
-            print(f"  {green('✓')} {dim('the query is about')} "
-                  f"{bold(plan.root.short())}")
-            n = len(plan.points)
-            kinds = "".join(pt.kind for pt in plan.points)
+            seeds = self.session.seeds
+            # NO SEED, NO INTERACTION. The seeds are the query's unclear points;
+            # if it has none there is nothing to clarify, so resume rather than
+            # inventing a question.
+            if not seeds:
+                print(f"  {dim('nothing unclear in this query — resuming')}")
+                report_merges(self.session)
+                self.do_resume()
+                return 0
+            n = len(seeds)
             print(f"  {green('✓')} {dim('found')} {bold(str(n))} "
-                  f"{dim('point' + ('' if n == 1 else 's') + ' to clarify')}"
-                  f"  {dim('[' + kinds + ']')}")
-            if VERBOSE:
-                for pt in plan.points:
-                    print(f"      {dim('·')} {dim('[' + pt.kind + ']')} "
-                          f"{pt.quote or dim('(unquoted)')}  "
-                          f"{dim(f'{len(pt.options)} options')}")
+                  f"{dim('unclear point' + ('' if n == 1 else 's') + ', one reading each')}")
+            for s_ in seeds:
+                quote = self.session.seed_quotes.get(s_.iri, "")
+                print(f"      {dim('·')} {orange(quote) if quote else dim('—')}"
+                      f"  {dim('→')} {named(s_)}")
             report_merges(self.session)
-            seed = plan.root
+            seed = seeds[0]
+            self.session.seed_cursor = 1
         else:
             try:
                 with Spinner("reading the query" if self.is_mock
@@ -1048,7 +1017,7 @@ class Browser:
             while choice is None:
                 show_step_header(prop.kind, reading, uniq)
                 report_merges(s)
-                extra = {"a": "ask a question", "s": "skip this place"}
+                extra = {"s": "skip this place"}
                 extra["o"] = "ontologies"
                 if VERBOSE:
                     extra["t"] = "show the reading"
@@ -1076,13 +1045,6 @@ class Browser:
                     continue
                 if picked == "o":
                     show_ontologies(reading, s)
-                    continue
-                if picked == "a":
-                    # Asking CLOSES this reading and opens one standing in the
-                    # question, so the loop must pick the new reading up.
-                    if ask_a_question(reading, s):
-                        choice = "asked"
-                        break
                     continue
                 if picked == "p":
                     # Moving re-points the reading; the options on screen belong
@@ -1146,7 +1108,28 @@ class Browser:
         s = self.session
         if s is None:
             return
-        if s.current is not None:
+        # RESUME BUILDS THE QUERY'S READING. The exhausted readings are applied
+        # to one another (Rnew = app(app(R1,R2),R3)), the open one last, and if
+        # any seed was never read the result is abstracted over those still
+        # unclarified points — one nested question per binder.
+        auto_q = None
+        if s.plan is not None:
+            rnew = s.combined_term(
+                extra=s.current.term if s.current is not None else None)
+            auto_q = s.close_with_question()
+            if rnew is not None:
+                print()
+                print(f"  {green('✓')} the query, read: {green(str(rnew))}")
+                if VERBOSE:
+                    print(f"      {dim('|R| =')} {dim(str(len(s.closed)))}"
+                          f"{dim(' readings, applied left to right')}")
+            if auto_q is not None:
+                pend = s.unexhausted_seeds()
+                print(f"  {green('✓')} {len(pend)} point(s) left unclarified — "
+                      f"asked as a question")
+                if VERBOSE:
+                    print(f"      {dim(str(auto_q.term))}")
+        elif s.current is not None:
             s.close_current()
         if not s.closed:
             print(dim("  nothing to save"))

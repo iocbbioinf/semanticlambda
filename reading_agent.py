@@ -9,11 +9,19 @@ readings of an entity or a relation are worth offering.
                  applies it to R = (G(t), Pr)
     this module  proposes WHAT the options are at that place
 
-ENTITIES ARE NOT KG NODES. They are minted freely from the query — "by entity
-here I don't mean specifically entities in the KG". An entity is a VARIABLE of
-the reading's term, identified by a slug id and carrying a human label. Relations
-are likewise proposed rather than looked up, so LEGAL_CONTRACT's arrow test
-(reading_alg §3.1) is answered by the agent instead of by an RDF graph.
+ENTITIES ARE NOT KG NODES. "By entity here I don't mean specifically entities in
+the KG". An entity is a VARIABLE of the reading's term, identified by a slug id
+and carrying a human label. Relations are likewise proposed rather than looked
+up, so LEGAL_CONTRACT's arrow test (reading_alg §3.1) is answered by the agent
+instead of by an RDF graph.
+
+AN ENTITY EXISTS INDEPENDENTLY OF A QUERY. A query is the OCCASION on which one
+is proposed, never what it belongs to: the same entity may be reached from any
+number of queries, and the store that holds it is global and persistent
+(`entity_store`, data/entities.json) for exactly that reason. So an entity is
+never "this query's entity" — which is why identity may be shared across
+queries while CONTEXT may not (one `claude` session per query, see below), and
+why nothing in `EntityStore` records which query first named a thing.
 
 Delegation runs `claude -p` with `--json-schema`, so every reply is machine
 checked against a schema before it reaches the calculus. The CLI returns an

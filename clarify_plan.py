@@ -8,12 +8,18 @@ reading R built here IS the disambiguated query.
 "SENSE" IS NOT A SECOND KIND OF OBJECT. The `sense` fields below hold ordinary
 `Entity` values — the same dataclass, the same global store, the same node of the
 sharing graph. §2 already makes an entity BE a type ("the most general question of
-its type"), and `reading_agent` already mints entities freely from the query
-rather than from a KG. The word only names WHAT an entity denotes in this phase:
-a way of reading the user's words, instead of a thing in the domain. The calculus
-never inspects the difference, which is why this phase needed no new operation.
-(The genuinely distinct neighbour is a SUBTYPE named by a question, §2's A1 < A —
-created by `ask_question`, not here.)
+its type"), and an entity is not a KG node either. The word only names WHAT an
+entity denotes in this phase: a way of reading the user's words, instead of a
+thing in the domain. The calculus never inspects the difference, which is why
+this phase needed no new operation. (The genuinely distinct neighbour is a
+SUBTYPE named by a question, §2's A1 < A — created by `ask_question`, not here.)
+
+AND AN ENTITY IS NOT THE QUERY'S. It exists independently of any query; a query
+is only the occasion on which one is proposed. A point of THIS query may
+therefore be understood as an entity some earlier query named — that is reuse,
+not coincidence, and it is why the store is global (`entity_store`) while the
+delegate's context is per-query. `root` is no exception: "the query as a whole,
+as one entity" is an entity that happens to have been reached from here.
 
 ONE STEP PER CALL, AND ONE MODEL. Each call asks for exactly ONE point, from
 where the user now stands, and the phase runs on whichever model the user chose
@@ -101,25 +107,35 @@ class PlannedPoint:
     options: list[PlannedOption] = field(default_factory=list)
     at_sense: Optional[str] = None      # iri, a hint only
     spent: bool = False
+    # Which reading this point was asked for. A further reading opened after
+    # exhaustion reads a DIFFERENT subject, so the same words of the query may
+    # genuinely be at issue again there — dedupe is therefore per reading, not
+    # per query.
+    reading: int = 0
 
 
 @dataclass
 class ClarificationPlan:
     """Everything the one call produced, plus what the interaction has spent."""
     query: str
-    root: Entity                        # the query mapped to one entity (init)
+    # The seed currently being read — points are asked about it. None only
+    # before the first reading opens, when the query has no seed at all.
+    root: Optional[Entity]
     points: list[PlannedPoint] = field(default_factory=list)
     cost_usd: float = 0.0
     calls: int = 1
 
     # ── serving the interaction, locally ──────────────────────────────────
 
-    def open_points(self, kinds: Optional[set[str]] = None) -> list[PlannedPoint]:
+    def open_points(self, kinds: Optional[set[str]] = None,
+                    reading: Optional[int] = None) -> list[PlannedPoint]:
         return [p for p in self.points
-                if not p.spent and (kinds is None or p.kind in kinds)]
+                if not p.spent and (kinds is None or p.kind in kinds)
+                and (reading is None or p.reading == reading)]
 
     def proposal_for(self, here: Optional[Entity], allow_c: bool,
-                     allow_b: bool = True) -> Optional[StepProposal]:
+                     allow_b: bool = True,
+                     reading: Optional[int] = None) -> Optional[StepProposal]:
         """The next planned step, preferring points meant for where we stand.
 
         A point is served whether or not its `at_sense` matches: an entity is a
@@ -135,7 +151,7 @@ class ClarificationPlan:
         kinds = {"A", "C"} if not allow_b else {"A", "B", "C"}
         if not allow_c:
             kinds.discard("C")
-        cands = self.open_points(kinds)
+        cands = self.open_points(kinds, reading=reading)
         if not cands:
             return None
 
@@ -157,7 +173,7 @@ class ClarificationPlan:
         # "multiple reasonable ways" — a single option is not a choice (§4).
         if len(options) < 2:
             pt.spent = True
-            return self.proposal_for(here, allow_c, allow_b)
+            return self.proposal_for(here, allow_c, allow_b, reading)
         return StepProposal(kind=pt.kind, prompt=pt.question,
                             options=options[:4],
                             note=f"clarifying: “{pt.quote}”")
@@ -301,6 +317,30 @@ is precise on some point, leave that point out."""
 
 # The first call's schema is DELIBERATELY CAPPED: maxItems on points and options
 # is what keeps the output small, and output size is the latency.
+_SEEDS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "seeds": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "quote": {"type": "string",
+                              "description": "shortest verbatim run of the "
+                                             "query's own words, a few words"},
+                    "entity": dict(_SENSE,
+                                   description="the entity this unclear point "
+                                               "is about"),
+                },
+                "required": ["quote", "entity"],
+            },
+        },
+    },
+    "required": ["seeds"],
+}
+
+
 _FIRST_SCHEMA = {
     "type": "object",
     "properties": {
@@ -315,23 +355,26 @@ _FIRST_SCHEMA = {
 }
 
 
-_FIRST_PROMPT = """You are the CLARIFICATION phase of a query-reading tool. Do NOT \
+_SEEDS_PROMPT = """You are the CLARIFICATION phase of a query-reading tool. Do NOT \
 answer the query.
 
 THE QUERY:
 {query}
 
-BE TERSE. Respect every length limit in the schema; no prose outside the fields. \
-You are being timed — the user is waiting for this one question.
+Find the UNCLEAR POINTS of this query — the places where it could be understood \
+in more than one way, and where the difference changes what a correct answer \
+would be. Give at most {n}, ranked most consequential first.
 
-Give:
-  `root`  — the query as a whole, as one entity: a name of at most 4 words plus a \
-one-clause gloss.
-  `points` — EXACTLY ONE point: the SINGLE most consequential ambiguity in the \
-query, the one whose resolution most changes what a correct answer would be. \
-Kind "A". `quote` is the shortest run of the query's OWN words that locates it \
-(a few words, verbatim). 2-3 `options`, each a way of understanding that point in \
-the user's own terms, mapped to a `sense` entity."""
+Each unclear point is mapped to ONE ENTITY: a name of at most 4 words plus a \
+required one-clause gloss. That entity is what the point is ABOUT — the subject \
+a reader would have to settle before the query can be answered. `quote` is the \
+shortest run of the query's OWN words that locates the point (a few words, \
+verbatim).
+
+BE TERSE. Respect every length limit in the schema; no prose outside the fields.
+
+If the query has no unclear point — it is already precise — return an empty \
+`seeds` list. Do not manufacture ambiguity to fill the list."""
 
 
 _NEXT_PROMPT = """You are the CLARIFICATION phase of a query-reading tool. Do NOT \
@@ -350,6 +393,11 @@ THE READING SO FAR (a term; each application is one settled point):
 THE USER IS STANDING AT: {here}
 ENTITIES ALREADY IN THIS READING — reuse these ids when you mean the same thing:
   {known}
+
+ENTITIES FROM EARLIER READINGS, available to reuse. An entity exists \
+INDEPENDENTLY OF ANY QUERY, so if a point of this query means one of these, give \
+its id rather than minting a near-duplicate — that is what keeps it ONE node:
+{offered}
 
 BE TERSE. Respect every length limit in the schema; no prose outside the fields. \
 You are being timed — the user is waiting for this one question.
@@ -531,29 +579,40 @@ class ClarificationPlanner:
     # it, and fetches the rest WHILE THE USER READS — the wait the user actually
     # experiences drops from 36s to ~6s, and the remaining points cost the same
     # as before but off the critical path.
-    def plan_first(self, query: str) -> ClarificationPlan:
-        """The root plus ONE point — the whole of the first wait.
+    def seeds(self, query: str, n: int = DEFAULT_POINTS
+              ) -> list[tuple[str, Entity]]:
+        """PHASE 0 — the query's unclear points, mapped to entities.
 
-        ONE MODEL for the whole reading: the delegate's model is whatever the
-        user chose, here as everywhere. Mixing models inside one reading would
-        mean the first question and the later ones come from different judgement.
+        These are the SEEDS, and the set is FIXED once made: each is read in its
+        own right during clarification, and a point that emerges while reading
+        maps to an entity without becoming a seed of its own. So the number of
+        readings a query can produce is decided here.
+
+        Returns (quote, entity) pairs — the words at issue and what they are
+        about. An empty list means the query has no unclear point, and the
+        driver must then not start an interaction at all.
         """
-        before = self.agent.total_cost_usd
-        data = self.agent._invoke(_FIRST_PROMPT.format(query=query),
-                                  _FIRST_SCHEMA)
+        data = self.agent._invoke(_SEEDS_PROMPT.format(query=query, n=n),
+                                  _SEEDS_SCHEMA)
         seen: dict[str, Entity] = {}
-        root = self._sense(data.get("root"), seen)
-        if root is None:
-            raise AgentError("the delegate did not map the query to an entity")
-        points = self._decode(data, seen)
-        if not points:
-            raise AgentError("the delegate found nothing to clarify in this query")
-        return ClarificationPlan(query=query, root=root, points=points,
-                                 cost_usd=self.agent.total_cost_usd - before)
+        out: list[tuple[str, Entity]] = []
+        for d in data.get("seeds") or []:
+            ent = self._sense(d.get("entity"), seen)
+            if ent is None:
+                continue
+            quote = self._clip_quote((d.get("quote") or "").strip())
+            # Two points naming the SAME entity are one seed: reading it twice
+            # would build the same reading twice (§1 — a reused entity is one
+            # node, and so is a reused subject).
+            if any(e.iri == ent.iri for _q, e in out):
+                continue
+            out.append((quote, ent))
+        return out
 
     def plan_next(self, plan: ClarificationPlan, term_text: str,
                   here: Optional[Entity], known: list[Entity],
-                  allow_c: bool) -> int:
+                  allow_c: bool, offered: Optional[list[Entity]] = None,
+                  reading: int = 0, subject: Optional[str] = None) -> int:
         """ONE further point, asked from WHERE THE USER NOW STANDS.
 
         This is the difference between planning ahead and clarifying: a point
@@ -567,25 +626,44 @@ class ClarificationPlanner:
         """
         before = self.agent.total_cost_usd
         have = "\n".join(f"  · “{pt.quote}” — {pt.question}"
-                          for pt in plan.points) or "  (none yet)"
+                          for pt in plan.points
+                          if pt.reading == reading) or "  (none yet)"
         known_txt = ", ".join(f"{e.label} [{e.iri}]" for e in known) or "(none)"
+        # Entities from earlier queries. An entity exists independently of any
+        # query, so one of these may be exactly what a point of this query
+        # means — but only if the delegate is shown them.
+        offered = offered or []
+        offered_txt = ("\n".join(f"  · {e.label} [{e.iri}]"
+                                 + (f" — {e.gloss}" if e.gloss else "")
+                                 for e in offered)
+                       or "  (none yet — this is the first reading)")
         data = self.agent._invoke(
             _NEXT_PROMPT.format(
-                query=plan.query, root=plan.root.label, term=term_text,
+                query=plan.query,
+                root=(plan.root.label if subject is None else
+                      f"{plan.root.label}. THE SUBJECT BEING READ IS: "
+                      f"{subject} — the entity mapped from one "
+                      f"unclear point of this query. Ask about "
+                      f"THAT, not about the query as a whole again"),
+                term=term_text,
                 here=(here.label if here else "?"), have=have, known=known_txt,
+                offered=offered_txt,
                 kinds=("A, B or C" if allow_c else "A or B (not C: nothing "
                        "precedes the start of the reading)")),
             _FIRST_SCHEMA)
         seen = {plan.root.iri.split(":", 1)[-1]: plan.root}
-        for e in known:
+        for e in list(known) + list(offered):
             seen[e.iri.split(":", 1)[-1]] = e
         added = self._decode(data, seen)
         # Never ask the same words twice — a real run produced `are hydrophobic`
         # as both an A and a B point, which reads as the same question repeated.
-        asked = {pt.quote.strip().lower() for pt in plan.points}
+        asked = {pt.quote.strip().lower() for pt in plan.points
+                 if pt.reading == reading}
         fresh = [pt for pt in added
                  if pt.quote.strip().lower() not in asked
                  and (allow_c or pt.kind != "C")]
+        for pt in fresh[:1]:
+            pt.reading = reading
         plan.points.extend(fresh[:1])
         plan.cost_usd += self.agent.total_cost_usd - before
         plan.calls += 1

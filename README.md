@@ -90,8 +90,18 @@ was asked**. Each interaction step resolves one ambiguity in the user's own
 words, and the entities of the reading are the ways those words can be
 understood — so the reading `R` built here *is* the disambiguated query.
 
-The query is mapped to one entity, which becomes the reading's seed (§3's "open
-on a type A"), and each step is then one point of the query put back to the user:
+**Phase 0 — the seeds.** Before any interaction the query is analysed into its
+**unclear points**, and each is mapped to an entity. Those entities are the
+**seeds**, and the set is *fixed*: one reading per seed, exhausted in turn
+(§3's "open on a type A"). A point that emerges later, while reading, maps to
+an entity without becoming a seed — often to an entity a seed also maps to, in
+which case it is **one node reached two ways** (§1). So the number of readings
+a query can yield is decided here. There is no entity for "the query as a
+whole": the query *is* its seeds and their combination. **If the query has no
+unclear point, no interaction starts at all** — the app resumes at once rather
+than inventing a question.
+
+Each step is then one point of that seed put back to the user:
 
 ```
   in your query: “experimentally shown to interact”
@@ -124,6 +134,37 @@ condition mean X or Y". Nothing is *invalidated* by a choice (a point's
 candidates are a property of the query text, which is why step C needs no
 knowledge of the path taken) — the pre-planned version is simply ranked and
 phrased for a reader who has not yet decided.
+
+**The readings combine.** Each closed reading settled one unclear point, so
+they are applied to one another, left-associatively, to assemble one reading of
+the whole query:
+
+```
+  R1, R2, R3   ->   Rnew = app(app(R1, R2), R3)
+```
+
+That is contraction-shaped throughout (§3.1 admits a **closed reading** as an
+option-1 operand — what the user answers *with*), and by §2's `[app(t1,t2)] ==
+[t2]` the result carries the type of the **last** reading combined.
+
+**Questions are automatic.** There is no `a` command: a question is not the
+user's to ask. On `resume` the readings are combined (`Rnew = app(R1, R)`, the
+open reading last), and if any seed was never exhausted — a point nobody
+settled — the result is abstracted over those points:
+
+```
+  question = lam a1. ... lam an. Rnew
+```
+
+so the question is a reading of the query still **parametric in what remains
+unclarified**. It is a proper §2 question whenever the seed's entity occurs in
+`Rnew`, which happens exactly when a point emerging under *another* seed mapped
+to it; where it does not occur it is contracted in first, which is §2's own
+recipe ("read the body, contract the asked material in, then bind that
+occurrence"). Each binder is recorded as its own saved question, built
+**innermost first**, because `term_utils.check_question` requires every nested
+abstraction to be a saved question — which is also §2's question tree, each
+binder naming a subtype of the one below it.
 
 Labels are **names**, at most four words, with the meaning in a required
 one-clause gloss: labels print inline in the term, in pointer lines and in

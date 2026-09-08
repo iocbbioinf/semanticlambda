@@ -132,6 +132,19 @@ class MockAgent:
         if self._seed is None:
             self._rng = random.Random(_slug(query))
 
+        # PHASE 0: the query's unclear points, mapped to entities. One per
+        # content word, which is nonsense as knowledge but exercises the
+        # multi-seed driver — several readings, combined, with some left
+        # unexhausted for the automatic question.
+        if "`seeds`" in prompt or "UNCLEAR POINTS" in prompt:
+            words = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9-]+", query)
+                     if w.lower() not in _STOP and len(w) > 2]
+            return {"seeds": [
+                {"quote": w,
+                 "entity": {"id": _slug(w), "label": w,
+                            "gloss": "an unclear point of the query"}}
+                for w in words[:4]]}
+
         phrases = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9-]+", query)
                    if w.lower() not in _STOP and len(w) > 2] or ["the query"]
         root = {"id": _slug(query)[:32] or "the-query", "label": "the query",

@@ -137,9 +137,17 @@ class ReadingSession:
         # query's ambiguities, and every interaction step is then served from it
         # locally. None means the older per-step delegation is in force.
         self.plan: Optional[ClarificationPlan] = None
+        # iri -> the words of the query that seed came from, for display
+        self.seed_quotes: dict[str, str] = {}
         self.planner: Optional[ClarificationPlanner] = None
         self.topups = 0
         self._want_points = 6
+        # SEEDS ARE FIXED. They are the unclear points OF THE QUERY, mapped to
+        # entities before the interaction starts, and no reading ever adds one:
+        # a point that EMERGES during clarification maps to an entity, and that
+        # entity may well be one a seed also maps to (one node, two mappings),
+        # but it does not become a seed. So the number of readings is bounded by
+        # the number of points the query had.
         # ONE SESSION PER QUERY: a ReadingSession IS one query, so its delegate
         # starts from an empty CONTEXT here and keeps that one session for the
         # whole interaction — the choices made while clarifying THIS query are
@@ -151,6 +159,33 @@ class ReadingSession:
         # reused entity stays ONE node (§1) between runs as well as within one.
         if hasattr(agent, "new_session"):
             agent.new_session()
+
+    # ── what the delegate may reuse ───────────────────────────────────────
+
+    def offered_entities(self, reading: Reading, limit: int = 12) -> list[Entity]:
+        """Entities from EARLIER queries that this point might be understood as.
+
+        An entity exists independently of a query, so a point of THIS query may
+        well be an entity some earlier query named. But the delegate can only
+        reuse what it is shown, and it is otherwise shown just the current
+        reading — so cross-query reuse happened only by accident, when
+        `match_key` caught a spelling collision. Offering the store's entities
+        makes it a CHOICE the delegate can make.
+
+        Ranked by use count (`EntityStore.all`), most-used first, and capped:
+        the whole store would be both a large prompt and a poor one, since a
+        list too long to read is a list the delegate ignores. Entities already
+        in the reading are left out — those are in `known` already.
+        """
+        have = {e.iri for e in reading.used} | {reading.seed.iri}
+        out = []
+        for st in self.entities.all():
+            if st.iri in have:
+                continue
+            out.append(Entity(iri=st.iri, label=st.label, gloss=st.gloss))
+            if len(out) >= limit:
+                break
+        return out
 
     # ── the entity store ──────────────────────────────────────────────────
 
@@ -201,19 +236,30 @@ class ReadingSession:
         and much worse to use.
         """
         self.planner = ClarificationPlanner(self.agent)
-        self.plan = self.planner.plan_first(self.query)
         self._want_points = points
-        root = self.canon(self.plan.root)
-        self.plan.root = root
-        # The senses of the plan are entities like any other: they go through the
-        # store so a sense named twice is ONE node (§1).
-        for pt in self.plan.points:
-            for o in pt.options:
-                o.sense = self.canon(o.sense)
-                if o.sense_b is not None:
-                    o.sense_b = self.canon(o.sense_b)
-        self.seeds = [root]
+
+        # PHASE 0: the query's unclear points, mapped to entities. These are the
+        # SEEDS and the set is fixed — one reading each, exhausted in turn. An
+        # empty list means the query is already precise, and the driver must not
+        # start an interaction at all.
+        pairs = self.planner.seeds(self.query, n=points)
+        self.seed_quotes = {}
+        seeds = []
+        for quote, ent in pairs:
+            c = self.canon(ent)
+            if any(s.iri == c.iri for s in seeds):
+                continue
+            seeds.append(c)
+            self.seed_quotes[c.iri] = quote
+        self.seeds = seeds
         self.seed_cursor = 0
+
+        # The plan is now per-seed rather than per-query: its root is whichever
+        # seed is being read, set by `open_reading`.
+        self.plan = ClarificationPlan(query=self.query,
+                                      root=seeds[0] if seeds else None,
+                                      points=[],
+                                      cost_usd=self.agent.total_cost_usd)
         return self.plan
 
     def start(self) -> list[Entity]:
@@ -235,6 +281,10 @@ class ReadingSession:
         var = reg.get(seed.iri, seed.label)
         r = Reading(seed=seed, term=var, pointers=PointerSet.initial(),
                     entities=reg)
+        # Points are asked ABOUT the seed being read, so the plan's subject
+        # follows the reading rather than staying at the query.
+        if self.plan is not None:
+            self.plan.root = seed
         act = r.pointers.act()
         if act is not None:
             r.pointer_entities[act.pid] = seed
@@ -305,7 +355,12 @@ class ReadingSession:
         """
         assert self.plan is not None
         allow_c = bool(reading.steps)
-        prop = self.plan.proposal_for(here, allow_c)
+        # Which reading this is. Points belong to the reading they were asked
+        # for: a further reading opened after exhaustion reads a DIFFERENT
+        # subject, so it neither inherits the first reading's points nor is
+        # barred from re-quoting words that mattered there.
+        rx = len(self.closed)
+        prop = self.plan.proposal_for(here, allow_c, reading=rx)
 
         # ONE STEP AT A TIME. The plan holds only what has been asked so far, so
         # when it has nothing left we ask for the next point FROM HERE — with the
@@ -316,14 +371,19 @@ class ReadingSession:
         if prop is None and self.planner is not None:
             n = self.planner.plan_next(
                 self.plan, term_text=str(reading.term), here=here,
-                known=reading.used or [reading.seed], allow_c=allow_c)
+                known=reading.used or [reading.seed], allow_c=allow_c,
+                offered=self.offered_entities(reading),
+                reading=rx,
+                # Each reading is read on ITS OWN SEED — one unclear point of
+                # the query — so the delegate is told which subject this is.
+                subject=reading.seed.label)
             if n:
                 for pt in self.plan.points[-n:]:
                     for o in pt.options:
                         o.sense = self.canon(o.sense)
                         if o.sense_b is not None:
                             o.sense_b = self.canon(o.sense_b)
-                prop = self.plan.proposal_for(here, allow_c)
+                prop = self.plan.proposal_for(here, allow_c, reading=rx)
 
         if prop is None:
             return StepProposal(kind="none",
@@ -621,6 +681,112 @@ class ReadingSession:
         seed = Entity(iri=qid, label=title, gloss=f"a question asked of "
                                                  f"{asked.label}")
         return qid, self.open_reading(seed)
+
+    # ── combining the readings of one query ───────────────────────────────
+
+    def combined_term(self, extra: Optional[LamTerm] = None) -> Optional[LamTerm]:
+        """The exhausted readings, APPLIED TO ONE ANOTHER, left-associatively.
+
+            R1, R2, R3   ->   Rnew = app(app(R1, R2), R3)
+
+        Each closed reading clarified one unclear point of the query, so this is
+        how the separately-settled points are assembled back into one reading OF
+        THE QUERY. It is contraction-shaped throughout (§3.1 admits a CLOSED
+        READING as an option-1 operand — what the user answers WITH), and by §2's
+        rule [app(t1,t2)] == [t2] the result carries the type of the LAST reading
+        combined: the reader ends up standing where the final reading left them.
+
+        `extra` is applied last — on resume that is the reading still open, so
+        Rnew = app(R1, R) with R1 the combination of everything before it.
+        """
+        terms = [c.term for c in self.closed]
+        if extra is not None:
+            terms.append(extra)
+        if not terms:
+            return None
+        out = terms[0]
+        for t in terms[1:]:
+            out = LamApp(out, t)
+        return out
+
+    def unexhausted_seeds(self) -> list[Entity]:
+        """Seeds no reading was opened on — the points still unclarified."""
+        read = {c.seed.iri for c in self.closed}
+        if self.current is not None:
+            read.add(self.current.seed.iri)
+        return [s for s in self.seeds if s.iri not in read]
+
+    def close_with_question(self) -> Optional[Question]:
+        """On resume: combine the readings, and abstract over what is unsettled.
+
+            Rnew = app(R1, R)                     R1 = the readings before R
+            question = lam a1. ... lam an. Rnew   a1..an = unexhausted seeds
+
+        WHY THE BINDERS. A seed that was never exhausted is a point nobody
+        settled, so the question is a reading of the query still PARAMETRIC IN
+        those points. That is a proper question in §2's sense whenever the seed's
+        entity OCCURS in Rnew — and it often does, because a point emerging while
+        another seed was being read maps to an entity, sometimes exactly the one
+        an unexhausted seed maps to (one node, two mappings). Where it does not
+        occur, it is contracted in first, which is §2's own recipe for building a
+        question's body ("read the body, contract the asked material in, then
+        bind that occurrence") and what `ask_question` already does.
+        """
+        from optimal_lambda import LamAbs
+        from question_tree import mint_qid
+
+        r = self.current
+        rnew = self.combined_term(extra=r.term if r is not None else None)
+        if rnew is None:
+            return None
+
+        pending = self.unexhausted_seeds()
+        if r is not None:
+            self.close_current()
+        if not pending:
+            return None
+
+        # A registry to build the binders in: the combined term's variables came
+        # from the readings' own registries, and a binder must be the SAME node
+        # as the occurrence it binds or it would bind nothing.
+        reg = EntityRegistry()
+
+        def graft(t: LamTerm) -> LamTerm:
+            return _copy_term(t, reg)
+
+        body = graft(rnew)
+        for ent in pending:
+            if not _occurs(body, ent.iri):
+                # §2's recipe: contract the material in, then bind it.
+                body = LamApp(body, reg.get(ent.iri, ent.label))
+
+        # ONE QUESTION PER BINDER, INNERMOST FIRST. `check_question` requires
+        # every nested abstraction to be a saved question of its own — an
+        # anonymous abstraction inside a stored term is material nobody asked
+        # for. That is also §2's own picture: the questions of an entity form a
+        # TREE, each binder naming a subtype of the one below it (q2 over q1).
+        # So `lam a1...lam an.Rnew` is recorded as n nested questions, built
+        # from the inside out, and the last one — the outermost — is what the
+        # session is left standing in.
+        term = body
+        made: list[Question] = []
+        for i, ent in enumerate(reversed(pending)):
+            var = reg.get(ent.iri, ent.label)
+            if not _occurs(term, ent.iri):
+                # a binder must bind something (§2, invariant 1)
+                term = LamApp(term, var)
+            term = LamAbs(var=var, qid=None, body=term)
+            depth = len(pending) - i
+            title = (f"what remains of {ent.label}"
+                     if depth == len(pending) and len(pending) == 1
+                     else f"what remains at {ent.label}"
+                          f" ({depth} of {len(pending)})")
+            qid = mint_qid(str(term), ent.iri, title)
+            q = Question(title=title, term=term, asked=ent, qid=qid,
+                         query=self.query)
+            self.questions.append(q)
+            made.append(q)
+        return made[-1] if made else None
 
     def save_entities(self):
         """Write the entity store to data/entities.json."""

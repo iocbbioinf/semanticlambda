@@ -163,17 +163,24 @@ def test_save_questions_writes_to_the_store():
               "no claims: these entities are not KG nodes, a real absence")
 
 
-def test_ui_offers_asking_at_every_step():
-    print("\nthe UI offers `a` at every interaction step")
+def test_the_ui_no_longer_offers_asking():
+    """Questions are no longer the user's to ask — they are created on resume.
+
+    `a` is gone from the step menu: a question is now built automatically from
+    what the interaction left unclarified (`close_with_question`), so offering
+    the user a second, manual way to make one would put material in the store
+    that no reading accounts for.
+    """
+    print("\nthe step menu no longer offers `a`")
     import io
     import reading_browser as rb
     from reading_mock import MockAgent
 
-    script = iter(["a query about aspirin", "a", "what is it really?", "1", "q"])
+    script = iter(["a query about aspirin", "1", "1", "n", "r"])
     buf = io.StringIO()
     with patch("builtins.input", lambda *a: next(script)), \
          patch("reading_store.save_session", lambda s: "(not saved)"), \
-             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
+         patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
          patch("sys.stdout", buf):
         try:
             rb.Browser(MockAgent()).run()
@@ -181,12 +188,12 @@ def test_ui_offers_asking_at_every_step():
             pass
     out = buf.getvalue()
 
-    check("a  ask a question" in out, "the option is listed")
-    check("what is the question about?" in out, "the entity picker is shown")
-    check("(in this reading)" in out,
-          "entities already in the reading are marked")
-    check("asked what is it really?" in out, "the question is confirmed")
-    check("reading on from" in out, "and a new reading starts")
+    check("ask a question" not in out, "the `a` option is not listed")
+    check("what is the question about?" not in out,
+          "and its entity picker is never shown")
+    # what replaces it: the question the resume built
+    check("left unclarified" in out or "the query, read" in out,
+          "resume reports the reading it assembled instead")
 
 
 def test_stored_questions_are_selectable_as_the_binder():
@@ -283,32 +290,42 @@ def test_picker_offers_stored_questions_when_filtered():
 
 
 def test_entity_picker_filters_by_typing():
-    """Typing narrows the list; a number chooses — as the KG browser's box did."""
+    """Typing narrows the list; a number chooses — as the KG browser's box did.
+
+    Driven DIRECTLY: the picker no longer has a caller in the step loop, since
+    `a` is gone and questions are built on resume. It is kept because choosing
+    an entity from a filtered list is the shape any future picker needs, and
+    `tests/test_incremental_select.py` covers the live type-ahead widget.
+    """
     print("\nthe entity picker filters as you type")
     import io
     import reading_browser as rb
     from reading_mock import MockAgent
+    from reading_session import ReadingSession
+
+    s = ReadingSession("aspirin and inflammation", MockAgent())
+    s.start_clarifying()
+    r = s.open_reading(s.seeds[0])
+    # give the reading a second entity, so filtering has something to choose
+    prop = s.propose(r)
+    if prop.kind != "none":
+        s.apply(r, prop, prop.options[0])
 
     # Scripted input is not a tty, so the picker uses its plain fallback:
-    # a filter line, then the number of the row wanted. Interactively it is the
-    # live type-ahead widget instead — see tests/test_incremental_select.py.
-    script = iter(["aspirin and inflammation", "1", "a", "what drives it?",
-                   "infl", "1", "q"])
+    # a filter line, then the number of the row wanted.
+    script = iter(["", "1"])
     buf = io.StringIO()
     with patch("builtins.input", lambda *a: next(script)), \
-         patch("reading_store.save_session", lambda s: "(not saved)"), \
-             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
          patch("sys.stdout", buf):
         try:
-            rb.Browser(MockAgent()).run()
+            picked = rb.pick_entity(r, s, "what is the question about?")
         except StopIteration:
-            pass
+            picked = None
     out = buf.getvalue()
 
     check("type to filter" in out, "the picker says how to use it")
-    check("inflammation" in out, "the filtered list is shown")
-    check("asked what drives it? of inflammation" in out,
-          "and the filtered choice is the one taken")
+    check("what is the question about?" in out, "it puts the prompt")
+    check(picked is not None, "and an entity is chosen")
 
 
 def _iris(t):
@@ -329,7 +346,7 @@ if __name__ == "__main__":
               test_a_different_title_is_a_different_question,
               test_asking_closes_the_reading_and_opens_one_in_the_question,
               test_save_questions_writes_to_the_store,
-              test_ui_offers_asking_at_every_step,
+              test_the_ui_no_longer_offers_asking,
               test_entity_picker_filters_by_typing,
               test_stored_questions_are_selectable_as_the_binder,
               test_picker_offers_stored_questions_when_filtered):

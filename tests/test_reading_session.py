@@ -442,7 +442,7 @@ def test_show_term_does_not_refetch_the_proposal():
     # --claude) pay again. Two steps were taken, so two questions were asked —
     # the first with the plan's opening point, the second asked from there — and
     # opening the modal twice must have added NOTHING to that.
-    check(Counting.calls == 3,
+    check(Counting.calls == 4,
           f"the modal cost no extra delegation (calls={Counting.calls})")
 
 
@@ -639,10 +639,10 @@ def test_the_first_question_is_one_small_call():
     s = ReadingSession("molecules that pass the blood-brain barrier and bind 5-HT2C",
                        agent)
     plan = s.start_clarifying()
-    check(agent.invokes == 1, "the first question cost exactly one call")
-    check(len(plan.points) == 1,
-          f"and carries ONE point, not a batch ({len(plan.points)})")
-    check(plan.root is not None, "the query was mapped to a root entity")
+    check(agent.invokes == 1, "phase 0 — the seeds — cost exactly one call")
+    check(len(s.seeds) >= 1, f"and produced the query's seeds ({len(s.seeds)})")
+    check(plan.points == [],
+          "no point is asked yet: the first is asked once a reading opens")
 
     r = s.open_reading(plan.root)
     taken = 0
@@ -756,9 +756,8 @@ def test_one_call_per_step_asked_from_here():
     s = ReadingSession("molecules that pass the blood-brain barrier and bind 5-HT2C",
                        agent)
     plan = s.start_clarifying()
-    check(agent.invokes == 1, "the first question cost exactly one call")
-    check(len(plan.points) == 1,
-          f"and asked for ONE point, not a batch ({len(plan.points)})")
+    check(agent.invokes == 1, "phase 0 — the seeds — cost exactly one call")
+    check(plan.points == [], "and asked no point yet")
 
     r = s.open_reading(plan.root)
     taken = 0
@@ -970,6 +969,196 @@ def test_a_missing_gloss_leaves_no_dangling_name():
           "a gloss that merely repeats the label is not printed twice")
 
 
+
+def test_an_entity_exists_independently_of_a_query():
+    """A query is the OCCASION an entity is proposed on, not what it belongs to.
+
+    So a point of THIS query may be understood as an entity an EARLIER query
+    named. The delegate can only reuse what it is shown, and it is otherwise
+    shown just the current reading — which left cross-query reuse to accident,
+    when `match_key` happened to catch a spelling collision. The store's
+    entities are therefore offered explicitly.
+    """
+    print("\nan entity is not the query's — earlier ones are offered for reuse")
+    from reading_mock import MockAgent
+    from reading_session import ReadingSession
+
+    seen = []
+
+    class Peek(MockAgent):
+        def _invoke(self, prompt, schema):
+            seen.append(prompt)
+            return super()._invoke(prompt, schema)
+
+    s = ReadingSession("molecules that pass the blood-brain barrier", Peek())
+    # An isolated store, so this asserts the mechanism rather than whatever
+    # data/entities.json happens to hold on the machine running the test.
+    from entity_store import EntityStore
+    s.entities = EntityStore()
+    # entities an earlier query left behind
+    s.entities.load_records([
+        {"iri": "local:measured-bbb", "label": "measured BBB data",
+         "gloss": "from an assay", "aliases": [], "uses": 9},
+        {"iri": "local:predicted-bbb", "label": "predicted BBB",
+         "gloss": "from a model", "aliases": [], "uses": 4},
+    ])
+    plan = s.start_clarifying()
+    r = s.open_reading(plan.root)
+
+    offered = s.offered_entities(r)
+    iris = {e.iri for e in offered}
+    check("local:measured-bbb" in iris,
+          "an entity from an earlier query is offered for reuse")
+    check(all(e.iri != r.seed.iri for e in offered),
+          "what the reading already holds is not offered twice")
+
+    # most-used first, so the cap keeps the entities worth reusing
+    uses = [s.entities.get(e.iri).uses for e in offered]
+    check(uses == sorted(uses, reverse=True),
+          f"offered most-used first ({uses[:4]})")
+    check(len(s.offered_entities(r, limit=1)) == 1,
+          "the list is capped — a list too long to read is one that gets ignored")
+
+    for _ in range(2):
+        prop = s.propose(r)
+        if prop.kind == "none":
+            break
+        s.apply(r, prop, prop.options[0])
+    check(any("EARLIER READINGS" in pr for pr in seen[1:]),
+          "the delegate is told which earlier entities it may reuse")
+
+    # nothing anywhere records which query first named a thing
+    rec = s.entities.to_records()[0]
+    check("query" not in rec,
+          f"a stored entity carries no query of its own ({sorted(rec)})")
+
+
+
+def test_seeds_are_fixed_and_readings_combine():
+    """Seeds are the query's unclear points, fixed before the interaction.
+
+    One reading per seed, exhausted in turn; a point that EMERGES while reading
+    maps to an entity without becoming a seed of its own, so the number of
+    readings is decided by phase 0. The exhausted readings are then applied to
+    one another — Rnew = app(app(R1,R2),R3) — which is how the separately
+    settled points are assembled back into one reading of the query.
+    """
+    print("\nseeds are fixed; the readings combine")
+    from reading_mock import MockAgent
+    from reading_session import ReadingSession
+    from term_utils import _term_type
+
+    s = ReadingSession("molecules that pass the blood-brain barrier", MockAgent())
+    s.start_clarifying()
+    n_seeds = len(s.seeds)
+    check(n_seeds > 1, f"the query yielded several seeds ({n_seeds})")
+    check(all(iri in s.seed_quotes for iri in (e.iri for e in s.seeds)),
+          "each seed records the words of the query it came from")
+
+    r = s.open_reading(s.seeds[0])
+    for _ in range(200):
+        prop = s.propose(r)
+        if prop.kind == "none":
+            s.close_current()
+            nxt = s.next_unread_seed()
+            if nxt is None:
+                break
+            r = s.open_reading(nxt)
+            continue
+        s.apply(r, prop, prop.options[0])
+
+    check(len(s.closed) == n_seeds,
+          f"one reading per seed, no more ({len(s.closed)} of {n_seeds})")
+    check(len(s.seeds) == n_seeds,
+          "reading added no seeds — an emergent point is not a seed")
+
+    rnew = s.combined_term()
+    check(rnew is not None, "the readings combine into one term")
+    # left-associative, so the type is the LAST reading's (§2: [app(t1,t2)]=[t2])
+    check(_term_type(rnew) == _term_type(s.closed[-1].term),
+          "Rnew carries the type of the last reading combined")
+
+
+def test_resume_asks_what_was_left_unclarified():
+    """Resume combines the readings and abstracts over the unread seeds.
+
+        Rnew = app(R1, R);   question = lam a1. ... lam an. Rnew
+
+    A seed never exhausted is a point nobody settled, so the question is a
+    reading still PARAMETRIC IN those points. It is a proper §2 question
+    whenever the seed's entity occurs in Rnew — which happens when a point
+    emerging under another seed mapped to it — and is contracted in otherwise.
+    Each binder is its own saved question, innermost first, because
+    `check_question` requires every nested abstraction to be one.
+    """
+    print("\nresume — what was left unclarified becomes a question")
+    from reading_agent import Entity
+    from reading_mock import MockAgent
+    from reading_session import ClosedReading, ReadingSession
+    from optimal_lambda import LamApp, LamVar
+    from term_utils import _term_type, check_question
+
+    s = ReadingSession("q", MockAgent())
+    S1 = Entity("local:s1", "S1", "a")
+    S2 = Entity("local:s2", "S2", "b")
+    S3 = Entity("local:s3", "S3", "c")
+    s.seeds = [S1, S2, S3]
+    # S1 was read, and while reading it an emergent point mapped to S3
+    s.closed.append(ClosedReading(
+        "R1", LamApp(LamVar("local:s1", "S1"), LamVar("local:s3", "S3")),
+        S1, ["x"]))
+
+    pending = s.unexhausted_seeds()
+    check([e.iri for e in pending] == ["local:s2", "local:s3"],
+          f"the unread seeds are the pending points ({[e.short() for e in pending]})")
+
+    q = s.close_with_question()
+    check(q is not None, "a question is created automatically")
+    check(len(s.questions) == len(pending),
+          f"one question per binder ({len(s.questions)} for {len(pending)})")
+    for x in s.questions:
+        check(check_question(x.term) is None
+              or "not itself a saved question" in check_question(x.term),
+              f"{x.title!r} is well formed apart from the store's nesting rule")
+    check(_term_type(q.term) == pending[0].iri,
+          "the outermost question is about the FIRST unclarified point")
+
+
+def test_points_belong_to_their_reading():
+    """A further reading gets its OWN points, and may re-quote the query.
+
+    Points are asked for a particular reading: a later one reads a DIFFERENT
+    subject, so it neither inherits the first reading's spent points (which
+    would leave it with nothing to ask) nor is barred from quoting words that
+    mattered there.
+    """
+    print("\nfurther readings — points are per reading, not per query")
+    from clarify_plan import ClarificationPlan, PlannedPoint, PlannedOption
+    from reading_agent import Entity
+
+    root = Entity("local:root", "root", "the query")
+
+    def opts(n):
+        return [PlannedOption(label=f"o{i}",
+                              sense=Entity(f"local:s{n}{i}", f"s{n}{i}", "g"))
+                for i in (1, 2)]
+
+    plan = ClarificationPlan(query="q", root=root, points=[
+        PlannedPoint(quote="molecules", kind="A", question="q0",
+                     options=opts(0), reading=0, spent=True),
+        PlannedPoint(quote="molecules", kind="A", question="q1",
+                     options=opts(1), reading=1),
+    ])
+    # reading 0 has nothing unspent; reading 1 has its own point on the SAME words
+    check(plan.proposal_for(root, allow_c=True, reading=0) is None,
+          "a reading is not served another reading's points")
+    prop = plan.proposal_for(root, allow_c=True, reading=1)
+    check(prop is not None and prop.prompt == "q1",
+          "the further reading gets its own point")
+    check(prop.note.endswith("“molecules”"),
+          "the same words may be at issue again in a different reading")
+
+
 if __name__ == "__main__":
     for t in (test_kind_a_is_contraction_option_1,
               test_entity_id_normalisation,
@@ -996,7 +1185,11 @@ if __name__ == "__main__":
               test_spinner_erases_the_whole_line,
               test_canon_keeps_the_stored_gloss,
               test_gloss_is_required_and_quotes_are_short,
-              test_a_missing_gloss_leaves_no_dangling_name):
+              test_a_missing_gloss_leaves_no_dangling_name,
+              test_an_entity_exists_independently_of_a_query,
+              test_seeds_are_fixed_and_readings_combine,
+              test_resume_asks_what_was_left_unclarified,
+              test_points_belong_to_their_reading):
         t()
     print()
     if FAILED:
