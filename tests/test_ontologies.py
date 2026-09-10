@@ -233,24 +233,37 @@ def test_the_views_render_both_forms():
 
 
 def test_the_o_command_is_offered():
-    print("\n`o` is offered at every interaction step")
+    """`o` opens the set at every interaction step.
+
+    The default rendering LISTS only the answers and `r` — everything else is
+    narration around the choice — but `o` is still accepted there, since
+    pressing it is the user asking for the set rather than the app offering it.
+    --verbose lists it.
+    """
+    print("\n`o` opens the ontology set at every interaction step")
     import io
     import reading_browser as rb
     from reading_mock import MockAgent
 
-    script = iter(["a query about aspirin", "o", "", "q"])
-    buf = io.StringIO()
-    with patch("builtins.input", lambda *a: next(script)), \
-         patch("reading_store.save_session", lambda s: "(not saved)"), \
-             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
-         patch("sys.stdout", buf):
-        try:
-            rb.Browser(MockAgent()).run()
-        except StopIteration:
-            pass
-    out = buf.getvalue()
-    check("o  ontologies" in out, "the option is listed")
-    check("in the set" in out, "and it opens the list")
+    def run(verbose):
+        script = iter(["a query about aspirin", "o", "", "q"])
+        buf = io.StringIO()
+        with patch("builtins.input", lambda *a: next(script)), \
+             patch("reading_store.save_session", lambda s: "(not saved)"), \
+                 patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
+             patch.object(rb, "VERBOSE", verbose), \
+             patch("sys.stdout", buf):
+            try:
+                rb.Browser(MockAgent()).run()
+            except StopIteration:
+                pass
+        return buf.getvalue()
+
+    quiet, loud = run(False), run(True)
+    check("in the set" in quiet, "`o` opens the list in the default rendering")
+    check("o  ontologies" not in quiet, "without being listed there")
+    check("o  ontologies" in loud, "--verbose lists the option")
+    check("in the set" in loud, "and it opens the list")
 
 
 if __name__ == "__main__":

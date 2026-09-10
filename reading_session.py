@@ -37,6 +37,39 @@ from reading_state import (EntityRegistry, LamFan, PointerSet, replace_at,
                            subterm_at)
 from term_utils import _term_type
 
+# The interaction process is bounded: at most this many steps for one query,
+# summed over all its readings. Each step is one `claude -p` call, and a query
+# with several seeds would otherwise cost seeds x steps.
+MAX_STEPS = 10
+
+
+@dataclass
+class Interaction:
+    """One interaction step, AS THE USER MET IT.
+
+    `Reading.steps` records the calculus — "[A] contraction opt.1 — moved → X"
+    — which says what the term did but not what was asked or answered. That
+    text is the only record of WHY the term has the shape it has: the point of
+    the query at issue, the question put to the user, and the answer they chose.
+    A reading without it can be replayed but not read back.
+
+        point    the words of the query the step was about ("are hydrophobic")
+        question the question put to the user
+        answer   the label of the option they selected
+        kind     A | B | C, so the calculus line can still be found
+        calculus the line that went into `steps`
+    """
+    kind: str
+    point: str
+    question: str
+    answer: str
+    calculus: str = ""
+    rationale: str = ""
+
+    def __str__(self) -> str:
+        head = f"“{self.point}” — {self.question}" if self.point else self.question
+        return f"{head}  →  {self.answer}"
+
 
 @dataclass
 class ClosedReading:
@@ -45,6 +78,10 @@ class ClosedReading:
     term: LamTerm
     seed: Entity
     steps: list[str] = field(default_factory=list)
+    # The same steps as the user met them: point, question, answer. Kept
+    # alongside `steps` rather than replacing it, because the calculus line and
+    # the human record answer different questions about the same step.
+    interactions: list[Interaction] = field(default_factory=list)
 
 
 @dataclass
@@ -74,6 +111,8 @@ class Reading:
     # pointer stands at, NOT a reflection's cast (reading_state module docstring).
     pointer_entities: dict[int, Entity] = field(default_factory=dict)
     steps: list[str] = field(default_factory=list)
+    # What was asked and answered at each step — see `Interaction`.
+    interactions: list[Interaction] = field(default_factory=list)
     used: list[Entity] = field(default_factory=list)
     # pids whose place the agent has declared exhausted, so the driver stops
     # re-asking there.
@@ -142,6 +181,10 @@ class ReadingSession:
         self.planner: Optional[ClarificationPlanner] = None
         self.topups = 0
         self._want_points = 6
+        # How many interaction steps the whole process may take, across every
+        # reading of this query. Each step is a delegation, so this is the
+        # ceiling on what a query costs; see `propose`.
+        self.max_steps = MAX_STEPS
         # SEEDS ARE FIXED. They are the unclear points OF THE QUERY, mapped to
         # entities before the interaction starts, and no reading ever adds one:
         # a point that EMERGES during clarification maps to an entity, and that
@@ -311,8 +354,30 @@ class ReadingSession:
 
     # ── proposing ─────────────────────────────────────────────────────────
 
+    def steps_taken(self) -> int:
+        """Interaction steps applied across ALL readings of this query."""
+        n = sum(len(c.steps) for c in self.closed)
+        if self.current is not None:
+            n += len(self.current.steps)
+        return n
+
+    def budget_left(self) -> int:
+        return max(self.max_steps - self.steps_taken(), 0)
+
     def propose(self, reading: Reading) -> StepProposal:
-        """The next step at actPtr — from the plan when clarifying, else asked."""
+        """The next step at actPtr — from the plan when clarifying, else asked.
+
+        THE WHOLE INTERACTION IS BUDGETED. `max_steps` bounds the steps across
+        every reading of the query, not per reading: a query with several seeds
+        would otherwise cost (seeds x steps) delegations, and each step is a
+        `claude -p` call. Running out is not a failure — it exhausts the phase
+        the same way nothing-left-to-clarify does, so whatever was settled is
+        assembled and whatever was not becomes the question (`resume`).
+        """
+        if self.budget_left() <= 0:
+            return StepProposal(
+                kind="none",
+                note=f"step budget spent ({self.max_steps} steps)")
         here = reading.act_entity()
         if here is None:
             return StepProposal(kind="none", note="no entity at this pointer")
@@ -410,13 +475,36 @@ class ReadingSession:
     # ── the three steps ───────────────────────────────────────────────────
 
     def apply(self, reading: Reading, prop: StepProposal, opt: Option) -> str:
+        """Apply the step, and record it as the user met it.
+
+        This is the only place that holds BOTH the proposal (the point and the
+        question) and the chosen option (the answer), so it is where the human
+        record is made — the calculus lines alone cannot say what was asked.
+        """
         if prop.kind == "A":
-            return self._contract(reading, opt, option=1)
-        if prop.kind == "C":
-            return self._contract(reading, opt, option=2)
-        if prop.kind == "B":
-            return self._reflect(reading, opt)
-        raise ValueError(f"not an applicable step kind: {prop.kind}")
+            line = self._contract(reading, opt, option=1)
+        elif prop.kind == "C":
+            line = self._contract(reading, opt, option=2)
+        elif prop.kind == "B":
+            line = self._reflect(reading, opt)
+        else:
+            raise ValueError(f"not an applicable step kind: {prop.kind}")
+
+        # `note` carries the point as "clarifying: “...”" when the step came
+        # from a plan; anything else is not a point and is left out.
+        point = ""
+        if prop.note.startswith("clarifying: "):
+            point = prop.note[len("clarifying: "):].strip().strip("“”\"")
+        answer = opt.label or (opt.entity.short() if opt.entity else "")
+        if prop.kind == "B" and opt.entity_a is not None:
+            # A reflection's answer is a PAIR held against one another, so the
+            # label alone would lose which was question and which was answer.
+            answer = (f"{opt.label} — {opt.entity_a.short()} (question) · "
+                      f"{opt.entity_b.short()} (answer)")
+        reading.interactions.append(Interaction(
+            kind=prop.kind, point=point, question=prop.prompt.strip(),
+            answer=answer, calculus=line, rationale=opt.rationale.strip()))
+        return line
 
     def _operand_term(self, reading: Reading, opt: Option) -> LamTerm:
         """OPERAND (reading_alg §3.1).
@@ -825,7 +913,8 @@ class ReadingSession:
         if r is None:
             return None
         cr = ClosedReading(name=name or f"{r.seed.label} — {self.query[:32]}",
-                           term=r.term, seed=r.seed, steps=list(r.steps))
+                           term=r.term, seed=r.seed, steps=list(r.steps),
+                           interactions=list(r.interactions))
         self.closed.append(cr)
         self.current = None
         return cr

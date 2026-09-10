@@ -15,14 +15,27 @@ Two delegates, same interface:
                              readings, and it reaches all three step kinds.
     reading_agent.ReadingAgent   `claude -p`, with `--claude`.
 
-Rendering is deliberately Claude-Code-shaped: a prompt line, streamed status
-lines while the delegate is working, boxed option lists, and a running view of
-the reading being built.
+THE DEFAULT RENDERING IS ONLY THE INTERACTION: the words of your query being
+clarified ("in your query: …"), the question put to you, the answers to choose
+between, and `r` to resume. Nothing else — no header, no entity counts, no step
+confirmations, no save report. Resuming renders the reading that was built, and
+that is the whole output.
 
-Options:   --verbose, -v     show the calculus: the term as it grows, the
-                             pointer set, which reading step each choice makes,
-                             the `t` view of the whole reading, and — under
-                             --claude — what each delegation cost
+SWITCHING CONTEXT IS PART OF THAT, because a step B (reflection) splits the
+reading into two independent occurrences: the split is announced, the other
+context is offered straight away, and `p` is listed for as long as more than one
+stands open. The remaining commands (s, o, q) still work; they are simply not
+put in front of you.
+
+--verbose adds everything else back: the header and command list, the calculus
+(the term as it grows, the pointer set, which reading step each choice makes),
+the flow narration, `t` and `e`, and what each delegation cost.
+
+Options:   --verbose, -v     show the calculus and the narration around it: the
+                             term as it grows, the pointer set, which reading
+                             step each choice makes, the `t` view of the whole
+                             reading, and — under --claude — what each
+                             delegation cost
            --per-step        skip the clarification phase: ask the delegate
                              afresh at every step (the older, costlier mode)
            --points N        how many ambiguities to enumerate up front (6)
@@ -33,12 +46,13 @@ Options:   --verbose, -v     show the calculus: the term as it grows, the
 Commands:  1..n     take that reading — the interaction step
                     (a QUESTION is not asked here: `resume` builds one
                     automatically from whatever was left unclarified)
-           p        switch context (offered once a reflection has split the
-                    reading; the two contexts grow independently)
-           s        skip this place
+           r        resume — render the reading, save it, and stop
+           p        switch context — offered once a step B has split the
+                    reading; the two contexts grow independently
+           s        skip this place                                (--verbose)
            o        the ontology set — the models in which this reading is
                     valid; a number opens one in BOTH forms, original (as
-                    proposed) and reduced (after the firings)
+                    proposed) and reduced (after the firings)      (--verbose)
            t        show the reading — term, tree, pointers, steps  (--verbose)
            e        the entity store — uses and aliases              (--verbose)
            resume   save the question and all its readings, and stop
@@ -105,7 +119,10 @@ class Spinner:
         if _TTY:
             self._thread = threading.Thread(target=self._spin, daemon=True)
             self._thread.start()
-        else:
+        elif VERBOSE:
+            # On a TTY the spinner erases itself, so it renders nothing that
+            # survives; off one it would leave a line behind, which without
+            # --verbose is narration the default rendering does not want.
             print(f"  {self.label}…")
         return self
 
@@ -153,6 +170,15 @@ class Spinner:
 # ── rendering ─────────────────────────────────────────────────────────────────
 
 def banner(mock: bool, clarify: bool = True) -> None:
+    """The header. VERBOSE only.
+
+    Without --verbose the app renders only the interaction itself — the words of
+    the query at issue, the question, the answers, and `r` — so the header, the
+    backend and the command list are all narration around it.
+    """
+    if not VERBOSE:
+        print()
+        return
     print()
     print(f"  {orange('◆')} {bold('reading browser')}  "
           f"{dim('— a query, read as a term')}")
@@ -310,6 +336,91 @@ def render_reading(reading: Reading, lines: list[str]) -> None:
     walk(reading.term, (), "", "")
 
 
+def show_interactions(reading, lines: list[str]) -> None:
+    """The reading as it was ASKED — point, question, answer, in order.
+
+    This is the half of a reading the term cannot carry. The term says what was
+    built and `steps` says by which reading steps; only this says what the user
+    was asked and what they chose, which is what makes a saved reading legible
+    later rather than merely replayable.
+    """
+    ix = getattr(reading, "interactions", None)
+    if not ix:
+        return
+    lines.append("")
+    lines.append(f"{dim('what was asked')}")
+    for n, i in enumerate(ix, 1):
+        if i.point:
+            lines.append(f"  {orange(str(n))} {dim('in your query:')} "
+                         f"{orange(i.point)}")
+            head = f"     {i.question}"
+        else:
+            head = f"  {orange(str(n))} {i.question}"
+        if head.strip():
+            lines.append(head)
+        lines.append(f"     {green('→')} {bold(i.answer)}"
+                     + (f"  {dim('[' + i.kind + ']')}" if VERBOSE else ""))
+        if VERBOSE and i.rationale:
+            lines.append(f"       {dim(i.rationale)}")
+
+
+def render_created_reading(session, rnew, auto_q) -> None:
+    """THE RESULT OF THE INTERACTION — what resume is for.
+
+    The readings of a query are assembled into one reading of the whole query
+    (Rnew), and whatever was left unclarified becomes a question over it. That
+    result is the thing the user came for, so resume renders it: what was asked
+    and answered in each reading, then the assembled term, then the question
+    that stands over what nobody settled.
+
+    Saving still happens, but it is bookkeeping — reported after, and briefly.
+    """
+    print()
+    print("  " + _rule())
+    print(f"  {bold('the reading of your query')}")
+    print(f"  {dim(session.query)}")
+    print("  " + _rule())
+
+    for n, c in enumerate(session.closed, 1):
+        quote = session.seed_quotes.get(c.seed.iri, "")
+        # The quote says which words of the query this reading settles, so the
+        # seed's own gloss would only repeat it; the label is enough.
+        head = (f"{orange(quote)}  {dim('→')}  {bold(c.seed.short())}"
+                if quote else named(c.seed))
+        print()
+        print(f"  {bold(str(n) + '.')} {head}")
+        if not c.interactions:
+            print(f"       {dim('(nothing was settled here)')}")
+        for i in c.interactions:
+            print(f"       {dim(i.question)}")
+            print(f"         {green('→')} {bold(i.answer)}")
+        print(f"       {dim('reads as')} {green(str(c.term))}")
+
+    if rnew is not None and len(session.closed) > 1:
+        print()
+        print(f"  {bold('assembled')}  {dim('— the readings, applied to one another')}")
+        print(f"       {green(str(rnew))}")
+        if VERBOSE:
+            print(f"       {dim('type')} {dim(_short(_term_type(rnew)))}"
+                  f"  {dim('— the last reading combined')}")
+
+    pend = session.unexhausted_seeds()
+    if pend:
+        print()
+        print(f"  {bold('left unclarified')}  "
+              f"{dim('— asked as a question over the reading')}")
+        for e in pend:
+            quote = session.seed_quotes.get(e.iri, "")
+            print(f"       {dim('·')} "
+                  f"{orange(quote) + '  ' if quote else ''}{bold(e.short())}")
+        if auto_q is not None:
+            print(f"       {dim(auto_q.title)}")
+            if VERBOSE:
+                print(f"       {green(str(auto_q.term))}")
+    print()
+    print("  " + _rule())
+
+
 def show_term_modal(reading: Reading, session) -> None:
     """A full view of the reading, held until the user dismisses it.
 
@@ -330,6 +441,7 @@ def show_term_modal(reading: Reading, session) -> None:
     print()
 
     render_reading(reading, lines)
+    show_interactions(reading, lines)
     for ln in lines:
         print("  " + ln)
 
@@ -379,6 +491,11 @@ def report_merges(session) -> None:
     A merge changes what gets built — the two names become ONE node — so it is
     shown rather than done silently.
     """
+    if not VERBOSE:
+        # A merge still happens — it is just not narrated; the entity store
+        # (`e`, --verbose) is where the two names show up as one node.
+        session.entities.take_merges()
+        return
     for name, kept in session.entities.take_merges():
         # Only worth saying when the two names actually READ differently. The
         # delegate often sends an id that differs from the label while the label
@@ -661,6 +778,34 @@ def _pointer_line(reading: Reading, p, act) -> str:
     return f"{mark} {dim(f'p{p.pid}')}  {at}{tail}"
 
 
+def move_after_exhausting(reading: Reading, session, why: str) -> None:
+    """actPtr has just left a place. Who chooses where it lands?
+
+    |Pr| > 1 MEANS THERE IS A CHOICE TO MAKE. Reflection put a pointer on each
+    aux port of the fan-in and the two contexts grow independently (§4.2), so
+    when this place is done and more than one is still open, which one the
+    reading continues from is the user's move — the same choice `p` offers, at
+    the moment it is forced. The driver picks only when nothing is left to pick
+    between.
+
+    `session.mark_exhausted` has already moved actPtr to SOME open pointer, so a
+    cancelled picker simply keeps that one.
+    """
+    open_now = reading.open_pointers()
+    if len(open_now) > 1:
+        print(f"\n  {dim(why)}")
+        choose_pointer(reading, session)
+        return
+    # ONE PLACE LEFT: nothing to choose. actPtr still moves, but this is NOT the
+    # moment to announce where to — the delegate may have nothing there either,
+    # in which case the reading closes and another opens, and a line saying
+    # "continuing in context X" would have been a promise the next step breaks.
+    # What the user stands in is rendered where it is true: `show_context` on the
+    # question actually asked, and `show_reading_opened` when the frame changes.
+    if VERBOSE:
+        print("  " + dim(why + " — moving to another pointer of this reading"))
+
+
 def choose_pointer(reading: Reading, session) -> bool:
     """Let the user pick which pointer to stand at — which context to continue in.
 
@@ -696,17 +841,68 @@ def choose_pointer(reading: Reading, session) -> bool:
                 print(dim("  already standing there"))
                 return False
             session.select_pointer(reading, p.pid)
+            here = reading.pointer_entities.get(p.pid)
             if VERBOSE:
-                here = reading.pointer_entities.get(p.pid)
                 cast = (f"  {dim('reflected as')} {mauve(_short(p.cast_type))}"
                         if p.cast_type else "")
                 print(f"  {green('✓')} now standing at {dim(f'p{p.pid}')} "
                       f"{bold(here.short() if here else '?')}{cast}")
+            elif p.cast_type:
+                # Quietly the CONTEXT is the whole of it — the cast is that
+                # occurrence's own reading of the subject.
+                print(f"  {green('✓')} now in context "
+                      f"{mauve(_short(p.cast_type))}")
+            else:
+                print(f"  {green('✓')} now at "
+                      f"{bold(here.short() if here else '?')}")
             return True
         print(dim(f"    choose one of: {', '.join(sorted(valid))}"))
 
 
-def show_step_header(kind: str, reading: Reading, entities: list[str]) -> None:
+def show_context(reading: Reading) -> None:
+    """Which of the open contexts this question is being asked in.
+
+    Rendered whenever |Pr| > 1, in both modes: once a reflection has split the
+    reading the same words can be read in either context, so the question alone
+    does not say where the user stands. It goes with the question rather than
+    with the move that got here — a move can be undone by the very next step
+    (the place turning out to have nothing, the reading closing), whereas the
+    question being asked is always asked SOMEWHERE.
+    """
+    if len(reading.pointers) < 2:
+        return
+    act = reading.act_pointer()
+    if act is None:
+        return
+    where = (mauve(_short(act.cast_type)) if act.cast_type
+             else bold(reading.act_entity().short() if reading.act_entity()
+                       else "?"))
+    print(f"\n  {dim('context:')} {where}"
+          f"{dim(f'  · {len(reading.pointers)} open, p to switch')}")
+
+
+def show_reading_opened(seed, session, first: bool) -> None:
+    """A NEW READING — a different unclear point of the query is now being read.
+
+    Rendered in both modes, because it changes the frame every following
+    question sits in. |Pr| grows monotonically over ONE reading (§4, I2); a new
+    reading opens with exactly one pointer (§3), so a `p` offered a moment ago
+    is gone not because the app forgot but because the contexts belonged to the
+    reading that just closed. Without this the user reads the next question as
+    belonging to the reading they were just in.
+    """
+    quote = session.seed_quotes.get(seed.iri, "") if session else ""
+    # The quote says which words of the query this reading is of; when the label
+    # IS those words, showing both leaves `Retrieve  →  Retrieve`.
+    if quote.strip().lower() == seed.short().strip().lower():
+        quote = ""
+    which = f"{orange(quote)}  {dim('→')}  " if quote else ""
+    lead = "reading" if first else "now reading"
+    print(f"\n  {green('◆')} {dim(lead + ':')} {which}{bold(seed.short())}")
+
+
+def show_step_header(kind: str, reading: Reading, entities: list[str],
+                     session=None) -> None:
     """Which of A/B/C this is, and the entities it uses."""
     style, letter, what, calculus = KIND_STYLE[kind]
     if not VERBOSE:
@@ -718,6 +914,9 @@ def show_step_header(kind: str, reading: Reading, entities: list[str]) -> None:
     print(f"    {dim('reading step:')} {style(calculus)}")
     print(f"    {dim('standing at:')}  "
           f"{bold(reading.act_entity().short() if reading.act_entity() else '?')}")
+    if session is not None:
+        print(f"    {dim('budget:')}       "
+              f"{dim(f'{session.steps_taken()} of {session.max_steps} steps used')}")
     if entities:
         print(f"    {dim('entities:')}     {', '.join(entities)}")
 
@@ -805,15 +1004,23 @@ def _short(iri: Optional[str]) -> str:
     return iri.split(":", 1)[-1].split("/")[-1].split("#")[-1]
 
 
-def ask_choice(prompt: str, labels: list[str], extra: dict[str, str]) -> str:
-    """Numbered menu. Returns "1".."n" or one of `extra`'s keys."""
+def ask_choice(prompt: str, labels: list[str], extra: dict[str, str],
+               hidden: frozenset = frozenset()) -> str:
+    """Numbered menu. Returns "1".."n" or one of `extra`'s keys.
+
+    A key in `hidden` is still ACCEPTED, just not listed: without --verbose the
+    menu renders the answers and `r`, but a user who knows the other commands
+    can still use them — pressing one is their own request, not something the
+    default rendering puts in front of them.
+    """
     print()
     if prompt:
         print(f"  {bold(prompt)}")
     for i, lab in enumerate(labels, 1):
         print(f"    {orange(str(i))}  {lab}")
     for key, lab in extra.items():
-        print(f"    {dim(key)}  {dim(lab)}")
+        if key not in hidden:
+            print(f"    {dim(key)}  {dim(lab)}")
     valid = {str(i) for i in range(1, len(labels) + 1)} | set(extra)
     while True:
         try:
@@ -823,7 +1030,8 @@ def ask_choice(prompt: str, labels: list[str], extra: dict[str, str]) -> str:
             return "quit"
         if raw in valid:
             return raw
-        print(dim(f"    choose one of: {', '.join(sorted(valid))}"))
+        shown = sorted(valid - set(hidden))
+        print(dim(f"    choose one of: {', '.join(shown)}"))
 
 
 # ── the loop ──────────────────────────────────────────────────────────────────
@@ -876,7 +1084,7 @@ class Browser:
                       f"  {dim('· one call for the whole phase')}")
             show_cost(self.agent)
             known = self.session.entities_loaded
-            if known:
+            if known and VERBOSE:
                 print("  " + dim("◆ ") +
                       dim(f"{known} entities known from earlier sessions"))
             seeds = self.session.seeds
@@ -884,17 +1092,21 @@ class Browser:
             # if it has none there is nothing to clarify, so resume rather than
             # inventing a question.
             if not seeds:
-                print(f"  {dim('nothing unclear in this query — resuming')}")
+                if VERBOSE:
+                    print(f"  {dim('nothing unclear in this query — resuming')}")
                 report_merges(self.session)
                 self.do_resume()
                 return 0
             n = len(seeds)
-            print(f"  {green('✓')} {dim('found')} {bold(str(n))} "
-                  f"{dim('unclear point' + ('' if n == 1 else 's') + ', one reading each')}")
-            for s_ in seeds:
-                quote = self.session.seed_quotes.get(s_.iri, "")
-                print(f"      {dim('·')} {orange(quote) if quote else dim('—')}"
-                      f"  {dim('→')} {named(s_)}")
+            if VERBOSE:
+                print(f"  {green('✓')} {dim('found')} {bold(str(n))} "
+                      f"{dim('unclear point' + ('' if n == 1 else 's') + ', one reading each')}"
+                      f"  {dim(f'· at most {self.session.max_steps} steps in all')}")
+                for s_ in seeds:
+                    quote = self.session.seed_quotes.get(s_.iri, "")
+                    print(f"      {dim('·')} "
+                          f"{orange(quote) if quote else dim('—')}"
+                          f"  {dim('→')} {named(s_)}")
             report_merges(self.session)
             seed = seeds[0]
             self.session.seed_cursor = 1
@@ -909,11 +1121,12 @@ class Browser:
             show_cost(self.agent)
 
             known = self.session.entities_loaded
-            if known:
+            if known and VERBOSE:
                 print("  " + dim("◆ ") +
                       dim(f"{known} entities known from earlier sessions"))
-            print(f"  {green('✓')} {dim('entities proposed:')} "
-                  f"{', '.join(bold(s.short()) for s in seeds)}")
+            if VERBOSE:
+                print(f"  {green('✓')} {dim('entities proposed:')} "
+                      f"{', '.join(bold(s.short()) for s in seeds)}")
             report_merges(self.session)
             self.session.seed_cursor = 0
             seed = self.session.next_unread_seed()
@@ -931,7 +1144,10 @@ class Browser:
     def loop(self, seed: Entity) -> int:
         s = self.session
         reading = s.open_reading(seed)
-        print(f"\n  {green('◆')} opening a reading from {named(seed)}")
+        if VERBOSE:
+            print(f"\n  {green('◆')} opening a reading from {named(seed)}")
+        else:
+            show_reading_opened(seed, s, first=True)
         show_term(reading)
 
         while True:
@@ -956,26 +1172,44 @@ class Browser:
             show_cost(self.agent, only_if_new=not delegated)
 
             if prop.kind == "none":
+                # BUDGET SPENT is not the same as nothing-left-here: there may
+                # be plenty to ask, and no allowance to ask it with. So it ends
+                # the whole process rather than moving to another pointer or
+                # opening the next reading — resume then assembles what was
+                # settled and asks about the rest.
+                if prop.note.startswith("step budget spent"):
+                    if VERBOSE:
+                        limit = (f"reached the {s.max_steps}-step limit "
+                                 f"for one query")
+                        print(f"\n  {dim(limit)}")
+                    self.do_resume()
+                    return 0
                 # No interaction step from this pointer. Try the reading's other
                 # pointers; if none is left, this reading is done and we open a
                 # new one from an entity that has no reading yet.
                 moved = s.mark_exhausted(reading)
                 if moved is not None:
-                    print("  " + dim("no step here — moving to another "
-                                     "pointer of this reading"))
+                    move_after_exhausting(
+                        reading, s, "nothing left to ask in this context")
                     continue
-                print(f"  {dim('no interaction step remains in this reading')}")
+                if VERBOSE:
+                    print(f"  {dim('no interaction step remains in this reading')}")
                 cr = s.close_current()
-                if cr is not None:
+                if cr is not None and VERBOSE:
                     print(f"  {green('✓')} closed reading "
                           f"{bold(cr.name)}  {dim(str(cr.term))}")
                 nxt = s.next_unread_seed()
                 if nxt is None:
-                    print(f"\n  {dim('every entity has a reading — resuming')}")
+                    if VERBOSE:
+                        print(f"\n  {dim('every entity has a reading — resuming')}")
                     self.do_resume()
                     return 0
                 reading = s.open_reading(nxt)
-                print(f"\n  {green('◆')} opening a reading from {named(nxt)}")
+                if VERBOSE:
+                    print(f"\n  {green('◆')} opening a reading from "
+                          f"{named(nxt)}")
+                else:
+                    show_reading_opened(nxt, s, first=False)
                 show_term(reading)
                 continue
 
@@ -1015,7 +1249,7 @@ class Browser:
             # away the options on screen (and, on --claude, pay for them again).
             choice = None
             while choice is None:
-                show_step_header(prop.kind, reading, uniq)
+                show_step_header(prop.kind, reading, uniq, s)
                 report_merges(s)
                 extra = {"s": "skip this place"}
                 extra["o"] = "ontologies"
@@ -1029,14 +1263,22 @@ class Browser:
                                   f"({len(reading.pointers)} open)")
                 extra["r"] = "resume (save and stop)"
                 extra["q"] = "quit without saving"
+                # WHAT THE DEFAULT RENDERING SHOWS is the choice, switching
+                # between the contexts a step B opened, and the way out: the
+                # answers, `p` once there is more than one context, and `r`.
+                # The rest stay accepted but unlisted — see ask_choice.
+                hidden = (frozenset() if VERBOSE
+                          else frozenset(set(extra) - {"p", "r"}))
                 # The words of the query at issue: the point being clarified is
                 # the user's OWN phrase, so showing it is what makes the step
                 # legible without any calculus.
+                show_context(reading)
                 if prop.note.startswith("clarifying: "):
                     print(f"\n  {dim('in your query:')} "
                           f"{orange(prop.note[len('clarifying: '):])}")
                 picked = ask_choice(
-                    prop.prompt or "which reading do you take?", labels, extra)
+                    prop.prompt or "which reading do you take?", labels, extra,
+                    hidden=hidden)
                 if picked == "t":
                     show_term_modal(reading, s)
                     continue
@@ -1063,19 +1305,24 @@ class Browser:
                 continue
 
             if choice in ("q", "quit"):
-                print(dim("  left without saving"))
+                if VERBOSE:
+                    print(dim("  left without saving"))
                 return 0
             if choice == "r":
                 self.do_resume()
                 return 0
             if choice == "s":
                 if s.mark_exhausted(reading) is None:
-                    print(dim("  no other pointer here"))
+                    if VERBOSE:
+                        print(dim("  no other pointer here"))
+                else:
+                    move_after_exhausting(reading, s, "skipped this place")
                 continue
 
             opt = prop.options[int(choice) - 1]
             line = s.apply(reading, prop, opt)
-            print(f"\n  {green('✓')} {line if VERBOSE else _plain_step(line)}")
+            if VERBOSE:
+                print(f"\n  {green('✓')} {line}")
             show_term(reading)
 
             if prop.kind == "B":
@@ -1089,85 +1336,79 @@ class Browser:
                              and p.reflect_id == act.reflect_id
                              and p.pid != act.pid), None)
                 if twin is not None:
+                    # STEP B IS WHY CONTEXTS EXIST: the reflection just made two
+                    # independent occurrences, so which one the reading
+                    # continues from is the live question — part of the
+                    # interaction, and rendered in both modes.
                     print(f"  {dim('the reading split — you are in context')} "
                           f"{mauve(_short(act.cast_type))}{dim(';')} "
                           f"{dim('the other is')} "
                           f"{mauve(_short(twin.cast_type))}")
                     if ask_yes_no("  continue in the other context instead?"):
                         s.select_pointer(reading, twin.pid)
-                        if VERBOSE:
-                            here = reading.pointer_entities.get(twin.pid)
-                            print(f"  {green('✓')} now in context "
-                                  f"{mauve(_short(twin.cast_type))} at "
-                                  f"{bold(here.short() if here else '?')}")
+                        # The switch is the step the user just took, so it is
+                        # confirmed in both modes; only the place it landed is
+                        # extra.
+                        here = reading.pointer_entities.get(twin.pid)
+                        at = (f" at {bold(here.short() if here else '?')}"
+                              if VERBOSE else "")
+                        print(f"  {green('✓')} now in context "
+                              f"{mauve(_short(twin.cast_type))}{at}")
 
     # ── resume ────────────────────────────────────────────────────────────
 
     def do_resume(self) -> None:
-        """"resume for now means — save init question and all its readings"."""
+        """RESUME — render the reading the interaction created, then save it.
+
+        "resume for now means: render created reading." The readings of the
+        query are assembled into one (Rnew = app(app(R1,R2),R3), the open one
+        last), whatever seed was never exhausted becomes a question over it, and
+        THAT result is what resume shows. Saving follows as bookkeeping.
+        """
         s = self.session
         if s is None:
             return
-        # RESUME BUILDS THE QUERY'S READING. The exhausted readings are applied
-        # to one another (Rnew = app(app(R1,R2),R3)), the open one last, and if
-        # any seed was never read the result is abstracted over those still
-        # unclarified points — one nested question per binder.
-        auto_q = None
+
+        rnew, auto_q = None, None
         if s.plan is not None:
             rnew = s.combined_term(
                 extra=s.current.term if s.current is not None else None)
-            auto_q = s.close_with_question()
-            if rnew is not None:
-                print()
-                print(f"  {green('✓')} the query, read: {green(str(rnew))}")
-                if VERBOSE:
-                    print(f"      {dim('|R| =')} {dim(str(len(s.closed)))}"
-                          f"{dim(' readings, applied left to right')}")
-            if auto_q is not None:
-                pend = s.unexhausted_seeds()
-                print(f"  {green('✓')} {len(pend)} point(s) left unclarified — "
-                      f"asked as a question")
-                if VERBOSE:
-                    print(f"      {dim(str(auto_q.term))}")
+            auto_q = s.close_with_question()   # also closes the open reading
         elif s.current is not None:
             s.close_current()
+
         if not s.closed:
-            print(dim("  nothing to save"))
+            print(dim("  nothing was read"))
             return
+
+        render_created_reading(s, rnew, auto_q)
+
+        # ── bookkeeping ───────────────────────────────────────────────────
         from reading_store import save_session
         path = save_session(s)
-
-        # Entities persist too, so the next session knows what this one named.
         ent_path = s.save_entities()
-        print()
-        print(f"  {green('✓')} saved {bold(str(len(s.entities)))} entit"
-              f"{'y' if len(s.entities) == 1 else 'ies'}")
-        if VERBOSE:
-            print(f"  {dim('→')} {dim(str(ent_path))}")
-
-        # Questions go to the SHARED question store, which is where enrichment
-        # draws its candidates from — not into the session file.
+        saved_q = 0
+        failed: list[str] = []
         if s.questions:
-            n, failed = s.save_questions()
-            print()
-            print(f"  {green('✓')} saved {bold(str(n))} question(s) to the "
-                  f"question store")
-            for q in s.questions:
-                print(f"      {dim('·')} {q.title}  {dim('of')} {q.asked.short()}")
-            for why in failed:
-                print(f"      {red('✗')} {dim(why)}")
-        print()
-        print(f"  {green('✓')} saved {bold(str(len(s.closed)))} reading(s) for "
-              f"{bold(s.query)}")
-        for c in s.closed:
-            # The term itself is the calculus; without --verbose say how many
-            # steps the reading took instead. Both are saved either way.
-            detail = (green(str(c.term)) if VERBOSE
-                      else dim(f"{len(c.steps)} step"
-                               f"{'' if len(c.steps) == 1 else 's'}"))
-            print(f"      {dim('·')} {c.name}  {detail}")
-        print(f"  {dim('→')} {dim(str(path))}")
-        if self.agent.total_cost_usd:
+            saved_q, failed = s.save_questions()
+
+        if VERBOSE:
+            bits = [f"{len(s.closed)} reading"
+                    + ("" if len(s.closed) == 1 else "s")]
+            if saved_q:
+                bits.append(f"{saved_q} question"
+                            + ("" if saved_q == 1 else "s"))
+            bits.append(f"{len(s.entities)} entit"
+                        + ("y" if len(s.entities) == 1 else "ies"))
+            print(f"  {green('✓')} {dim('saved ' + ', '.join(bits))}")
+        # A FAILURE is not bookkeeping: something the user read was not kept, so
+        # it is said in either mode.
+        for why in failed:
+            print(f"      {red('✗')} {dim(why)}")
+        if VERBOSE:
+            print(f"      {dim('→')} {dim(str(path))}")
+            print(f"      {dim('→')} {dim(str(ent_path))}")
+        if self.agent.total_cost_usd and VERBOSE:
             print(f"  {dim(f'delegation cost: ${self.agent.total_cost_usd:.4f}')}")
         print()
 

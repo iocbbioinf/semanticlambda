@@ -493,6 +493,262 @@ def test_context_prompt_and_picker_in_the_ui():
           "`p` is hidden while there is only one pointer")
 
 
+def test_switching_context_is_offered_whenever_pr_leaves_a_choice():
+    """|Pr| > 1 means the user can switch context — including when FORCED to.
+
+    Reflection puts a pointer on each aux port and the two contexts grow
+    independently (§4.2), so actPtr is a choice for as long as more than one
+    place is open. `p` covers the case where the user wants to move; this covers
+    the case where the driver has to move them — no step at this pointer, or the
+    user skipping it. Picking the destination is still theirs.
+
+    Regression: the driver called `mark_exhausted`, which selects the FIRST open
+    pointer, and simply carried on — so with |Pr| > 1 the context the reading
+    continued in was chosen for the user, silently.
+    """
+    print("\nactPtr — the user chooses, whenever |Pr| leaves a choice")
+    import io
+    from unittest.mock import patch
+    import reading_browser as rb
+
+    s = session()
+    r = s.open_reading(E("t"))
+    # two reflections, so exhausting one place still leaves two open
+    for a, b in (("a", "b"), ("c", "d")):
+        s.apply(r, StepProposal(kind="B", options=[]),
+                Option(kind="B", label="split", entity_a=E(a), entity_b=E(b)))
+    check(len(r.pointers) == 3, f"two reflections give |Pr| = 3 ({len(r.pointers)})")
+
+    moved = s.mark_exhausted(r)
+    check(moved is not None, "the driver moved actPtr off the exhausted place")
+    open_now = [p.pid for p in r.open_pointers()]
+    check(len(open_now) > 1, f"and more than one place is still open ({open_now})")
+
+    # THE CHOICE IS THE USER'S: the picker is offered, and what they pick stands
+    script = iter(["3"])
+    buf = io.StringIO()
+    with patch("builtins.input", lambda *a: next(script)), \
+         patch.object(rb, "VERBOSE", False), patch("sys.stdout", buf):
+        rb.move_after_exhausting(r, s, "nothing left to ask in this context")
+    out = buf.getvalue()
+    check("where do you want to continue?" in out,
+          "the picker is offered rather than the driver deciding")
+    third = list(r.pointers.pointers)[2]
+    check(r.act_pointer().pid == third.pid,
+          "and actPtr is where the user put it, not where mark_exhausted did")
+
+    # With only ONE place left there is nothing to choose — and nothing is
+    # announced either. The delegate may have nothing at that place too, in
+    # which case the reading closes and another opens; a line saying
+    # "continuing in context X" would then have been false. Where the user
+    # actually stands is rendered on the next QUESTION (`show_context`) or as a
+    # new reading opening (`show_reading_opened`) — both true when printed.
+    r2 = s.open_reading(E("u"))
+    s.apply(r2, StepProposal(kind="B", options=[]),
+            Option(kind="B", label="split", entity_a=E("m"), entity_b=E("n")))
+    s.mark_exhausted(r2)
+    buf = io.StringIO()
+    with patch.object(rb, "VERBOSE", False), patch("sys.stdout", buf):
+        rb.move_after_exhausting(r2, s, "skipped this place")
+    out = buf.getvalue()
+    check("where do you want to continue?" not in out,
+          "one open place asks nothing")
+    check(out.strip() == "",
+          "and promises nothing about where the move landed")
+
+    # the context IS rendered on the question asked there, while |Pr| > 1
+    buf = io.StringIO()
+    with patch.object(rb, "VERBOSE", False), patch("sys.stdout", buf):
+        rb.show_context(r2)
+    check("context:" in buf.getvalue() and "p to switch" in buf.getvalue(),
+          "the question says which context it is asked in")
+
+
+def test_pr_never_shrinks_within_a_reading():
+    """I2 — `Pr` grows monotonically OVER A READING, and is never empty.
+
+    The scope is one reading (§4, I2: "Pr grows monotonically over a reading").
+    Contraction re-points actPtr, reflection consumes it and adds two, and no
+    operation removes a pointer — so within a reading |Pr| only rises.
+
+    A NEW reading is not a counterexample: §3 opens with exactly one pointer,
+    whether from a type or from a saved reading. So across an interaction that
+    reads several seeds, |Pr| drops back to 1 at each opening BY DEFINITION, and
+    `p` correctly disappears with it — the contexts belonged to the reading that
+    closed, and closing collapses the pointer set to the root.
+    """
+    print("\nI2 — |Pr| never shrinks within a reading; a new reading opens at 1")
+    import io
+    from unittest.mock import patch
+    import reading_browser as rb
+    from reading_mock import MockAgent
+
+    viol, opens, samples = [], 0, 0
+    orig_open = rb.ReadingSession.open_reading
+    orig_apply = rb.ReadingSession.apply
+    orig_mark = rb.ReadingSession.mark_exhausted
+    orig_sel = rb.ReadingSession.select_pointer
+
+    for seed in range(1, 9):
+        hi: dict = {}
+
+        def watch(r, where):
+            nonlocal samples
+            n = len(r.pointers)
+            samples += 1
+            if n == 0:
+                viol.append((seed, where, "Pr EMPTY"))
+            if id(r) in hi and n < hi[id(r)]:
+                viol.append((seed, where, hi[id(r)], n))
+            hi[id(r)] = max(hi.get(id(r), 0), n)
+
+        def s_open(self, sd):
+            nonlocal opens
+            r = orig_open(self, sd)
+            opens += 1
+            if len(r.pointers) != 1:
+                viol.append((seed, "a reading opened with |Pr| != 1",
+                             len(r.pointers)))
+            hi[id(r)] = len(r.pointers)
+            return r
+
+        def s_apply(self, r, prop, opt):
+            out = orig_apply(self, r, prop, opt)
+            watch(r, f"apply {prop.kind}")
+            return out
+
+        def s_mark(self, r):
+            out = orig_mark(self, r)
+            watch(r, "mark_exhausted")
+            return out
+
+        def s_sel(r, pid):
+            out = orig_sel(r, pid)
+            watch(r, "select_pointer")
+            return out
+
+        script = iter(["how does aspirin reduce inflammation in the brain"]
+                      + ["1", "n", "2", "n", "3", "n", "s"] * 4 + ["r"])
+        buf = io.StringIO()
+        with patch("builtins.input", lambda *a: next(script)), \
+             patch("reading_store.save_session", lambda st: "(x)"), \
+             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
+             patch.object(rb.ReadingSession, "open_reading", s_open), \
+             patch.object(rb.ReadingSession, "apply", s_apply), \
+             patch.object(rb.ReadingSession, "mark_exhausted", s_mark), \
+             patch.object(rb.ReadingSession, "select_pointer",
+                          staticmethod(s_sel)), \
+             patch.object(rb, "VERBOSE", False), patch("sys.stdout", buf):
+            try:
+                rb.Browser(MockAgent(seed=seed)).run()
+            except StopIteration:
+                pass
+
+    check(opens > 8, f"several readings were opened ({opens})")
+    check(samples > 50, f"and |Pr| was sampled enough to mean something ({samples})")
+    check(not viol, f"|Pr| never shrank within a reading, nor emptied ({viol[:3]})")
+
+
+def test_p_is_offered_exactly_when_pr_leaves_a_choice():
+    """`p` is offered at a menu IF AND ONLY IF |Pr| > 1, in that reading.
+
+    The condition is |Pr| of the reading being read RIGHT NOW — not "a
+    reflection happened at some point". Closing a reading takes its contexts
+    with it, so the next reading starts at |Pr| = 1 and `p` is correctly gone.
+
+    Regression: it LOOKED broken because the frame change was invisible. The
+    reading closed and another opened with nothing said (both lines were
+    --verbose), so a menu belonging to a fresh |Pr| = 1 reading read as if it
+    still belonged to the split one — a missing `p` with two contexts open.
+    `show_reading_opened` is why that is now legible.
+    """
+    print("\n`p` is offered exactly when |Pr| > 1")
+    import io
+    from unittest.mock import patch
+    import reading_browser as rb
+    from reading_mock import MockAgent
+
+    bad, checked = [], 0
+    orig_open = rb.ReadingSession.open_reading
+    orig_ask = rb.ask_choice
+
+    for seed in range(1, 13):
+        state = {"reading": None}
+
+        def spy_open(self, sd, _st=state):
+            r = orig_open(self, sd)
+            _st["reading"] = r
+            return r
+
+        def spy_ask(prompt, labels, extra, hidden=frozenset(), _st=state):
+            nonlocal checked
+            pr = len(_st["reading"].pointers)
+            offered = "p" in extra and "p" not in hidden
+            checked += 1
+            if (pr > 1) != offered:
+                bad.append((seed, pr, offered, prompt[:40]))
+            return orig_ask(prompt, labels, extra, hidden)
+
+        script = iter(["how does aspirin reduce inflammation in the brain"]
+                      + ["1", "n", "2", "n", "3", "n"] * 5 + ["r"])
+        buf = io.StringIO()
+        with patch("builtins.input", lambda *a: next(script)), \
+             patch("reading_store.save_session", lambda st: "(x)"), \
+             patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
+             patch.object(rb, "ask_choice", spy_ask), \
+             patch.object(rb.ReadingSession, "open_reading", spy_open), \
+             patch.object(rb, "VERBOSE", False), patch("sys.stdout", buf):
+            try:
+                rb.Browser(MockAgent(seed=seed)).run()
+            except StopIteration:
+                pass
+
+    check(checked > 50, f"enough menus were seen to mean something ({checked})")
+    check(not bad, f"`p` tracked |Pr| > 1 at every menu ({bad[:3]})")
+
+
+def test_the_frame_of_a_question_is_rendered():
+    """A question says WHERE it is asked: which reading, and which context.
+
+    Both are rendered without --verbose, because both change what the question
+    means. The reading is the unclear point of the query being read; the context
+    is which occurrence a reflection left the user standing in.
+    """
+    print("\nthe frame — which reading, and which context")
+    import io
+    from unittest.mock import patch
+    import reading_browser as rb
+    from reading_mock import MockAgent
+
+    script = iter(["Retrieve molecules that can pass the blood brain barrier",
+                   "1", "1", "n", "3", "3", "3", "r"])
+    buf = io.StringIO()
+    with patch("builtins.input", lambda *a: next(script)), \
+         patch("reading_store.save_session", lambda st: "(x)"), \
+         patch("reading_session.save_entities", lambda st, p=None: "(x)"), \
+         patch.object(rb, "VERBOSE", False), patch("sys.stdout", buf):
+        try:
+            rb.Browser(MockAgent(seed=11)).run()
+        except StopIteration:
+            pass
+    out = buf.getvalue()
+
+    check("reading: Retrieve" in out, "the first reading names its subject")
+    check("now reading: molecules" in out,
+          "and so does the one that opens when it closes")
+    check("context:" in out and "2 open, p to switch" in out,
+          "the context is named while more than one is open")
+    # The move that got here is NOT announced: the pointer it lands on may have
+    # nothing either, and the reading then closes — so a line promising to
+    # continue there would be false by the next step.
+    check("continuing in context" not in out,
+          "no promise is made about where actPtr just moved")
+    # the frame line must come BEFORE the question it frames
+    check(out.index("now reading: molecules")
+          < out.index("“molecules: what it covers”"),
+          "the frame is rendered before the question in it")
+
+
 def test_verbose_gates_the_calculus_trace():
     """--verbose narrates the calculus; without it the app stays quiet.
 
@@ -533,10 +789,36 @@ def test_verbose_gates_the_calculus_trace():
         check(token not in quiet, f"quiet: {what} is not shown")
         check(token in loud, f"verbose: {what} IS shown")
 
-    # what must survive in BOTH: the user still has to see the choice
+    # THE DEFAULT RENDERING IS ONLY THE INTERACTION: the point being clarified,
+    # the question, the answers, and `r`. Everything around it — the header, the
+    # flow, the step confirmations, the save report — is narration, and is
+    # gated with the calculus.
+    # NOTE the store count ("N entities known from earlier sessions") is NOT
+    # asserted here: it prints only when data/entities.json is non-empty, so it
+    # would make this test depend on what earlier runs happened to leave behind.
+    for token, what in [("reading browser", "the header"),
+                        ("backend:", "which delegate is in use"),
+                        ("unclear point", "the up-front list of points"),
+                        ("opening a reading from", "the reading being opened"),
+                        ("saved ", "the save report"),
+                        ("s  skip this place", "the `s` command"),
+                        ("q  quit without saving", "the `q` command")]:
+        check(token not in quiet, f"quiet: {what} is not shown")
+        check(token in loud, f"verbose: {what} IS shown")
+
+    # what must survive in BOTH: the user still has to see the choice, and the
+    # way out of it
     for token, what in [("how should", "the question put to the user"),
                         ("in your query:", "the words of the query at issue"),
-                        ("saved", "the resume confirmation")]:
+                        ("read narrowly", "the answers to choose between"),
+                        ("r  resume", "the resume command"),
+                        ("the reading of your query",
+                         "the reading, rendered by resume"),
+                        # A step B splits the reading, so which of the two
+                        # contexts to continue in is part of the interaction —
+                        # not narration of it.
+                        ("the reading split", "the announcement of the split"),
+                        ("switch context", "the `p` command, once split")]:
         check(token in quiet and token in loud, f"both: {what} is shown")
 
     # The pointer picker is a real choice in BOTH modes, but names the contexts by
@@ -565,6 +847,10 @@ def test_verbose_gates_the_calculus_trace():
                         ("now standing at", "the standing-at confirmation")]:
         check(token not in quiet_p, f"quiet: {what} is not shown")
         check(token in loud_p, f"verbose: {what} IS shown")
+    # Switching IS the step the user took, so it confirms in both modes —
+    # quietly by the context alone, since the cast is the whole of the choice.
+    check("now in context" in quiet_p,
+          "quiet: the switch is confirmed, by context")
 
 
 def test_render_reading_shows_sharing_once():
@@ -1159,6 +1445,160 @@ def test_points_belong_to_their_reading():
           "the same words may be at issue again in a different reading")
 
 
+
+def test_a_reading_records_what_was_asked():
+    """A reading keeps the point, the question and the answer — as text.
+
+    `steps` records the calculus ("[A] contraction opt.1 — moved → X"), which
+    says what the term did but not what was asked or chosen. Without that text
+    a saved reading can be replayed and not read back, so every step also keeps
+    an `Interaction`: the words of the query at issue, the question put to the
+    user, and the label of the option they took.
+    """
+    print("\na reading records the point, question and answer")
+    from reading_mock import MockAgent
+    from reading_session import ReadingSession
+
+    s = ReadingSession("molecules that pass the blood-brain barrier", MockAgent())
+    s.start_clarifying()
+    r = s.open_reading(s.seeds[0])
+
+    kinds = set()
+    for _ in range(8):
+        prop = s.propose(r)
+        if prop.kind == "none":
+            break
+        s.apply(r, prop, prop.options[0])
+        kinds.add(prop.kind)
+
+    check(len(r.interactions) == len(r.steps),
+          f"one record per step ({len(r.interactions)} of {len(r.steps)})")
+    for i in r.interactions:
+        check(bool(i.question), f"[{i.kind}] kept the question put to the user")
+        check(bool(i.answer), f"[{i.kind}] kept the answer chosen")
+        check(bool(i.point), f"[{i.kind}] kept the words of the query at issue")
+        check(bool(i.calculus), f"[{i.kind}] kept the calculus line too")
+
+    # a reflection's answer is a PAIR — the label alone would lose which side
+    # asked and which answered
+    for i in r.interactions:
+        if i.kind == "B":
+            check("(question)" in i.answer and "(answer)" in i.answer,
+                  "a reflection records both sides of the pair")
+
+    # and they survive closing
+    cr = s.close_current()
+    check(len(cr.interactions) == len(r.interactions),
+          "the closed reading carries them")
+    check(str(cr.interactions[0]).count("→") == 1,
+          f"and reads as one line ({str(cr.interactions[0])[:60]!r})")
+
+
+def test_interactions_round_trip_through_the_store():
+    """What was asked survives a save and load."""
+    print("\nwhat was asked survives the store")
+    import json
+    import tempfile
+    from pathlib import Path
+    from unittest.mock import patch
+    from reading_mock import MockAgent
+    from reading_session import ReadingSession
+    import reading_store
+
+    s = ReadingSession("molecules that pass the barrier", MockAgent())
+    s.start_clarifying()
+    r = s.open_reading(s.seeds[0])
+    for _ in range(4):
+        prop = s.propose(r)
+        if prop.kind == "none":
+            break
+        s.apply(r, prop, prop.options[0])
+    s.close_current()
+    want = [(i.kind, i.point, i.question, i.answer) for i in s.closed[0].interactions]
+    check(bool(want), "there is something to save")
+
+    with tempfile.TemporaryDirectory() as d:
+        db = Path(d) / "sessions.json"
+        with patch.object(reading_store, "SESSIONS_DB", db):
+            reading_store.save_session(s)
+            got = reading_store.load_sessions()[-1]["readings"][0]["interactions"]
+    check([(g["kind"], g["point"], g["question"], g["answer"]) for g in got] == want,
+          "point, question and answer all come back unchanged")
+
+    # a record written before interactions were kept must still load
+    with tempfile.TemporaryDirectory() as d:
+        db = Path(d) / "old.json"
+        db.write_text(json.dumps([{"query": "q", "saved_at": "",
+                                   "readings": [{"name": "n", "seed": {},
+                                                 "term": None, "steps": []}]}]))
+        with patch.object(reading_store, "SESSIONS_DB", db):
+            old = reading_store.load_sessions()[0]["readings"][0]
+    check(old["interactions"] == [],
+          "an older record loads with no interactions rather than failing")
+
+
+
+def test_the_interaction_is_bounded_to_max_steps():
+    """The WHOLE process is budgeted, across every reading of the query.
+
+    Each step is one `claude -p` call, so a query with several seeds would
+    otherwise cost (seeds x steps) delegations with no ceiling. The budget is
+    global rather than per reading, and spending it ends the process — it is
+    not a failure: whatever was settled is assembled and whatever was not
+    becomes the question, exactly as running out of points does.
+    """
+    print("\nthe interaction is bounded to max_steps in all")
+    from reading_mock import MockAgent
+    from reading_session import MAX_STEPS, ReadingSession
+
+    check(MAX_STEPS == 10, f"the default ceiling is 10 ({MAX_STEPS})")
+
+    s = ReadingSession("molecules that pass the blood-brain barrier and bind it",
+                       MockAgent())
+    s.start_clarifying()
+    check(len(s.seeds) > 1, f"the query has several seeds ({len(s.seeds)})")
+
+    r = s.open_reading(s.seeds[0])
+    stopped_on_budget = False
+    for _ in range(300):
+        prop = s.propose(r)
+        if prop.kind == "none":
+            if prop.note.startswith("step budget spent"):
+                stopped_on_budget = True
+                break
+            s.close_current()
+            nxt = s.next_unread_seed()
+            if nxt is None:
+                break
+            r = s.open_reading(nxt)
+            continue
+        s.apply(r, prop, prop.options[0])
+
+    check(stopped_on_budget, "the budget is what stopped the process")
+    check(s.steps_taken() == s.max_steps,
+          f"exactly the budget was spent ({s.steps_taken()} of {s.max_steps})")
+    check(s.budget_left() == 0, "and nothing is left")
+    # the count is across ALL readings, not the current one
+    check(len(s.closed) >= 1 and s.current is not None,
+          "it stopped mid-query, with readings closed and one still open")
+    check(s.steps_taken() == sum(len(c.steps) for c in s.closed)
+          + len(s.current.steps),
+          "steps_taken sums every reading of the query")
+
+    # a lower ceiling binds sooner
+    s2 = ReadingSession("molecules that pass the barrier", MockAgent())
+    s2.max_steps = 2
+    s2.start_clarifying()
+    r2 = s2.open_reading(s2.seeds[0])
+    for _ in range(50):
+        prop = s2.propose(r2)
+        if prop.kind == "none":
+            break
+        s2.apply(r2, prop, prop.options[0])
+    check(s2.steps_taken() <= 2,
+          f"a ceiling of 2 allows at most 2 steps ({s2.steps_taken()})")
+
+
 if __name__ == "__main__":
     for t in (test_kind_a_is_contraction_option_1,
               test_entity_id_normalisation,
@@ -1168,6 +1608,10 @@ if __name__ == "__main__":
               test_driver_runs_end_to_end_on_the_mock,
               test_show_term_does_not_refetch_the_proposal,
               test_context_prompt_and_picker_in_the_ui,
+              test_switching_context_is_offered_whenever_pr_leaves_a_choice,
+              test_pr_never_shrinks_within_a_reading,
+              test_p_is_offered_exactly_when_pr_leaves_a_choice,
+              test_the_frame_of_a_question_is_rendered,
               test_verbose_gates_the_calculus_trace,
               test_render_reading_shows_sharing_once,
               test_kind_c_is_contraction_option_2,
@@ -1189,7 +1633,10 @@ if __name__ == "__main__":
               test_an_entity_exists_independently_of_a_query,
               test_seeds_are_fixed_and_readings_combine,
               test_resume_asks_what_was_left_unclarified,
-              test_points_belong_to_their_reading):
+              test_points_belong_to_their_reading,
+              test_a_reading_records_what_was_asked,
+              test_interactions_round_trip_through_the_store,
+              test_the_interaction_is_bounded_to_max_steps):
         t()
     print()
     if FAILED:

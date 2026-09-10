@@ -135,6 +135,24 @@ candidates are a property of the query text, which is why step C needs no
 knowledge of the path taken) — the pre-planned version is simply ranked and
 phrased for a reader who has not yet decided.
 
+**A reading keeps what was asked.** Alongside the term and the calculus log
+(`[A] contraction opt.1 — moved → X`), every step records an `Interaction`: the
+words of the query at issue, the question put to the user, and the answer they
+chose. The term says what was *built* and the log says by which reading steps;
+only this says what was *asked*, which is what makes a saved reading legible
+later rather than merely replayable. It is shown in the `t` view and in the
+resume summary, and persisted with the session:
+
+```
+  · molecules — molecules that pass the blood-br  3 steps
+      · molecules   → “molecules” read narrowly
+      · pass        → “pass” restricts what follows — pass restricts (question) · what pass restricts (answer)
+      · blood-brain → taking “blood-brain” as strictly as the rest
+```
+
+A reflection keeps **both** sides of its pair, since the option label alone
+would lose which entity asked and which answered.
+
 **The readings combine.** Each closed reading settled one unclear point, so
 they are applied to one another, left-associatively, to assemble one reading of
 the whole query:
@@ -175,12 +193,80 @@ every later run by `resolve`.
 
 ### `--verbose`
 
-By default the app shows only what you are choosing between: the delegate's
-question and its options. `--verbose` (`-v`) adds the calculus — the term as it
-grows, the pointer set `Pr`, which reading step each choice performs
-(`contraction · option 1`), where you are standing, the `t` (whole reading)
-and `e` (entity store) views, and — under `--claude` — what each delegation
-cost:
+**The default rendering is only the interaction.** The words of your query being
+clarified, the question, the answers, `r` — and, once a step B has split the
+reading, switching between the contexts it opened.
+
+```
+  in your query: “aspirin: what it covers”
+
+  how should “aspirin: what it covers” be understood?
+    1  “aspirin: what it covers” read narrowly
+       the strictest reading of those words
+    2  “aspirin: what it covers” read broadly
+       the most permissive reading
+    r  resume (save and stop)
+```
+
+No header, no backend line, no entity count, no up-front list of the unclear
+points, no confirmation of the step just applied, no save report. `r` renders
+**the reading** the interaction built — the readings of the query, what was
+asked and answered in each, the assembled term, and whatever was left
+unclarified — and that render is the whole of resuming.
+
+**The frame of each question is rendered** — which reading it belongs to, and
+which context it is asked in — because both change what the question means:
+
+```
+  ◆ now reading: molecules
+
+  context: retrieve-how-strictly-restricts  · 2 open, p to switch
+```
+
+The reading line appears whenever one opens. `Pr` grows monotonically **over a
+reading** (§4, I2) — but only over one: §3 opens a reading with exactly one
+pointer, and closing collapses the pointer set to the root, so each seed's
+reading starts again at |Pr| = 1 and `p` correctly disappears with the contexts
+that belonged to the reading that closed. Without the reading line a fresh
+reading's first question reads as though it still belonged to the split one — a
+missing `p` with two contexts apparently still open.
+
+**Contexts are rendered**, since a step B (reflection) makes two independent
+occurrences and which one the reading continues from is a choice, not a trace of
+one. `p` is offered at a menu **if and only if |Pr| > 1** in the reading being
+read right then. The split is announced and the other context offered
+immediately:
+
+```
+  the reading split — you are in context restricts; the other is restricted
+  continue in the other context instead? [y/N] y
+  ✓ now in context restricted
+```
+
+```
+  where do you want to continue?
+    1  ▸ aspirin, narrowly  context: restricts
+    2    aspirin, narrowly  context: restricted
+    c  cancel
+```
+
+The picker is also offered when the move is **forced** — no step left at this
+pointer, or `s` — and more than one context is still open: `mark_exhausted`
+would otherwise take the first one and carry on, choosing for the user. Nothing
+is announced about where actPtr lands, though: the place it moves to may have
+nothing either, in which case the reading closes, and a line promising to
+continue there would be false by the next step. Where the user stands is
+rendered on the question actually asked.
+
+`s`, `o` and `q` still work; they are simply not listed, since pressing one is
+you asking for something rather than the app putting it in front of you.
+
+`--verbose` (`-v`) adds everything else back: the header and command list, the
+flow narration (which reading is being opened, which step was applied), the save
+report, and the calculus — the term as it grows, the pointer set `Pr`, which
+reading step each choice performs (`contraction · option 1`), where you are
+standing, the `t` (whole reading) and `e` (entity store) views, and — under
+`--claude` — what each delegation cost:
 
 ```
   /time  next step prepared in 7.0s  · delegated to claude -p
@@ -198,11 +284,12 @@ Both are printed only when a delegation actually happened: opening the
 the previous call's figures would read as if the step had cost them again. Under
 the mock every counter stays `0.0` and the lines are omitted.
 
-The context switcher `p` is offered in both modes, since choosing which context
-to continue in is a real choice rather than a trace of one; quietly it names each
-place by the entity and the context it carries (`aspirin as an agent  context:
-its-mechanism`), and under `--verbose` by its pointer id and aux port. The reading is built identically either way — the flag only
-decides how much is narrated.
+The context switcher `p` is rendered in both modes. Its picker names each place
+by the entity and the context it carries (`aspirin as an agent  context:
+its-mechanism`) and confirms the switch by that context; `--verbose` names them
+by pointer id and aux port (`p1  aspirin  reflected as its-mechanism · grey ·
+left-up`) and adds `|Pr|`. The reading is built identically either way — the
+flag only decides how much is narrated.
 
 ### The two delegates
 

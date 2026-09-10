@@ -3,7 +3,12 @@
 "resume for now means — save init question and all its readings."
 
 So a record is one QUERY plus the readings built under it. Each reading is
-stored closed: its term (sharing preserved) and the step log that produced it.
+stored closed: its term (sharing preserved), the step log that produced it, and
+THE INTERACTIONS AS THE USER MET THEM — the point of the query at issue, the
+question put, and the answer chosen. The term says what was built and `steps`
+says by which reading steps, but only the interactions say what was ASKED; a
+reading saved without them can be replayed and not read back.
+
 The pointer set is deliberately absent — closing a reading is exactly what drops
 it (reading_desc §1), and re-opening re-mints a single pointer at the root.
 
@@ -42,6 +47,12 @@ def save_session(session) -> Path:
                 "seed": {"iri": c.seed.iri, "label": c.seed.label},
                 "term": lam_to_dict_shared(c.term),
                 "steps": c.steps,
+                "interactions": [
+                    {"kind": i.kind, "point": i.point, "question": i.question,
+                     "answer": i.answer, "calculus": i.calculus,
+                     "rationale": i.rationale}
+                    for i in getattr(c, "interactions", [])
+                ],
             }
             for c in session.closed
         ],
@@ -64,6 +75,8 @@ def load_sessions() -> list[dict]:
                 "seed": r.get("seed", {}),
                 "term": lam_from_dict_shared(r["term"]) if r.get("term") else None,
                 "steps": r.get("steps", []),
+                # Absent in records written before interactions were kept.
+                "interactions": r.get("interactions", []),
             })
         out.append({"query": rec.get("query", ""),
                     "saved_at": rec.get("saved_at", ""),

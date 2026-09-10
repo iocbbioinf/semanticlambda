@@ -154,8 +154,17 @@ class MockAgent:
         # the user waits for); the follow-up asks for the rest. Honour that here
         # too, or the mock cannot exercise the fast-first-question path.
         first_only = "EXACTLY ONE point" in prompt
-        already = re.findall(r"· \[[ABC]\] “(.+?)”", prompt)
+        already = re.findall(r"· \[?[ABC]?\]? ?“(.+?)”", prompt)
         phrases = [w for w in phrases if w not in already]
+        # A reading is read ON ITS SUBJECT, so the points must be about that,
+        # not about the query's words in file order — otherwise one reading
+        # consumes every seed's point and the rest have nothing left, which is
+        # what the real prompt asks the delegate NOT to do.
+        m_subj = re.search(r"THE SUBJECT BEING READ IS: (.+?) —", prompt)
+        if m_subj:
+            subj = m_subj.group(1).strip()
+            phrases = [f"{subj}: {a}" for a in
+                       ("what it covers", "how strictly", "why it matters")]
         points, kinds = [], ("A", "B", "C")
         for i, phrase in enumerate(phrases[:1 if first_only else 6]):
             kind = kinds[i % 3]
