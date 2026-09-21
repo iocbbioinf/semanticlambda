@@ -288,12 +288,35 @@ class EntityStore:
         self.merges = []
 
 
-def save_entities(store: "EntityStore", path=None) -> "Path":
-    """Write the entity store to `data/entities.json`."""
+def save_entities(store: "EntityStore", path=None,
+                  merge: bool = True) -> "Path":
+    """Write the entity store to `data/entities.json`, MERGING what is there.
+
+    A run starts with an EMPTY store (identity is global within a launch, not
+    across launches), so writing `store.to_records()` straight out would erase
+    every entity earlier runs named — the file would only ever hold the last
+    run's. Merging keeps the saved entities cumulative while the LOADED ones
+    stay per-run: a reading's iris remain resolvable afterwards, and no run
+    inherits another's vocabulary.
+
+    `merge=False` writes only what this store holds, for a caller that means to
+    replace the file.
+    """
     from pathlib import Path
     p = Path(path) if path else ENTITIES_DB
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(store.to_records(), indent=2, ensure_ascii=False))
+
+    records = store.to_records()
+    if merge and p.exists():
+        merged = EntityStore()
+        try:
+            merged.load_records(json.loads(p.read_text()))
+        except (json.JSONDecodeError, OSError):
+            merged = EntityStore()          # unreadable: this run's is better
+        merged.load_records(records)
+        records = merged.to_records()
+
+    p.write_text(json.dumps(records, indent=2, ensure_ascii=False))
     return p
 
 

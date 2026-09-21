@@ -154,7 +154,8 @@ class ReadingSession:
     `resume` means: save the initial question and all its readings.
     """
 
-    def __init__(self, query: str, agent: ReadingAgent) -> None:
+    def __init__(self, query: str, agent: ReadingAgent,
+                 share_entities: Optional[EntityStore] = None) -> None:
         self.query = query
         self.agent = agent
         self.seeds: list[Entity] = []
@@ -166,11 +167,19 @@ class ReadingSession:
         # things loosely — "COX enzymes", then "the COX enzymes" — and each new
         # name would otherwise become a separate variable, losing the sharing
         # that makes a reused entity ONE node (§1).
-        self.entities = EntityStore()
-        # Entities persist across sessions: an entity named once should not be
-        # re-invented under a fresh iri the next time, or the sharing that makes
-        # a reused entity ONE node is lost between runs as well as within one.
-        self.entities_loaded = load_entities(self.entities)
+        #
+        # THE STORE STARTS EMPTY AT EVERY LAUNCH, like the delegate's context.
+        # Identity is global WITHIN a run — one store serves every query of the
+        # launch, so an entity named while reading one query is the same entity
+        # when the next query names it — but a run inherits nothing from the
+        # one before. Entities are still SAVED (`save_entities` on resume), so a
+        # reading's iris remain resolvable afterwards; they are simply not read
+        # back in. What a run established must be derivable from that run.
+        #
+        # `share_entities` lets a caller pass the launch's one store in; the
+        # first ReadingSession of a process builds it.
+        self.entities = share_entities if share_entities is not None else EntityStore()
+        self.entities_loaded = 0
         self.questions: list[Question] = []
         # The clarification phase (clarify_plan): one batched call enumerates the
         # query's ambiguities, and every interaction step is then served from it

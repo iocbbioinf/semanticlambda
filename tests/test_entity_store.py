@@ -325,6 +325,62 @@ def test_the_store_clamps_over_long_labels():
     check((short, full) == ("a b c", ""), "a short name reports no overflow")
 
 
+
+def test_a_launch_starts_with_an_empty_store():
+    """The entity store is empty at launch, shared within it, cumulative on disk.
+
+    Context is per-launch and so is identity: what a run established must be
+    derivable from that run, not inherited from whatever happened to be on
+    disk. But entities are still SAVED, so a reading's iris stay resolvable —
+    which means the save has to MERGE, or each run would erase the last one's.
+    """
+    print("\na launch starts with an empty entity store")
+    import json
+    import tempfile
+    from pathlib import Path
+    from entity_store import EntityStore, load_entities, save_entities
+    from reading_mock import MockAgent
+    from reading_session import ReadingSession
+
+    # (1) a session does not read the file, however full it is
+    s = ReadingSession("a query", MockAgent())
+    check(len(s.entities) == 0,
+          f"a new session's store is empty ({len(s.entities)})")
+    check(s.entities_loaded == 0, "and it reports having loaded nothing")
+
+    # (2) but one store serves every query of the launch
+    shared = EntityStore()
+    s1 = ReadingSession("first query", MockAgent(), share_entities=shared)
+    s2 = ReadingSession("second query", MockAgent(), share_entities=shared)
+    from reading_agent import Entity
+    a = s1.canon(Entity("local:aspirin", "aspirin", "a drug"))
+    b = s2.canon(Entity("local:aspirin", "aspirin", ""))
+    check(a.iri == b.iri and len(shared) == 1,
+          "an entity named in one query is the same in the next")
+    check(s2.entities is s1.entities,
+          "because both queries share the launch's one store")
+
+    # (3) saving MERGES, so an earlier run's entities survive
+    with tempfile.TemporaryDirectory() as d:
+        path = Path(d) / "entities.json"
+        old = EntityStore()
+        old.resolve("local:from-run-one", "From run one", "")
+        save_entities(old, str(path))
+
+        new = EntityStore()
+        new.resolve("local:from-run-two", "From run two", "")
+        save_entities(new, str(path))
+
+        iris = {r["iri"] for r in json.loads(path.read_text())}
+        check(iris == {"local:from-run-one", "local:from-run-two"},
+              f"both runs' entities are on disk ({sorted(iris)})")
+
+        # and a store that DOES load the file gets both
+        back = EntityStore()
+        n = load_entities(back, str(path))
+        check(n == 2, f"they load back when something asks for them ({n})")
+
+
 if __name__ == "__main__":
     for t in (test_slugify,
               test_merges_variants,
@@ -340,7 +396,8 @@ if __name__ == "__main__":
               test_merges_are_reported,
               test_store_is_authoritative_in_a_session,
               test_seeds_are_deduplicated,
-              test_the_store_clamps_over_long_labels):
+              test_the_store_clamps_over_long_labels,
+              test_a_launch_starts_with_an_empty_store):
         t()
     print()
     if FAILED:
