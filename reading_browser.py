@@ -8,12 +8,14 @@ choice the user makes is a READING STEP applied to R = (G(t), Pr) — see
 `reading_session` for the mapping of the three interaction kinds onto contraction
 (options 1 and 2) and reflection.
 
-Two delegates, same interface:
+The delegate is pluggable, same interface throughout:
 
-    reading_mock.MockAgent   THE DEFAULT — no Claude call, no cost, no CLI
+    reading_mock.MockAgent   THE DEFAULT — no model call, no cost, no CLI
                              needed. Nonsense as knowledge, well formed as
                              readings, and it reaches all three step kinds.
-    reading_agent.ReadingAgent   `claude -p`, with `--claude`.
+    reading_agent.ReadingAgent   a real delegate over a TRANSPORT
+                             (`reading_transport`): `claude -p` with
+                             `--claude`, the OpenAI API with `--openai`.
 
 THE DEFAULT RENDERING IS ONLY THE INTERACTION: the words of your query being
 clarified ("in your query: …"), the question put to you, the answers to choose
@@ -40,7 +42,10 @@ Options:   --verbose, -v     show the calculus and the narration around it: the
                              afresh at every step (the older, costlier mode)
            --points N        how many ambiguities to enumerate up front (6)
            --claude          delegate to Claude Code instead of the mock
-           --model NAME      model for --claude (default: sonnet)
+           --openai          delegate to the OpenAI API instead of the mock
+                             (needs OPENAI_API_KEY and `pip install openai`)
+           --model NAME      model for the chosen delegate (default: sonnet
+                             for --claude, gpt-4o for --openai)
            --seed N          vary the mock (default: derived from the query)
 
 Commands:  1..n     take that reading — the interaction step
@@ -69,6 +74,7 @@ import time
 from typing import Optional
 
 from reading_agent import AgentError, Entity, ReadingAgent
+from reading_transport import ClaudeCLITransport, OpenAITransport
 from reading_mock import MockAgent
 from reading_session import Reading, ReadingSession
 from term_utils import _term_type
@@ -1045,6 +1051,9 @@ class Browser:
         # the older behaviour, where each step costs its own delegation.
         self.clarify = clarify
         self.points = points
+        # The launch's entity store: empty now, shared by every query below.
+        from entity_store import EntityStore
+        self.entities = EntityStore()
 
     @property
     def is_mock(self) -> bool:
@@ -1062,7 +1071,12 @@ class Browser:
         if not query or query in ("quit", "exit"):
             return 0
 
-        self.session = ReadingSession(query, self.agent)
+        # ONE ENTITY STORE PER LAUNCH. It starts empty — like the delegate's
+        # context, a run inherits nothing — but is SHARED by every query of
+        # this run, so an entity named while reading one query is the same
+        # entity when the next names it (§1: a reused entity is one node).
+        self.session = ReadingSession(query, self.agent,
+                                      share_entities=self.entities)
 
         # THE FIRST PHASE: settle what was asked. One batched call enumerates the
         # query's ambiguities; every step afterwards is served from it locally, so
@@ -1083,10 +1097,13 @@ class Browser:
                 print(f"  {dim(f'/time  the plan took {plan_s:.1f}s')}"
                       f"  {dim('· one call for the whole phase')}")
             show_cost(self.agent)
-            known = self.session.entities_loaded
+            # The store starts EMPTY at launch, so anything in it was named by
+            # an earlier query of THIS run — which is worth saying, since a
+            # recurring entity is what makes two readings share a subject.
+            known = len(self.session.entities)
             if known and VERBOSE:
                 print("  " + dim("◆ ") +
-                      dim(f"{known} entities known from earlier sessions"))
+                      dim(f"{known} entities named earlier in this run"))
             seeds = self.session.seeds
             # NO SEED, NO INTERACTION. The seeds are the query's unclear points;
             # if it has none there is nothing to clarify, so resume rather than
@@ -1120,10 +1137,10 @@ class Browser:
                 return 1
             show_cost(self.agent)
 
-            known = self.session.entities_loaded
+            known = len(self.session.entities)
             if known and VERBOSE:
                 print("  " + dim("◆ ") +
-                      dim(f"{known} entities known from earlier sessions"))
+                      dim(f"{known} entities named earlier in this run"))
             if VERBOSE:
                 print(f"  {green('✓')} {dim('entities proposed:')} "
                       f"{', '.join(bold(s.short()) for s in seeds)}")
@@ -1430,9 +1447,21 @@ def main(argv: list[str]) -> int:
     VERBOSE = "--verbose" in argv or "-v" in argv
 
     # The MOCK is the default: an ordinary run costs nothing and needs no CLI.
-    # `--claude` delegates for real.
-    if "--claude" in argv or "--real" in argv:
-        agent = ReadingAgent(model=_arg(argv, "--model") or "sonnet")
+    # `--claude` and `--openai` delegate for real, over the transport each
+    # names; the agent above them is the same either way.
+    if "--openai" in argv:
+        # Building this transport can fail before any query is put (no key, no
+        # package), and that is a setup mistake rather than a delegation one —
+        # so it is reported here, plainly, instead of as a traceback.
+        try:
+            agent = ReadingAgent(transport=OpenAITransport(
+                model=_arg(argv, "--model") or OpenAITransport.DEFAULT_MODEL))
+        except AgentError as e:
+            print(f"cannot use --openai: {e}")
+            return 2
+    elif "--claude" in argv or "--real" in argv:
+        agent = ReadingAgent(transport=ClaudeCLITransport(
+            model=_arg(argv, "--model") or ClaudeCLITransport.DEFAULT_MODEL))
     else:
         raw = _arg(argv, "--seed")
         agent = MockAgent(seed=int(raw) if raw and raw.lstrip("-").isdigit()

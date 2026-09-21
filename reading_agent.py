@@ -23,36 +23,37 @@ never "this query's entity" — which is why identity may be shared across
 queries while CONTEXT may not (one `claude` session per query, see below), and
 why nothing in `EntityStore` records which query first named a thing.
 
-Delegation runs `claude -p` with `--json-schema`, so every reply is machine
-checked against a schema before it reaches the calculus. The CLI returns an
-envelope whose `result` field holds the payload AS A JSON STRING — hence the
-second decode in `_invoke`.
+WHO ANSWERS IS PLUGGABLE. This module owns WHAT is asked (the prompts below)
+and what the answer MEANS (the decoders); a TRANSPORT owns getting one
+schema-conforming dict back from some delegate. `reading_transport` provides
+`ClaudeCLITransport` (`claude -p --json-schema`, the default) and
+`OpenAITransport` (the OpenAI API, structured outputs); anything with
+`invoke(prompt, schema) -> dict` will do. Every reply is machine checked
+against a schema before it reaches the calculus whichever transport is in
+force.
 
-ONE SESSION PER QUERY. All the delegations of one interaction share a single
-`claude` session: the first call pins a fresh `--session-id`, later ones
-`--resume` it. A new query calls `new_session()` and starts from an empty
-context, since the senses settled for one query are not senses of the next.
-This is a cost decision as much as a coherence one — a cold `claude -p` pays
-full startup (system prompt, tool schemas, no cache warmth) before doing any
-work, which on the 5-HT2C query was ~$0.02 of a ~$0.026 call.
+ONE SESSION PER QUERY. A new query calls `new_session()` and starts from an
+empty context, since the senses settled for one query are not senses of the
+next. HOW that context is kept is the transport's business and differs by
+provider — the CLI resumes a server-side session, the OpenAI transport carries
+the message list itself — so the cost of a long interaction differs too; see
+`reading_transport`.
 """
 
 from __future__ import annotations
 
-import json
-import shutil
-import subprocess
-import time
-import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
-DEFAULT_MODEL = "sonnet"
-DEFAULT_TIMEOUT = 240
+from reading_transport import (AgentError, ClaudeCLITransport, DEFAULT_TIMEOUT,
+                               Transport)
 
+DEFAULT_MODEL = ClaudeCLITransport.DEFAULT_MODEL
 
-class AgentError(RuntimeError):
-    """The delegate could not be reached, or replied with something unusable."""
+# `AgentError` is re-exported: it was raised from here before the transport was
+# split out, and `reading_browser` and the tests still catch it by that name.
+__all__ = ["AgentError", "Entity", "Option", "StepProposal", "ReadingAgent",
+           "DEFAULT_MODEL", "DEFAULT_TIMEOUT"]
 
 
 # ── what the agent returns ────────────────────────────────────────────────────
@@ -160,115 +161,75 @@ _STEP_SCHEMA = {
 
 
 class ReadingAgent:
-    """Runs `claude -p` and turns its structured replies into calculus material."""
+    """Turns a delegate's structured replies into calculus material.
 
-    def __init__(self, model: str = DEFAULT_MODEL,
+    The delegate itself is a TRANSPORT (`reading_transport`): this class owns
+    the prompts, the schemas and the decoding, and knows nothing about who
+    answers. Construct it with a transport, or with none and it builds the
+    default `ClaudeCLITransport` — so `ReadingAgent(model="opus")` still means
+    what it always did.
+    """
+
+    def __init__(self, model: Optional[str] = None,
                  timeout: int = DEFAULT_TIMEOUT,
                  cwd: Optional[str] = None,
-                 session: bool = True) -> None:
-        self.model = model
-        self.timeout = timeout
-        self.cwd = cwd
-        self.last_cost_usd = 0.0
-        self.total_cost_usd = 0.0
-        # ONE SESSION PER QUERY. The first call pins a fresh session id; every
-        # later call in the same interaction RESUMES it, so the query and the
-        # choices already made are context the delegate still holds, and the
-        # per-process overhead that dominates a cold `claude -p` is paid once.
-        # Measured on the 5-HT2C query: a cold call reads ~24k cache tokens and
-        # costs ~$0.02 before any reasoning; a resumed one reads ~28k and writes
-        # 63, costing ~$0.006 — the difference IS the startup.
-        self.use_session = session
-        self.session_id: Optional[str] = None
-        self.calls = 0
-        # How long the last delegation took, and where the time went. The CLI
-        # reports its own `duration_ms`/`duration_api_ms`, so the gap between
-        # our wall clock and its api time IS the process startup we pay for
-        # spawning `claude -p` at all — worth seeing under --verbose, since it
-        # is the reason the clarification phase batches.
-        self.last_wall_s = 0.0
-        self.last_api_s = 0.0
-        self.last_duration_s = 0.0
-        self.total_wall_s = 0.0
+                 session: bool = True,
+                 transport: Optional[Transport] = None) -> None:
+        self.transport: Transport = transport or ClaudeCLITransport(
+            model=model or DEFAULT_MODEL, timeout=timeout, cwd=cwd,
+            session=session)
+
+    # The browser's /cost and /time lines, `clarify_plan`'s per-plan cost
+    # accounting and `ReadingSession` all read these off the agent, as they did
+    # when it WAS the transport. They stay readable there rather than making
+    # every call site learn about `.transport`.
+    @property
+    def model(self) -> str:
+        return self.transport.model
+
+    @property
+    def last_cost_usd(self) -> float:
+        return self.transport.last_cost_usd
+
+    @property
+    def total_cost_usd(self) -> float:
+        return self.transport.total_cost_usd
+
+    @property
+    def last_wall_s(self) -> float:
+        return self.transport.last_wall_s
+
+    @property
+    def last_api_s(self) -> float:
+        return self.transport.last_api_s
+
+    @property
+    def last_duration_s(self) -> float:
+        return self.transport.last_duration_s
+
+    @property
+    def total_wall_s(self) -> float:
+        return self.transport.total_wall_s
+
+    @property
+    def calls(self) -> int:
+        return self.transport.calls
 
     def new_session(self) -> None:
-        """Drop the session, so the NEXT call starts from an empty context.
+        """Drop the context, so the NEXT call starts from an empty one.
 
         A new query must not inherit the previous query's clarifications: the
         senses settled there are not senses of this one.
         """
-        self.session_id = None
+        self.transport.new_session()
 
     # ── transport ─────────────────────────────────────────────────────────
 
     def _invoke(self, prompt: str, schema: dict) -> dict:
-        exe = shutil.which("claude")
-        if exe is None:
-            raise AgentError(
-                "the `claude` CLI is not on PATH — this app delegates to it")
-        cmd = [exe, "-p", prompt,
-               "--output-format", "json",
-               "--json-schema", json.dumps(schema),
-               "--model", self.model]
-        # `--session-id` pins a NEW session (it must not already exist);
-        # `--resume` continues it. So the first call of a query mints the id and
-        # every later one resumes, which is what keeps the interaction in one
-        # context. `--no-session-persistence` is deliberately NOT passed: the
-        # session has to survive between our separate processes.
-        if self.use_session:
-            if self.session_id is None:
-                self.session_id = str(uuid.uuid4())
-                cmd += ["--session-id", self.session_id]
-            else:
-                cmd += ["--resume", self.session_id]
-        t0 = time.monotonic()
-        try:
-            proc = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=self.timeout,
-                stdin=subprocess.DEVNULL, cwd=self.cwd,
-            )
-        except subprocess.TimeoutExpired:
-            raise AgentError(f"the delegate did not answer within "
-                             f"{self.timeout}s") from None
-        if proc.returncode != 0:
-            detail = (proc.stderr or proc.stdout or "").strip()
-            raise AgentError(f"`claude -p` failed: {detail[:400]}")
-
-        try:
-            envelope = json.loads(proc.stdout)
-        except json.JSONDecodeError:
-            raise AgentError(
-                f"delegate reply was not JSON: {proc.stdout[:300]}") from None
-        if envelope.get("is_error"):
-            raise AgentError(f"delegate reported an error: "
-                             f"{str(envelope.get('result'))[:300]}")
-
-        self.last_wall_s = time.monotonic() - t0
-        self.total_wall_s += self.last_wall_s
-        self.last_api_s = (envelope.get("duration_api_ms") or 0) / 1000.0
-        self.last_duration_s = (envelope.get("duration_ms") or 0) / 1000.0
-
-        cost = envelope.get("total_cost_usd") or 0.0
-        self.last_cost_usd = cost
-        self.total_cost_usd += cost
-        self.calls += 1
-        # Trust the CLI's own id over ours: a resume may fork (`--fork-session`
-        # elsewhere, or a session the CLI declines to reuse), and following the
-        # id it reports keeps the chain intact instead of resuming a dead one.
-        got = envelope.get("session_id")
-        if self.use_session and isinstance(got, str) and got:
-            self.session_id = got
-
-        # The schema-conforming payload arrives as a STRING in `result`.
-        payload = envelope.get("result")
-        if isinstance(payload, dict):
-            return payload
-        try:
-            return json.loads(payload)
-        except (TypeError, json.JSONDecodeError):
-            raise AgentError(
-                f"delegate payload was not the requested JSON object: "
-                f"{str(payload)[:300]}") from None
+        """Ask the transport. `clarify_plan` calls this directly, by design:
+        the clarification phase writes its own prompts and schemas but wants
+        the same delegate and the same cost accounting."""
+        return self.transport.invoke(prompt, schema)
 
     # ── decoding ──────────────────────────────────────────────────────────
 
