@@ -1,0 +1,61 @@
+# Development stack: the app, Mongo and Qdrant.
+#
+#   docker compose up --build
+#   open http://localhost:8000
+#
+# The app runs on the MOCK delegate by default, so this costs nothing. To use a
+# real one, put OPENAI_API_KEY in a .env file beside this and add --openai to
+# the command below.
+
+services:
+
+  mongo:
+    image: docker.io/mongo:7.0
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    # Not published: only the app needs it. Add a ports entry to inspect it
+    # from the host.
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: docker.io/qdrant/qdrant:v1.15.1
+    restart: unless-stopped
+    environment:
+      - QDRANT__TELEMETRY_DISABLED=true
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URL=mongodb://mongo:27017
+      - QDRANT_URL=http://qdrant:6333
+      # Bot protection. Unset means Turnstile is OFF and only the rate limit
+      # applies — which is what you want locally.
+      - TURNSTILE_SECRET=${TURNSTILE_SECRET:-}
+      - TURNSTILE_SITE_KEY=${TURNSTILE_SITE_KEY:-}
+      - RATE_LIMIT=${RATE_LIMIT:-20}
+    env_file:
+      - path: .env
+        required: false
+    # --qdrant is left off: it downloads a ~2GB embedding model on first run.
+    # Add it once you want semantic entity matching.
+    command: ["python", "serve.py", "--host", "0.0.0.0", "--port", "8000",
+              "--mongo"]
+
+volumes:
+  mongo-data:
+  qdrant-data:

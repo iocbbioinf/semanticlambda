@@ -251,6 +251,79 @@ def test_openai_transport_refuses_without_a_key():
             os.environ["OPENAI_API_KEY"] = saved
 
 
+def test_loose_json_parsing():
+    """JSON mode on a smaller model does not always return bare JSON.
+
+    A fence, a reasoning preamble or a sentence before the brace are all
+    recoverable, and recovering them is the difference between an interaction
+    step working and the whole query failing.
+    """
+    from reading_transport import _loads_loose
+
+    check(_loads_loose('{"a": 1}') == {"a": 1}, "bare JSON")
+    check(_loads_loose('```json\n{"a": 1}\n```') == {"a": 1}, "a ```json fence")
+    check(_loads_loose('```\n{"a": 1}\n```') == {"a": 1}, "a bare fence")
+    check(_loads_loose('<think>hmm</think>\n{"a": 1}') == {"a": 1},
+          "a reasoning preamble (deepseek-r1)")
+    check(_loads_loose('Here you go:\n{"a": 1}\nhope that helps') == {"a": 1},
+          "prose either side")
+    check(_loads_loose('{"a": {"b": 2}} trailing') == {"a": {"b": 2}},
+          "nested braces are balanced, not greedy")
+    check(_loads_loose("no json here") is None, "no JSON at all is None")
+    check(_loads_loose("") is None, "empty is None")
+
+
+def test_base_url_selects_json_mode():
+    """A third-party endpoint defaults to JSON mode.
+
+    Strict `json_schema` is an OpenAI extension; most compatible providers —
+    e-INFRA's LiteLLM/Ollama among them — do not implement it. Defaulting the
+    other way would fail every call on a provider that cannot do it.
+    """
+    import os
+    saved = os.environ.get("OPENAI_API_KEY")
+    os.environ["OPENAI_API_KEY"] = "test-key"
+    try:
+        try:
+            plain = OpenAITransport(model="gpt-4o")
+            check(plain.json_mode is False, "OpenAI itself uses strict schemas")
+            check(plain.base_url is None, "...and no base_url")
+
+            other = OpenAITransport(model="llama3.3:latest",
+                                    base_url=OpenAITransport.EINFRA_BASE_URL)
+            check(other.json_mode is True, "a --base-url defaults to json mode")
+            check("e-infra" in other.base_url, "the base_url is kept")
+
+            forced = OpenAITransport(model="m", base_url="https://x/v1",
+                                     json_mode=False)
+            check(forced.json_mode is False, "--strict-schema can force it off")
+        except AgentError as exc:                     # openai not installed
+            check("not installed" in str(exc), f"skipped: {exc}")
+    finally:
+        if saved is None:
+            os.environ.pop("OPENAI_API_KEY", None)
+        else:
+            os.environ["OPENAI_API_KEY"] = saved
+
+
+def test_einfra_token_is_accepted_as_a_key():
+    """E_INFRA_API_TOKEN is what their docs tell you to set."""
+    import os
+    saved_o = os.environ.pop("OPENAI_API_KEY", None)
+    os.environ["E_INFRA_API_TOKEN"] = "einfra-token"
+    try:
+        try:
+            t = OpenAITransport(model="llama3.3:latest",
+                                base_url=OpenAITransport.EINFRA_BASE_URL)
+            check(t.json_mode is True, "E_INFRA_API_TOKEN is accepted as a key")
+        except AgentError as exc:
+            check("not installed" in str(exc), f"skipped: {exc}")
+    finally:
+        os.environ.pop("E_INFRA_API_TOKEN", None)
+        if saved_o is not None:
+            os.environ["OPENAI_API_KEY"] = saved_o
+
+
 if __name__ == "__main__":
     for t in (test_the_agent_works_over_any_transport,
               test_a_reused_entity_is_still_one_node,
@@ -263,7 +336,10 @@ if __name__ == "__main__":
               test_strict_rewrite_keeps_what_was_required_required,
               test_strict_rewrite_does_not_mutate_the_shared_schema,
               test_a_nulled_optional_decodes_as_absent,
-              test_openai_transport_refuses_without_a_key):
+              test_openai_transport_refuses_without_a_key,
+              test_loose_json_parsing,
+              test_base_url_selects_json_mode,
+              test_einfra_token_is_accepted_as_a_key):
         t()
     print()
     if FAILED:

@@ -207,6 +207,55 @@ OPENAI_PRICES_PER_MTOK = {
 }
 
 
+def _loads_loose(text: str):
+    """Parse JSON that may have arrived wrapped in something.
+
+    Strict structured outputs return bare JSON; JSON MODE on a smaller or
+    reasoning model often does not. Three things are seen in practice and all
+    three are recoverable, so they are recovered rather than failing a whole
+    interaction step:
+
+      * a ```json fence around the object;
+      * a <think>…</think> block before it (deepseek-r1 and friends);
+      * a sentence of preamble before the opening brace.
+
+    Returns None if there is no JSON object in there at all.
+    """
+    if not text:
+        return None
+    s = text.strip()
+    # reasoning preamble
+    if "</think>" in s:
+        s = s.split("</think>", 1)[1].strip()
+    # code fence
+    if s.startswith("```"):
+        s = s.split("\n", 1)[1] if "\n" in s else s
+        if s.rstrip().endswith("```"):
+            s = s.rstrip()[:-3]
+        s = s.strip()
+        if s.startswith("json"):
+            s = s[4:].strip()
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError:
+        pass
+    # the outermost {...} anywhere in the text
+    start, depth = s.find("{"), 0
+    if start < 0:
+        return None
+    for i in range(start, len(s)):
+        if s[i] == "{":
+            depth += 1
+        elif s[i] == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    return json.loads(s[start:i + 1])
+                except json.JSONDecodeError:
+                    return None
+    return None
+
+
 class OpenAITransport(_Counters):
     """The OpenAI chat-completions API with structured outputs.
 
@@ -224,25 +273,48 @@ class OpenAITransport(_Counters):
 
     DEFAULT_MODEL = "gpt-4o"
 
+    # Providers that speak the OpenAI protocol but not all of it. `json_mode`
+    # means: `response_format {"type": "json_object"}` works, strict
+    # `json_schema` does not — so the schema has to go in the PROMPT instead.
+    #
+    # e-INFRA (CERIT) is LiteLLM in front of Ollama models (llama3.3,
+    # deepseek-r1, qwen2.5 …); its docs say plainly that "not all endpoints are
+    # supported" and say nothing about json_schema, so json mode is the safe
+    # assumption. Override with --json-mode / --strict-schema either way.
+    EINFRA_BASE_URL = "https://llm.ai.e-infra.cz/v1/"
+
     def __init__(self, model: str = DEFAULT_MODEL,
                  timeout: int = DEFAULT_TIMEOUT,
                  api_key: Optional[str] = None,
-                 session: bool = True) -> None:
+                 session: bool = True,
+                 base_url: Optional[str] = None,
+                 json_mode: Optional[bool] = None) -> None:
         super().__init__(model)
         self.timeout = timeout
         self.use_session = session
         self._messages: list[dict] = []
+        self.base_url = base_url or os.environ.get("OPENAI_BASE_URL") or None
+        # Default to json mode for anything that is not OpenAI itself, since
+        # strict structured outputs are an OpenAI extension that most
+        # compatible providers do not implement.
+        self.json_mode = (bool(self.base_url) if json_mode is None
+                          else bool(json_mode))
         try:
             from openai import OpenAI
         except ImportError:
             raise AgentError(
                 "the `openai` package is not installed — `pip install openai`, "
                 "or run without --openai") from None
-        key = api_key or os.environ.get("OPENAI_API_KEY")
+        key = (api_key or os.environ.get("OPENAI_API_KEY")
+               or os.environ.get("E_INFRA_API_TOKEN"))
         if not key:
             raise AgentError(
-                "OPENAI_API_KEY is not set — export it, or run without --openai")
-        self._client = OpenAI(api_key=key, timeout=timeout)
+                "no API key — set OPENAI_API_KEY (or E_INFRA_API_TOKEN for "
+                "the e-INFRA endpoint), or run without --openai")
+        kwargs = {"api_key": key, "timeout": timeout}
+        if self.base_url:
+            kwargs["base_url"] = self.base_url
+        self._client = OpenAI(**kwargs)
 
     def new_session(self) -> None:
         self._messages = []
@@ -301,19 +373,33 @@ class OpenAITransport(_Counters):
                 + getattr(usage, "completion_tokens", 0) / 1_000_000 * out_rate)
 
     def invoke(self, prompt: str, schema: dict) -> dict:
+        # IN JSON MODE THE SCHEMA GOES IN THE PROMPT. A provider that cannot
+        # enforce a schema will still honour "reply with JSON", so the shape is
+        # asked for in words and checked on the way back. That is weaker than
+        # structured outputs — the model may omit a field — but the decoders in
+        # `reading_agent` already treat a missing field as absent, which is the
+        # same thing they do for a nullable one.
+        text_prompt = prompt
+        if self.json_mode:
+            text_prompt = (
+                f"{prompt}\n\n"
+                "Reply with a single JSON object and nothing else — no prose, "
+                "no code fence. It must match this JSON schema:\n"
+                f"{json.dumps(schema, indent=2)}")
         messages = (self._messages if self.use_session else []) + [
-            {"role": "user", "content": prompt}]
+            {"role": "user", "content": text_prompt}]
+        if self.json_mode:
+            fmt = {"type": "json_object"}
+        else:
+            fmt = {"type": "json_schema",
+                   "json_schema": {"name": "reading_step", "strict": True,
+                                   "schema": self._strict(schema)}}
         t0 = time.monotonic()
         try:
             resp = self._client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": {"name": "reading_step",
-                                    "strict": True,
-                                    "schema": self._strict(schema)},
-                },
+                response_format=fmt,
             )
         except Exception as exc:                       # the SDK's own errors
             raise AgentError(f"the OpenAI API call failed: "
@@ -327,11 +413,9 @@ class OpenAITransport(_Counters):
             # the CLI would have kept server-side. This is what we pay for again
             # on every later call.
             self._messages = messages + [{"role": "assistant", "content": text}]
-        try:
-            payload = json.loads(text)
-        except json.JSONDecodeError:
-            raise AgentError(
-                f"delegate reply was not JSON: {text[:300]}") from None
+        payload = _loads_loose(text)
+        if payload is None:
+            raise AgentError(f"delegate reply was not JSON: {text[:300]}")
         if not isinstance(payload, dict):
             raise AgentError(
                 f"delegate payload was not the requested JSON object: "

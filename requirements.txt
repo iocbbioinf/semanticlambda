@@ -1,3 +1,18 @@
+# The web app and the interaction engine.
+fastapi==0.141.1
+uvicorn==0.53.0
+python-multipart==0.0.32
+httpx==0.28.1
+# Also used for any OpenAI-COMPATIBLE endpoint (--einfra, --base-url).
+openai==3.17.0
+
+# Used by the old terminal app (reading_browser.py).
 pyperclip==1.11.0
 rdflib==7.6.0
-textual==8.2.7
+
+# Production backends. Not needed to run or test the app: the store defaults to
+# memory and the entity index to name matching, and both import their driver
+# only when actually selected (serve.py --mongo / --qdrant).
+# pymongo==4.10.1
+# qdrant-client==1.12.1
+# fastembed==0.4.2

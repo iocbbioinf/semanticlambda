@@ -1,0 +1,127 @@
+# The web app.
+#
+# ONE REPLICA, AND IT MATTERS. Sessions live in the pod's memory
+# (web_sessions.py), so a second replica would serve requests that cannot see
+# the first one's interactions — a user would be bounced back to the query form
+# mid-reading. The Recreate strategy follows from the same fact: two pods must
+# not overlap during a rollout.
+#
+# Making this scalable is not a manifest change; it is backing SessionRegistry
+# with Mongo. Until then, replicas: 1 is load-bearing, not a default.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: semanticlambda
+  labels: { app: semanticlambda }
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: semanticlambda }
+  template:
+    metadata:
+      labels: { app: semanticlambda }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: app
+          # Replace with your registry path and an immutable tag.
+          image: cerit.io/CHANGEME/semanticlambda:0.1.0
+          imagePullPolicy: IfNotPresent
+          args: ["python", "serve.py", "--host", "0.0.0.0", "--port", "8000",
+                 "--mongo"]
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: MONGO_URL
+              value: mongodb://semanticlambda-mongo:27017
+            - name: QDRANT_URL
+              value: http://semanticlambda-qdrant:6333
+            - name: RATE_LIMIT
+              value: "20"
+            - name: TURNSTILE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: semanticlambda-secrets
+                  key: turnstile-secret
+                  optional: true
+            - name: TURNSTILE_SITE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: semanticlambda-secrets
+                  key: turnstile-site-key
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: semanticlambda-secrets
+                  key: openai-api-key
+                  optional: true
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits:   { cpu: "1",  memory: 1Gi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # readOnlyRootFilesystem, so anything that writes needs a mount. The app
+        # writes nothing durable when --mongo is used; /tmp is for the runtime.
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: semanticlambda
+  labels: { app: semanticlambda }
+spec:
+  selector: { app: semanticlambda }
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: semanticlambda
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Sessions are in-memory, so a client must keep reaching the same pod.
+    # With replicas: 1 this is belt and braces — and it is what keeps the app
+    # correct if someone raises the replica count without reading app.yaml.
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: sl_affinity
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "28800"
+spec:
+  tls:
+    - hosts: [CHANGEME.dyn.cloud.e-infra.cz]
+      secretName: semanticlambda-tls
+  rules:
+    - host: CHANGEME.dyn.cloud.e-infra.cz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: semanticlambda
+                port: { name: http }
