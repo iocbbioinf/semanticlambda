@@ -26,9 +26,10 @@ BASE/OFFSET/COMMAND — the rules this layer actually fires),
 
 `[OPEN]` markers in §8 are load-bearing — preserve them.
 
-**IMPLEMENTED** in `ontology_state.py`, driven from `app.py`
+**IMPLEMENTED** in `ontology_state.py`, driven from `reading_session.py`
 (`_ont_after_contraction` / `_ont_after_reflection`), surfaced by `o` →
-`ReadingOntologiesModal`. Note it works on **terms, not the bus graph**: rule 1
+`reading_browser.py:show_ontologies` / `show_ontology_detail`. Note it works
+on **terms, not the bus graph**: rule 1
 applies exactly where an abstraction meets an application, firing it is beta at
 that position, and silent reductions have no term-level effect — so
 `optimal_lambda.normalize` is never called. That seam is documented at the top of

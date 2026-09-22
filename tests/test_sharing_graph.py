@@ -1,4 +1,4 @@
-"""Tests for the GAL bus-reduction implementation in sharing_graph.py.
+"""Tests for the GAL bus-reduction implementation in the optimal_lambda/ package.
 
 Run from the project root:  .venv/bin/python tests/test_sharing_graph.py
 
@@ -8,7 +8,7 @@ Three layers:
   3. oracle              — readback(normalize(compile_term(t)))
                             == beta_reduce_sequence(t)[-1]  (full reduction).
 
-lambda_term.py's naive beta_reduce_sequence is the ground-truth oracle.
+optimal_lambda/term.py's naive beta_reduce_sequence is the ground-truth oracle.
 """
 
 import os

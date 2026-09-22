@@ -123,7 +123,7 @@ Code lives in the `optimal_lambda/` package (split out in commit `f501c1c`; ther
 | 3. Compile `LamTerm → Graph` (§4.1) | `optimal_lambda/compile.py` — `compile_term`, `_Compiler`. |
 | 4. Rules + driver | `optimal_lambda/rules.py` (`rule1…rule6`, `reduce_redex`), `optimal_lambda/redex.py` (`find_redexes`), `optimal_lambda/normalize.py` (`normalize`, `optimal_normal_form`). **Six Figure-2 schemas, not the indexed Figure-1 rules.** |
 | 5. Read-back (§5.2/§6.1) | `optimal_lambda/readback.py` — `readback`, `_ReadBack`. |
-| 6. Oracle test | `tests/test_sharing_graph.py` — 25 oracle + 8 round-trip; `KNOWN_FAILING` is empty. Plus `tests/test_lambda_parser.py` (19). |
+| 6. Oracle test | `tests/test_sharing_graph.py` — 25 oracle + 8 round-trip + `validate_bus_rules`; `KNOWN_FAILING` is empty. Plus `tests/test_lambda_parser.py` (19). Both import from `optimal_lambda`; the file names still say `sharing_graph`/`lambda_parser` for history, not module layout. |
 | 7. Bookkeeping counters | `Graph.fan_interactions` (R1/R4, β-work) vs `Graph.book_interactions` (R2/R3/R5/R6). See paper2 blow-up on Church arithmetic. |
 
 Extras beyond the original roadmap: `optimal_lambda/parser.py` (`parse` — source text → `LamTerm`), `optimal_lambda/context_semantics.py` (`validate_bus_rules` — symbolic §5.1 check on the rule wiring), `optimal_lambda/repl.py` + `__main__.py` (interactive REPL). Public API is re-exported from `optimal_lambda/__init__.py`.
