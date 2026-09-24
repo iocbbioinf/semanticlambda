@@ -329,6 +329,37 @@ c9, _ = client([])
 r = c9.get("/healthz")
 check("healthz", r.json()["ok"], True)
 
+print("=== the answer renders as markdown, safely ===")
+
+from web_app import markdown
+
+check("bold", markdown("**Lorcaserin** binds"),
+      "<p><strong>Lorcaserin</strong> binds</p>")
+check("italic", markdown("*approximate* values"),
+      "<p><em>approximate</em> values</p>")
+check("inline code", markdown("uses `logP` here"),
+      "<p>uses <code>logP</code> here</p>")
+check("numbered list", markdown("1. first\n2. second"),
+      "<ol><li>first</li><li>second</li></ol>")
+check("bullet list", markdown("- one\n- two"),
+      "<ul><li>one</li><li>two</li></ul>")
+check("heading starts below the page h1", markdown("## Notes"),
+      "<h4>Notes</h4>")
+check("a blank line closes a list",
+      markdown("- one\n\nafter"), "<ul><li>one</li></ul><p>after</p>")
+
+# ESCAPING COMES FIRST, so no tag the delegate writes can reach the page.
+check("html is escaped, not rendered", markdown("<script>alert(1)</script>"),
+      "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>")
+check("an ampersand survives", markdown("a & b"), "<p>a &amp; b</p>")
+
+# A chemistry answer is full of characters that LOOK like markers.
+check("multiplication is not italics", markdown("5 * 3 = 15"),
+      "<p>5 * 3 = 15</p>")
+check("snake_case is not italics", markdown("snake_case_name here"),
+      "<p>snake_case_name here</p>")
+check("None is empty", markdown(None), "")
+
 print()
 if FAILED:
     print(f"FAILED ({len(FAILED)}): " + ", ".join(FAILED))

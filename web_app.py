@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import html
 import os
+import re
 from typing import Optional
 from urllib.parse import quote
 
@@ -99,7 +100,14 @@ PAGE = """<!doctype html>
     color:var(--dim); word-break:break-all; }}
   .step {{ border-bottom:1px solid var(--line); padding:.7rem 0; }}
   .step:last-child {{ border-bottom:0; }}
-  .ans {{ white-space:pre-wrap; }}
+  .ans > :first-child {{ margin-top:0; }}
+  .ans > :last-child {{ margin-bottom:0; }}
+  .ans h3, .ans h4, .ans h5, .ans h6 {{ font-size:1rem; margin:1.2rem 0 .4rem; }}
+  .ans ul, .ans ol {{ padding-left:1.3rem; }}
+  .ans li {{ margin:.35rem 0; }}
+  .ans code {{ font-family:ui-monospace,monospace; font-size:.9em;
+    background:var(--bg); border:1px solid var(--line); border-radius:4px;
+    padding:.05rem .3rem; }}
   a {{ color:var(--accent); }}
   .verbose {{ font-size:.85rem; }}
   .vrow {{ display:flex; gap:.8rem; padding:.45rem 0;
@@ -112,6 +120,79 @@ PAGE = """<!doctype html>
 
 def page(title: str, body: str, head: str = "") -> HTMLResponse:
     return HTMLResponse(PAGE.format(title=e(title), body=body, head=head))
+
+
+# The delegate is asked for prose, but every model writes MARKDOWN anyway —
+# bold names, numbered lists, the occasional heading. Rendered with `e()` alone
+# that arrives on screen as literal `**Lorcaserin**`, so the answer panel reads
+# like source code.
+#
+# WHY NOT A MARKDOWN LIBRARY. `requirements.txt` is deliberately short, and a
+# renderer would also drag in a sanitiser: the answer is MODEL OUTPUT, so it
+# cannot be trusted with raw HTML. Escaping first and formatting the escaped
+# text afterwards is safe by construction — no tag the model writes can survive
+# `html.escape`, and the only tags in the result are the ones added here.
+_MD_INLINE = [
+    # ordered longest-marker first, so `**` is not eaten by `*`
+    (re.compile(r"\*\*(\S(?:.*?\S)?)\*\*"), r"<strong>\1</strong>"),
+    (re.compile(r"__(\S(?:.*?\S)?)__"), r"<strong>\1</strong>"),
+    (re.compile(r"(?<![\w*])\*(\S(?:.*?\S)?)\*(?![\w*])"), r"<em>\1</em>"),
+    (re.compile(r"(?<![\w_])_(\S(?:.*?\S)?)_(?![\w_])"), r"<em>\1</em>"),
+    (re.compile(r"`([^`]+)`"), r"<code>\1</code>"),
+]
+
+_MD_BULLET = re.compile(r"^\s*[-*+]\s+(.*)$")
+_MD_NUMBER = re.compile(r"^\s*(\d+)[.)]\s+(.*)$")
+_MD_HEADING = re.compile(r"^\s*(#{1,6})\s+(.*)$")
+
+
+def _md_inline(text: str) -> str:
+    for pat, sub in _MD_INLINE:
+        text = pat.sub(sub, text)
+    return text
+
+
+def markdown(text: str) -> str:
+    """The small subset of Markdown a delegate's answer actually uses.
+
+    ESCAPING COMES FIRST — the input is escaped here, not by the caller, so
+    there is no way to call this on unescaped text by mistake. What it handles:
+    headings, bullet and numbered lists, bold, italic and inline code. Anything
+    else is left as the escaped text it already is.
+    """
+    out, lst = [], None          # lst: None | "ul" | "ol"
+
+    def close():
+        nonlocal lst
+        if lst:
+            out.append(f"</{lst}>")
+            lst = None
+
+    for raw in e("" if text is None else text).split("\n"):
+        line = raw.rstrip()
+        if not line.strip():
+            close()
+            continue
+        h = _MD_HEADING.match(line)
+        if h:
+            close()
+            n = min(len(h.group(1)) + 2, 6)      # page h1 is the title
+            out.append(f"<h{n}>{_md_inline(h.group(2).strip())}</h{n}>")
+            continue
+        b = _MD_BULLET.match(line)
+        n_ = _MD_NUMBER.match(line)
+        if b or n_:
+            want = "ul" if b else "ol"
+            if lst != want:
+                close()
+                out.append(f"<{want}>")
+                lst = want
+            out.append(f"<li>{_md_inline((b or n_).group(b and 1 or 2).strip())}</li>")
+            continue
+        close()
+        out.append(f"<p>{_md_inline(line.strip())}</p>")
+    close()
+    return "".join(out)
 
 
 def _short(exc: Exception, limit: int = 300) -> str:
@@ -416,7 +497,20 @@ def create_app(source=None, store=None, answerer=None, guard=None,
             opt = s.pending.options[i]
         except (ValueError, IndexError):
             return RedirectResponse("/step", status_code=303)
-        s.session.apply(s.pending, opt)
+        # A step that cannot be applied must not 500: the session is live and
+        # the user has answered, so the only useful thing is to drop the bad
+        # proposal and ask again from the same place.
+        try:
+            s.session.apply(s.pending, opt)
+        except Exception as exc:
+            s.pending = None
+            return page("That step could not be applied", f"""
+              <h1>That step could not be applied</h1>
+              <p class="sub">in your question: {e(s.session.query)}</p>
+              <div class="card err">{e(_short(exc))}</div>
+              <div class="row"><form method="get" action="/step">
+                <button class="primary" type="submit">Ask again</button>
+              </form></div>""")
         s.pending = None
         return RedirectResponse("/step", status_code=303)
 
@@ -504,7 +598,7 @@ def create_app(source=None, store=None, answerer=None, guard=None,
           <h1>The answer</h1>
           <p class="sub">asked by {e(rec.user)}</p>
           <div class="quote">{e(rec.query)}</div>
-          <div class="card ans">{e(rec.answer)}</div>
+          <div class="card ans">{markdown(rec.answer)}</div>
           {read}{left}{vb}
           <div class="row">
             <form method="get" action="/query"><button class="primary"

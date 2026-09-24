@@ -154,6 +154,19 @@ s = sess([("x", A)], [one])
 s.open(A)
 check("a single option is not a choice", s.propose().case, 0)
 
+# REFLECTION IS THE EXCEPTION. Case 3 sees ONE point as a (question, answer)
+# tuple over one shared node, so the choice it puts is whether the point splits
+# that way at all — a real choice with a single pair on the table, declinable
+# with skip. Two pairs would be a rival split the delegate had to invent.
+pair = Proposal(case=3, options=[Option("q against a", entity_a=A, entity_b=B)])
+s = sess([("x", A)], [pair])
+s.open(A)
+check("one pair IS a choice for reflection", s.propose().case, 3)
+
+s = sess([("x", A)], [Proposal(case=3, options=[])])
+s.open(A)
+check("but no pair at all is not", s.propose().case, 0)
+
 # ── case 4: skip ──────────────────────────────────────────────────────────
 print("=== case 4: skip appends the question type ===")
 

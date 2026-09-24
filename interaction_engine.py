@@ -254,8 +254,16 @@ class QuerySession:
         p = self.source.propose(self.query, inter.subquery, inter.term, here,
                                 [c.name for c in self.closed])
         p = p.trimmed()
-        # A single option is not a choice.
-        if p.case in (1, 2, 3) and len(p.options) < 2:
+        # A single option is not a choice — for CONTRACTION. Cases 1 and 2 ask
+        # the user to pick between rival senses, so one option offers nothing.
+        # REFLECTION IS NOT LIKE THAT: case 3 sees ONE point as a (question,
+        # answer) tuple over ONE shared node (`_case3`), and the choice it puts
+        # is whether the point splits that way at all — which is a choice with a
+        # single pair on the table. Requiring two pairs there asked the delegate
+        # to invent a rival split it had no reason to believe in.
+        if p.case in (1, 2) and len(p.options) < 2:
+            return Proposal(case=0)
+        if p.case == 3 and not p.options:
             return Proposal(case=0)
         return p
 
@@ -308,6 +316,12 @@ class QuerySession:
                 if c.name == opt.closed_name:
                     return _copy(c.term, inter.entities)
         ent = opt.entity
+        if ent is None:
+            # Reached only if a source offered an option the case cannot use.
+            # `AgentSource` drops those at its boundary; saying so plainly here
+            # beats an AttributeError from deep in the term builder.
+            raise ValueError(
+                f"option “{opt.label}” names no entity to contribute")
         return inter.entities.get(ent.iri, ent.label)
 
     def _case1(self, inter: Interaction, prop: Proposal, opt: Option) -> str:

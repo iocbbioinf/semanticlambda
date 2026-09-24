@@ -53,7 +53,8 @@ def build_prompt(record: QueryRecord, include_term: bool = True) -> str:
     lines.append("A user asked the question below. Before answering, they went "
                  "through a clarification process: for each unclear point in "
                  "their question, they were asked what they meant and chose an "
-                 "answer. That record is given after the question.")
+                 "answer. That record is given after the question. "
+                 "Structure the response and higlight main results. ")
     lines.append("")
     lines.append("THE QUESTION")
     lines.append(f"  {record.query}")

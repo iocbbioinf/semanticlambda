@@ -105,6 +105,8 @@ class MockSource:
                 ],
             )
 
+        # ONE pair: reflection sees this point from its question side and its
+        # answer side, over one shared node. There is no rival pair to offer.
         return Proposal(
             case=3, point=subquery or base,
             question=f"Is “{base}” better seen as a question and an answer?",
@@ -113,9 +115,6 @@ class MockSource:
                        entity_a=Entity(f"{here.iri}-cause", f"cause of {base}"),
                        entity_b=Entity(f"{here.iri}-effect", f"effect of {base}"),
                        rationale="two sides of the same point"),
-                Option("general held against particular",
-                       entity_a=Entity(f"{here.iri}-gen", f"{base} in general"),
-                       entity_b=Entity(f"{here.iri}-part", f"this {base}")),
             ],
         )
 
@@ -130,21 +129,45 @@ class AgentSource:
     _SCHEMA = {
         "type": "object",
         "properties": {
-            "case": {"type": "integer", "description": "1, 2 or 3; 0 if clear"},
-            "point": {"type": "string"},
-            "question": {"type": "string"},
+            "case": {"type": "integer",
+                     "description": "1 the words are vague; 2 they are definite "
+                                    "but what they are for is not; 3 they hold "
+                                    "a question and its answer together; "
+                                    "0 nothing is unclear here"},
+            "point": {"type": "string",
+                      "description": "the words being read, verbatim"},
+            "question": {"type": "string",
+                         "description": "the question put to the user"},
             "retype": {"type": "string",
                        "description": "what the point is asking about"},
             "options": {
                 "type": "array",
+                "description": "2-4 rival readings for case 1 and 2; EXACTLY "
+                               "ONE for case 3, whose single pair is the "
+                               "point's question side and answer side, not a "
+                               "choice between splits",
                 "items": {
                     "type": "object",
                     "properties": {
-                        "label": {"type": "string"},
-                        "rationale": {"type": "string"},
-                        "entity": {"type": "string"},
-                        "entity_a": {"type": "string"},
-                        "entity_b": {"type": "string"},
+                        "label": {"type": "string",
+                                  "description": "case 1: a meaning of the "
+                                                 "words; case 2: a question "
+                                                 "they could answer; case 3: "
+                                                 "what the pair is"},
+                        "rationale": {"type": "string",
+                                      "description": "one clause: why this "
+                                                     "reading is available"},
+                        "entity": {"type": "string",
+                                   "description": "CASES 1 AND 2 ONLY, and "
+                                                  "REQUIRED there: what this "
+                                                  "option is about. Leave out "
+                                                  "for case 3"},
+                        "entity_a": {"type": "string",
+                                     "description": "CASE 3 ONLY, required: "
+                                                    "the QUESTION side"},
+                        "entity_b": {"type": "string",
+                                     "description": "CASE 3 ONLY, required: "
+                                                    "the ANSWER side"},
                     },
                     "required": ["label"],
                 },
@@ -198,31 +221,80 @@ class AgentSource:
 
     def propose(self, query: str, subquery: str, term, here: Entity,
                 closed: list[str]) -> Proposal:
+        # THE THREE CASES MUST BE TOLD APART BY SOMETHING VISIBLE IN THE QUERY.
+        # Described from the calculus ("what they have is an answer") they mean
+        # nothing to a delegate that does not know the calculus, so it fills in
+        # the first case it understands and every step comes back as case 1.
+        # Each is therefore given a TEST on the words being read, a worked
+        # example, and the fields it must fill — and the order is not a ranking.
         prompt = (
-            "A user is clarifying their question one point at a time.\n\n"
+            "Don't use context.\n"
+            "A user is clarifying their question one point at a time. Do NOT "
+            "answer the question; find what is unclear in the part being "
+            "read.\n\n"
             f"QUESTION: {query}\n"
             f"THE PART BEING READ: {subquery}\n"
             f"WHERE THEY STAND: {here.short()}\n\n"
-            "If something here is still unclear, choose ONE shape:\n"
-            "  case 1 — the point needs saying what it refers to; give the "
-            "question and 2-4 answers to choose between.\n"
-            "  case 2 — what they have is an answer; give 2-4 questions it "
-            "could be answering.\n"
-            "  case 3 — the point is really a question and an answer held "
-            "together; give 2-4 such pairs.\n"
-            "If nothing is unclear, return case 0.")
+            "Choose the ONE case that fits best (most clarifies)"
+            "  case 1 — THE WORDS ARE VAGUE. They could name several different "
+            "things, and which one is meant changes the answer.\n"
+            "    FILL: `question` asking which is meant; 2-4 `options`, each "
+            "with a `label` and the `entity` it means.\n\n"
+            "  case 2 — THE WORDS ARE ALREADY DEFINITE, but why they were asked "
+            "for is not. The user named something specific; what is unclear is "
+            "the larger question it serves, because that decides what a good "
+            "answer includes.\n"
+            "what they are FOR?\n"
+            "    e.g. “the human 5-HT2C receptor” is not vague — but is it "
+            "asked as a drug target, as a selectivity counter-screen, or as a "
+            "sequence?\n"
+            "    FILL: 2-4 `options`, each `label` a question these words could "
+            "be answering, with the `entity` that question is about.\n\n"
+            "  case 3 — THE WORDS COULD BE CLARIFIED by giving question/answer pair\n"
+            "    FILL: EXACTLY ONE `option`: `entity_a` the question side, "
+            "`entity_b` the answer side. No rival pairs.\n\n"
+            "If nothing here is unclear, return case 0 and no options.")
         data = self.transport.invoke(prompt, self._SCHEMA)
         case = int(data.get("case") or 0)
         if case not in (1, 2, 3):
             return Proposal(case=0)
+        # AN OPTION THE CASE CANNOT USE IS DROPPED HERE, at the boundary. The
+        # schema requires only `label`, and `_ent` returns None for a missing or
+        # blank entity string, so a delegate that names an option without saying
+        # what it maps to would otherwise reach `_operand` as `entity=None` and
+        # crash the step the user just clicked. Each case has its own
+        # requirement (see `Option`): 1 and 2 need `entity`, 3 needs BOTH sides.
         opts = []
         for o in (data.get("options") or []):
-            opts.append(Option(
-                label=o.get("label", ""), rationale=o.get("rationale", ""),
-                entity=self._ent(o.get("entity", "")),
-                entity_a=self._ent(o.get("entity_a", "")),
-                entity_b=self._ent(o.get("entity_b", "")),
-            ))
+            label = (o.get("label") or "").strip()
+            if not label:
+                continue
+            ent = self._ent(o.get("entity", ""))
+            ent_a = self._ent(o.get("entity_a", ""))
+            ent_b = self._ent(o.get("entity_b", ""))
+            # THE FIELD, NOT THE MEANING, IS WHAT GOES WRONG. A delegate that
+            # picked the right case and then put the entity in the neighbouring
+            # field loses every option below and the step degrades to case 0 —
+            # which reads as "it never picks case 2 or 3". Recover only where
+            # the intent is unambiguous: one side named under the other case's
+            # field. Never invent a side that was not sent.
+            if case in (1, 2) and ent is None and ent_b is None:
+                ent, ent_a = ent_a, None
+            elif case == 3 and ent is not None and (ent_a is None) != (ent_b is None):
+                if ent_a is None:
+                    ent_a, ent = ent, None
+                else:
+                    ent_b, ent = ent, None
+            opt = Option(
+                label=label, rationale=o.get("rationale", ""),
+                entity=ent, entity_a=ent_a, entity_b=ent_b,
+            )
+            if case == 3:
+                if opt.entity_a is None or opt.entity_b is None:
+                    continue
+            elif opt.entity is None and opt.closed_name is None:
+                continue
+            opts.append(opt)
         return Proposal(case=case, point=data.get("point", ""),
                         question=data.get("question", ""),
                         retype=self._ent(data.get("retype", "")),
