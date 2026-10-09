@@ -103,8 +103,20 @@ PAGE = """<!doctype html>
   .ans > :first-child {{ margin-top:0; }}
   .ans > :last-child {{ margin-bottom:0; }}
   .ans h3, .ans h4, .ans h5, .ans h6 {{ font-size:1rem; margin:1.2rem 0 .4rem; }}
-  .ans ul, .ans ol {{ padding-left:1.3rem; }}
+  .ans ul, .ans ol {{ padding-left:1.5rem; margin:.6rem 0; }}
   .ans li {{ margin:.35rem 0; }}
+  .ans li > ul, .ans li > ol {{ margin:.25rem 0; }}
+  .ans hr {{ border:0; border-top:1px solid var(--line); margin:1.2rem 0; }}
+  .ans blockquote {{ margin:.8rem 0; padding:.2rem 0 .2rem .9rem;
+    border-left:3px solid var(--line); color:var(--dim); }}
+  .ans pre {{ background:var(--bg); border:1px solid var(--line);
+    border-radius:6px; padding:.7rem .8rem; overflow-x:auto; }}
+  .ans pre code {{ border:0; padding:0; background:none; }}
+  .ans table {{ border-collapse:collapse; margin:.8rem 0; display:block;
+    overflow-x:auto; font-size:.92rem; }}
+  .ans th, .ans td {{ border:1px solid var(--line); padding:.35rem .6rem;
+    text-align:left; vertical-align:top; }}
+  .ans th {{ background:var(--bg); }}
   .ans code {{ font-family:ui-monospace,monospace; font-size:.9em;
     background:var(--bg); border:1px solid var(--line); border-radius:4px;
     padding:.05rem .3rem; }}
@@ -141,57 +153,155 @@ _MD_INLINE = [
     (re.compile(r"`([^`]+)`"), r"<code>\1</code>"),
 ]
 
-_MD_BULLET = re.compile(r"^\s*[-*+]\s+(.*)$")
-_MD_NUMBER = re.compile(r"^\s*(\d+)[.)]\s+(.*)$")
-_MD_HEADING = re.compile(r"^\s*(#{1,6})\s+(.*)$")
+_MD_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
+
+_MD_BULLET = re.compile(r"^(\s*)[-*+]\s+(.*)$")
+_MD_NUMBER = re.compile(r"^(\s*)(\d+)[.)]\s+(.*)$")
+_MD_HEADING = re.compile(r"^\s*(#{1,6})\s+(.*?)\s*#*\s*$")
+_MD_RULE = re.compile(r"^\s*([-*_])(\s*\1){2,}\s*$")
+_MD_FENCE = re.compile(r"^\s*(```|~~~)")
+_MD_QUOTE = re.compile(r"^\s*&gt;\s?(.*)$")          # `>` is escaped by now
+_MD_TABLE_SEP = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
 
 
 def _md_inline(text: str) -> str:
     for pat, sub in _MD_INLINE:
         text = pat.sub(sub, text)
-    return text
+    # Only http(s) targets: the text is escaped, but `javascript:` is not HTML.
+    return _MD_LINK.sub(r'<a href="\2" rel="noopener noreferrer">\1</a>', text)
+
+
+def _md_indent(line: str) -> int:
+    return len(line.expandtabs(4)) - len(line.expandtabs(4).lstrip())
+
+
+def _md_cells(line: str) -> list[str]:
+    line = line.strip()
+    if line.startswith("|"):
+        line = line[1:]
+    if line.endswith("|"):
+        line = line[:-1]
+    return [c.strip() for c in line.split("|")]
 
 
 def markdown(text: str) -> str:
-    """The small subset of Markdown a delegate's answer actually uses.
+    """The subset of Markdown a delegate's answer actually uses.
 
     ESCAPING COMES FIRST — the input is escaped here, not by the caller, so
     there is no way to call this on unescaped text by mistake. What it handles:
-    headings, bullet and numbered lists, bold, italic and inline code. Anything
-    else is left as the escaped text it already is.
+    headings, rules, nested bullet and numbered lists, block quotes, tables,
+    fenced code, bold, italic, inline code and http(s) links. Anything else is
+    left as the escaped text it already is.
+
+    LISTS SURVIVE BLANK LINES. Models space their numbered items apart and put
+    sub-bullets or a further line under an item; closing the list at either
+    would restart the numbering at 1 for every item. A list closes only when
+    unindented text follows a blank line, or a block of another kind begins.
     """
-    out, lst = [], None          # lst: None | "ul" | "ol"
+    lines = e("" if text is None else text).split("\n")
+    out: list[str] = []
+    stack: list[tuple[int, str]] = []    # open lists: (indent, "ul" | "ol")
+    blank = False                        # a blank line since the last content
 
-    def close():
-        nonlocal lst
-        if lst:
-            out.append(f"</{lst}>")
-            lst = None
+    def close_to(indent: int) -> None:
+        """Close every list nested deeper than `indent`."""
+        while stack and stack[-1][0] > indent:
+            out.append(f"</li></{stack.pop()[1]}>")
 
-    for raw in e("" if text is None else text).split("\n"):
-        line = raw.rstrip()
+    def close_all() -> None:
+        close_to(-1)
+
+    i = 0
+    while i < len(lines):
+        line = lines[i].rstrip()
+        i += 1
         if not line.strip():
-            close()
+            blank = True
             continue
+        was_blank, blank = blank, False
+
+        if _MD_FENCE.match(line):
+            close_all()
+            code = []
+            while i < len(lines) and not _MD_FENCE.match(lines[i]):
+                code.append(lines[i])
+                i += 1
+            i += 1                                   # the closing fence
+            out.append("<pre><code>" + "\n".join(code) + "</code></pre>")
+            continue
+
         h = _MD_HEADING.match(line)
         if h:
-            close()
+            close_all()
             n = min(len(h.group(1)) + 2, 6)      # page h1 is the title
-            out.append(f"<h{n}>{_md_inline(h.group(2).strip())}</h{n}>")
+            out.append(f"<h{n}>{_md_inline(h.group(2))}</h{n}>")
             continue
+
+        if _MD_RULE.match(line):                 # before bullets: `* * *`
+            close_all()
+            out.append("<hr>")
+            continue
+
         b = _MD_BULLET.match(line)
         n_ = _MD_NUMBER.match(line)
         if b or n_:
-            want = "ul" if b else "ol"
-            if lst != want:
-                close()
-                out.append(f"<{want}>")
-                lst = want
-            out.append(f"<li>{_md_inline((b or n_).group(b and 1 or 2).strip())}</li>")
+            indent = _md_indent(line)
+            kind = "ul" if b else "ol"
+            body = b.group(2) if b else n_.group(3)
+            close_to(indent)
+            if stack and stack[-1][0] == indent and stack[-1][1] != kind:
+                out.append(f"</li></{stack.pop()[1]}>")
+            if stack and stack[-1][0] == indent:
+                out.append("</li><li>")
+            else:
+                # a new list — at top level, or nested inside the open item
+                start = int(n_.group(2)) if n_ else 1
+                attr = f' start="{start}"' if start != 1 else ""
+                out.append(f"<{kind}{attr}><li>")
+                stack.append((indent, kind))
+            out.append(_md_inline(body.strip()))
             continue
-        close()
+
+        if stack and (_md_indent(line) > 0 or not was_blank):
+            # more of the open item: an indented paragraph, or a lazy line
+            close_to(_md_indent(line))
+            if stack:
+                sep = "<br><br>" if was_blank else "<br>"
+                out.append(sep + _md_inline(line.strip()))
+                continue
+
+        close_all()
+
+        if (line.lstrip().startswith("|") and i < len(lines)
+                and _MD_TABLE_SEP.match(lines[i]) and "-" in lines[i]):
+            head = _md_cells(line)
+            i += 1
+            rows = []
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                rows.append(_md_cells(lines[i]))
+                i += 1
+            out.append("<table><thead><tr>"
+                       + "".join(f"<th>{_md_inline(c)}</th>" for c in head)
+                       + "</tr></thead><tbody>")
+            for r in rows:
+                out.append("<tr>" + "".join(f"<td>{_md_inline(c)}</td>"
+                                            for c in r) + "</tr>")
+            out.append("</tbody></table>")
+            continue
+
+        q = _MD_QUOTE.match(line)
+        if q:
+            quoted = [q.group(1)]
+            while i < len(lines) and _MD_QUOTE.match(lines[i]):
+                quoted.append(_MD_QUOTE.match(lines[i]).group(1))
+                i += 1
+            out.append("<blockquote>"
+                       + "<br>".join(_md_inline(x.strip()) for x in quoted)
+                       + "</blockquote>")
+            continue
+
         out.append(f"<p>{_md_inline(line.strip())}</p>")
-    close()
+    close_all()
     return "".join(out)
 
 

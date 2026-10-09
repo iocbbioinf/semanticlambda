@@ -348,6 +348,33 @@ check("heading starts below the page h1", markdown("## Notes"),
 check("a blank line closes a list",
       markdown("- one\n\nafter"), "<ul><li>one</li></ul><p>after</p>")
 
+# NUMBERING IS KEPT. Models space their items apart and nest under them; each
+# of those used to restart the list at 1.
+check("a blank line between items keeps one list",
+      markdown("1. first\n\n2. second"),
+      "<ol><li>first</li><li>second</li></ol>")
+check("sub-bullets nest inside the item",
+      markdown("1. first\n   - a\n   - b\n2. second"),
+      "<ol><li>first<ul><li>a</li><li>b</li></ul></li><li>second</li></ol>")
+check("an indented paragraph stays in the item",
+      markdown("1. first\n\n   more on it\n\n2. second"),
+      "<ol><li>first<br><br>more on it</li><li>second</li></ol>")
+check("a list resumed after text keeps its number",
+      markdown("3. third\n4. fourth"),
+      '<ol start="3"><li>third</li><li>fourth</li></ol>')
+check("a rule", markdown("a\n\n---\n\nb"), "<p>a</p><hr><p>b</p>")
+check("a table", markdown("| x | y |\n|---|:-:|\n| 1 | **2** |"),
+      "<table><thead><tr><th>x</th><th>y</th></tr></thead><tbody>"
+      "<tr><td>1</td><td><strong>2</strong></td></tr></tbody></table>")
+check("a block quote", markdown("> note\n> more"),
+      "<blockquote>note<br>more</blockquote>")
+check("fenced code is not formatted", markdown("```\na *b* <c>\n```"),
+      "<pre><code>a *b* &lt;c&gt;</code></pre>")
+check("an http link", markdown("see [PDB](https://www.rcsb.org)"),
+      '<p>see <a href="https://www.rcsb.org" rel="noopener noreferrer">PDB</a></p>')
+check("a javascript: link is not a link", markdown("[x](javascript:alert(1))"),
+      "<p>[x](javascript:alert(1))</p>")
+
 # ESCAPING COMES FIRST, so no tag the delegate writes can reach the page.
 check("html is escaped, not rendered", markdown("<script>alert(1)</script>"),
       "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>")
