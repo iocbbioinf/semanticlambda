@@ -9,7 +9,7 @@ left, the session builds the INTERACTION QUESTION and is done.
     decompose query -> subqueries, each mapped to an entity
     loop:
         point = the unclear point of the current subquery
-        if point:  case 1 | case 2 | case 3 | skip(4) | resume(5)
+        if point:  case 1 | skip(4) | resume(5)
         else:      close; take the next subquery; exit when none left
 
 NO I/O HERE. Nothing in this module talks to a model, a database or a terminal.
@@ -21,14 +21,17 @@ over it. The delegate that invents questions and options sits behind
 THE LAMBDALIST. The interaction question is `lam E1...lam En.(t)`, and the
 binders are the points nobody settled:
 
-    case 4  skipping a case 1 or case 2 point appends its question type
+    case 4  skipping a point appends its question type
     case 5  resuming appends every point still open
     -       a subquery never started appends its entity
-    -       a skipped REFLECTION appends NOTHING: case 3 forks a pointer rather
-            than leaving a question unanswered, so there is no question type
 
 Order is the order they were left in, and one entity binds once however often it
 was left (a repeated binder would bind nothing the second time).
+
+ONLY CASE 1 IS IN THE LOOP. Every unclear point is clarified by contraction
+option 1 — the user chooses what the words refer to and moves there. Contraction
+option 2 and reflection are not offered; a proposal of any other case is treated
+as "nothing unclear here".
 """
 
 from __future__ import annotations
@@ -38,7 +41,7 @@ from typing import Optional, Protocol
 
 from optimal_lambda import LamAbs, LamVar
 from interaction_state import (
-    EntityRegistry, LamApp, LamFan, Path, Pointer, PointerSet,
+    EntityRegistry, LamApp, Path, Pointer, PointerSet,
     replace_at, subterm_at, type_of,
 )
 
@@ -61,18 +64,12 @@ class Entity:
 class Option:
     """One offered way of clarifying the point.
 
-        case 1   `entity` is the ANSWER (D); the user moves there.
-                 `closed_name` instead names an already-closed interaction,
-                 which the spec admits as an answer.
-        case 2   `entity` is the QUESTION (A); the user stays.
-        case 3   `entity_a` / `entity_b` are the question and the answer, held
-                 against one another.
+    `entity` is the ANSWER (D); the user moves there. `closed_name` instead
+    names an already-closed interaction, which the spec admits as an answer.
     """
     label: str
     rationale: str = ""
     entity: Optional[Entity] = None
-    entity_a: Optional[Entity] = None
-    entity_b: Optional[Entity] = None
     closed_name: Optional[str] = None
 
 
@@ -80,12 +77,12 @@ class Option:
 class Proposal:
     """What is offered at one point.
 
-        case  1 | 2 | 3 | 0        0 means "no unclear point here"
+        case  1 | 0        0 means "no unclear point here"
         point the words of the subquery at issue
-        question  the question put to the user (cases 1 and 3)
+        question  the question put to the user
         options   up to 4; a choice needs at least 2
         retype    C — what the function-position term is typed as at the
-                  application this step builds (cases 1 and 2)
+                  application this step builds
     """
     case: int
     point: str = ""
@@ -145,8 +142,7 @@ class Interaction:
     term: object
     pointers: PointerSet
     entities: EntityRegistry
-    # pid -> the entity that pointer stands at. Navigation uses this, NOT a
-    # reflection's cast.
+    # pid -> the entity that pointer stands at.
     pointer_entities: dict[int, Entity] = field(default_factory=dict)
     steps: list[Step] = field(default_factory=list)
 
@@ -254,16 +250,9 @@ class QuerySession:
         p = self.source.propose(self.query, inter.subquery, inter.term, here,
                                 [c.name for c in self.closed])
         p = p.trimmed()
-        # A single option is not a choice — for CONTRACTION. Cases 1 and 2 ask
-        # the user to pick between rival senses, so one option offers nothing.
-        # REFLECTION IS NOT LIKE THAT: case 3 sees ONE point as a (question,
-        # answer) tuple over ONE shared node (`_case3`), and the choice it puts
-        # is whether the point splits that way at all — which is a choice with a
-        # single pair on the table. Requiring two pairs there asked the delegate
-        # to invent a rival split it had no reason to believe in.
-        if p.case in (1, 2) and len(p.options) < 2:
-            return Proposal(case=0)
-        if p.case == 3 and not p.options:
+        # Only case 1 is in the loop. A single option is not a choice: the
+        # user is asked to pick between rival senses, so one offers nothing.
+        if p.case != 1 or len(p.options) < 2:
             return Proposal(case=0)
         return p
 
@@ -272,21 +261,12 @@ class QuerySession:
         inter = self.current
         if inter is None or inter.act is None:
             raise ValueError("no open interaction")
-        if prop.case == 1:
-            line = self._case1(inter, prop, opt)
-        elif prop.case == 2:
-            line = self._case2(inter, prop, opt)
-        elif prop.case == 3:
-            line = self._case3(inter, prop, opt)
-        else:
+        if prop.case != 1:
             raise ValueError(f"not an applicable case: {prop.case}")
+        line = self._case1(inter, prop, opt)
 
-        answer = opt.label
-        if prop.case == 3 and opt.entity_a is not None:
-            answer = (f"{opt.label} — {opt.entity_a.short()} (question) · "
-                      f"{opt.entity_b.short()} (answer)")
         inter.steps.append(Step(case=prop.case, point=prop.point,
-                                question=prop.question, answer=answer,
+                                question=prop.question, answer=opt.label,
                                 calculus=line, rationale=opt.rationale))
         self._steps_taken += 1
         return line
@@ -317,7 +297,7 @@ class QuerySession:
                     return _copy(c.term, inter.entities)
         ent = opt.entity
         if ent is None:
-            # Reached only if a source offered an option the case cannot use.
+            # Reached only if a source offered an option with nothing to graft.
             # `AgentSource` drops those at its boundary; saying so plainly here
             # beats an AttributeError from deep in the term builder.
             raise ValueError(
@@ -354,83 +334,17 @@ class QuerySession:
         c = prop.retype.short() if prop.retype else "?"
         return f"[1] contraction opt.1 — [ta]={c}, moved → {moved}"
 
-    def _case2(self, inter: Interaction, prop: Proposal, opt: Option) -> str:
-        """Contraction option 2 — app(a, tb); the user STAYS.
-
-            [app(a,tb)] = B,  [a] = A in this application
-
-        The current interaction is the ANSWER; the option is the question it
-        answers. So the operand becomes the FUNCTION, retyped to A, and the
-        stayed-at term is the argument. The pointer does not move: the user is
-        still at B.
-        """
-        act = inter.act
-        stayed = subterm_at(inter.term, act.path)
-        operand = self._operand(inter, opt)
-        # For case 2 the retype names what the OPERAND is in this application —
-        # the question A the current interaction answers.
-        retype = self._register(inter, prop.retype)
-        if retype is None and opt.entity is not None:
-            retype = opt.entity.iri
-        inter.term = replace_at(inter.term, act.path,
-                                LamApp(func=operand, arg=stayed,
-                                       func_type=retype))
-        inter.pointers.after_contraction(act, option=2)
-        # the user STAYS: pointer_entities is unchanged
-        asked = opt.entity.short() if opt.entity else (opt.closed_name or "?")
-        return f"[2] contraction opt.2 — reached from {asked}"
-
-    def _case3(self, inter: Interaction, prop: Proposal, opt: Option) -> str:
-        """Reflection — app(tc, tc) over ONE shared tc.
-
-            P = P - {actPtr} ∪ {left, right},  both [tc] = C
-
-        The point is seen as a (question, answer) tuple. The interaction forks
-        into the context of A and the context of B; both occurrences are the
-        same node, and both still type as C. The casts record which side is the
-        question and which the answer.
-        """
-        act = inter.act
-        here = inter.here()
-        stayed = subterm_at(inter.term, act.path)
-        ea, eb = opt.entity_a, opt.entity_b
-        # Register both casts: like a retype, a cast is stored on the fan as an
-        # iri only, so its label would otherwise be lost.
-        self._register(inter, ea)
-        self._register(inter, eb)
-        inter.term = replace_at(inter.term, act.path,
-                                LamFan(principal=stayed,
-                                       grey_cast=ea.iri, black_cast=eb.iri))
-        left, right = inter.pointers.after_reflection(act, ea.iri, eb.iri)
-        # Navigation uses the shared subject's own entity, not the cast: both
-        # occurrences stand at C.
-        inter.pointer_entities.pop(act.pid, None)
-        inter.pointer_entities[left.pid] = here
-        inter.pointer_entities[right.pid] = here
-        return (f"[3] reflection — {ea.short()} (question) · "
-                f"{eb.short()} (answer)")
-
     # ── cases 4 and 5: leaving a point ────────────────────────────────────
 
     def skip(self, prop: Optional[Proposal] = None) -> None:
-        """Case 4 — skip this point.
-
-        Skipping a case 1 or case 2 point appends its question type to the
-        lambdaList. Skipping a REFLECTION appends nothing: case 3 forks rather
-        than leaving a question unanswered.
-        """
+        """Case 4 — skip this point; its question type joins the lambdaList."""
         inter = self.current
         if inter is None or inter.act is None:
             return
         act = inter.act
-        # A reflection's occurrence binds nothing — by the case, and also when
-        # no proposal is given, by where the pointer came from.
-        reflected = act.origin in ("reflect-left", "reflect-right")
-        if (prop is None and not reflected) or (prop is not None
-                                                and prop.case in (1, 2)):
-            ent = (prop.retype if (prop and prop.retype)
-                   else inter.pointer_entities.get(act.pid))
-            self._bind(ent)
+        ent = (prop.retype if (prop and prop.retype)
+               else inter.pointer_entities.get(act.pid))
+        self._bind(ent)
         inter.pointers.skip(act)
 
     def resume(self) -> list[Entity]:
@@ -444,14 +358,6 @@ class QuerySession:
         appended: list[Entity] = []
         if inter is not None:
             for p in inter.pointers.resume():
-                # A REFLECTION'S OCCURRENCE BINDS NOTHING, for the same reason a
-                # skipped reflection does not: case 3 forks the interaction
-                # rather than leaving a question unanswered, so there is no
-                # question type to bind. Without this, resuming after a
-                # reflection would report both of its occurrences as "left
-                # open" when the user had in fact settled that point.
-                if p.origin in ("reflect-left", "reflect-right"):
-                    continue
                 ent = inter.pointer_entities.get(p.pid)
                 if self._bind(ent):
                     appended.append(ent)
@@ -535,9 +441,6 @@ class QuerySession:
 def _occurs(t, iri: str) -> bool:
     if isinstance(t, LamVar):
         return t.iri == iri
-    if isinstance(t, LamFan):
-        return (_occurs(t.principal, iri)
-                or _occurs(t.grey_ctx, iri) or _occurs(t.black_ctx, iri))
     if isinstance(t, LamApp) or hasattr(t, "func"):
         return _occurs(t.func, iri) or _occurs(t.arg, iri)
     if isinstance(t, LamAbs):
@@ -553,11 +456,6 @@ def _copy(t, reg: EntityRegistry):
     """
     if isinstance(t, LamVar):
         return reg.get(t.iri, t.label)
-    if isinstance(t, LamFan):
-        return LamFan(principal=_copy(t.principal, reg),
-                      grey_ctx=_copy(t.grey_ctx, reg),
-                      black_ctx=_copy(t.black_ctx, reg),
-                      grey_cast=t.grey_cast, black_cast=t.black_cast)
     if isinstance(t, LamAbs):
         return LamAbs(var=reg.get(t.var.iri, t.var.label),
                       qid=t.qid, body=_copy(t.body, reg))

@@ -43,7 +43,7 @@ def propose(reply):
     return src.propose("q", "part", None, Entity("here", "here"), [])
 
 
-print("=== cases 1 and 2 need an entity ===")
+print("=== case 1 needs an entity ===")
 
 p = propose({"case": 1, "question": "which?", "options": [
     {"label": "names an entity", "entity": "binding affinity"},
@@ -54,59 +54,12 @@ check(p.case == 1, "case survives")
 check([o.label for o in p.options] == ["names an entity"],
       "options with no entity are dropped")
 
-p = propose({"case": 2, "options": [
-    {"label": "no entity"}, {"label": "also none", "entity": ""},
-]})
-check(p.options == [], "a case 2 option with no entity is dropped too")
+print("=== cases 2 and 3 are not in the loop ===")
 
-print("=== case 3 needs BOTH sides ===")
-
-p = propose({"case": 3, "question": "split?", "options": [
-    {"label": "both sides", "entity_a": "the cause", "entity_b": "the effect"},
-    {"label": "only one side", "entity_a": "the cause"},
-    {"label": "the wrong field", "entity": "the cause"},
-]})
-check([o.label for o in p.options] == ["both sides"],
-      "only the option with both sides survives")
-check(p.options[0].entity_a is not None and p.options[0].entity_b is not None,
-      "and it carries them")
-
-print("=== a misplaced field is recovered, a missing one is not ===")
-
-# The delegate picked the case correctly and then filled the neighbouring
-# field. Recovering that is the difference between case 2/3 working and the
-# step degrading to case 0, which reads as "it only ever picks case 1".
-p = propose({"case": 2, "options": [
-    {"label": "as a drug target", "entity_a": "drug target"},
-    {"label": "as a counter-screen", "entity_a": "selectivity screen"},
-]})
-check(p.case == 2, "case 2 survives a misplaced entity")
-check([o.entity.label for o in p.options if o.entity]
-      == ["drug target", "selectivity screen"],
-      "entity_a is read as entity for case 2")
-
-p = propose({"case": 3, "options": [
-    {"label": "criterion and evidence", "entity": "reaches the brain",
-     "entity_b": "measured BBB permeability"},
-]})
-check(p.case == 3 and len(p.options) == 1, "case 3 survives a misplaced side")
-check(p.options[0].entity_a.label == "reaches the brain"
-      and p.options[0].entity_b.label == "measured BBB permeability",
-      "entity fills the empty side, in the right order")
-
-# But a side that was never sent is NOT invented. The option is dropped, and
-# the empty proposal becomes case 0 one layer up, in `QuerySession.propose`.
-p = propose({"case": 3, "options": [
-    {"label": "only a question side", "entity_a": "reaches the brain"},
-]})
-check(p.options == [], "case 3 with one side only is still dropped")
-
-p = propose({"case": 1, "options": [
-    {"label": "both sides sent", "entity_a": "a", "entity_b": "b"},
-    {"label": "plain", "entity": "c"},
-]})
-check([o.label for o in p.options] == ["plain"],
-      "a full pair is not squeezed into case 1")
+for c in (2, 3):
+    check(propose({"case": c, "options": [
+        {"label": "x", "entity": "a"}, {"label": "y", "entity": "b"},
+    ]}).case == 0, f"case {c} becomes case 0")
 
 print("=== an option still needs a label ===")
 

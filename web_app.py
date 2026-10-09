@@ -45,8 +45,6 @@ COOKIE = "sl_session"
 # What each case does, for the verbose panel.
 CASE_LABEL = {
     1: "case 1 — contraction opt.1: app(ta, td), you MOVE to the answer",
-    2: "case 2 — contraction opt.2: app(a, tb), you STAY; it is the answer",
-    3: "case 3 — reflection: app(tc, tc) shared, your reading FORKS",
 }
 
 
@@ -82,9 +80,11 @@ PAGE = """<!doctype html>
     border-radius:10px; padding:1.1rem 1.2rem; margin:1rem 0; }}
   label {{ display:block; margin:.6rem 0 .3rem; color:var(--dim);
     font-size:.85rem; }}
-  input[type=text] {{ width:100%; padding:.7rem .8rem; font:inherit;
+  input[type=text], textarea {{ width:100%; padding:.7rem .8rem; font:inherit;
     border:1px solid var(--line); border-radius:8px;
     background:var(--bg); color:var(--fg); }}
+  textarea {{ display:block; resize:vertical; min-height:4.5em;
+    line-height:1.45; overflow:hidden; field-sizing:content; }}
   button {{ font:inherit; padding:.6rem 1.1rem; border-radius:8px;
     border:1px solid var(--line); background:var(--card); color:var(--fg);
     cursor:pointer; }}
@@ -251,9 +251,7 @@ def verbose_panel(sess, prop: Optional[Proposal] = None) -> str:
                    f'<span>{e(CASE_LABEL.get(prop.case, prop.case))}</span></div>')
         opts = "<br>".join(
             f"{i + 1}. {e(o.label)} → <em>"
-            + e(o.entity.short() if o.entity else
-                (f"{o.entity_a.short()} · {o.entity_b.short()}"
-                 if o.entity_a else o.closed_name or "?"))
+            + e(o.entity.short() if o.entity else o.closed_name or "?")
             + "</em>"
             for i, o in enumerate(prop.options))
         out.append(f'<div class="vrow"><span class="vk">options</span>'
@@ -271,9 +269,8 @@ def verbose_panel(sess, prop: Optional[Proposal] = None) -> str:
         if prop.retype:
             names.setdefault(prop.retype.iri, prop.retype.label)
         for o in prop.options:
-            for x in (o.entity, o.entity_a, o.entity_b):
-                if x is not None:
-                    names.setdefault(x.iri, x.label)
+            if o.entity is not None:
+                names.setdefault(o.entity.iri, o.entity.label)
     if sess.current is not None:
         t = term_text(sess.current.term, names)
         ps = sess.current.pointers
@@ -377,11 +374,26 @@ def create_app(source=None, store=None, answerer=None, guard=None,
           {error}
           <form method="post" action="/query" class="card">
             <label for="q">Your question</label>
-            <input type="text" id="q" name="query" autofocus required
-                   maxlength="500" placeholder="ask in your own words">
+            <textarea id="q" name="query" rows="3" autofocus required
+                      maxlength="500" placeholder="ask in your own words"></textarea>
             {widget}
             <div class="row"><button class="primary" type="submit">Read it</button></div>
-          </form>""", head=head)
+          </form>
+          <script>
+            // The whole question stays in view: the box grows with the text.
+            // Enter submits, as the one-line field did; Shift+Enter breaks a line.
+            const q = document.getElementById("q");
+            const fit = () => {{ q.style.height = "auto";
+                                 q.style.height = q.scrollHeight + 2 + "px"; }};
+            q.addEventListener("input", fit);
+            q.addEventListener("keydown", ev => {{
+              if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) {{
+                ev.preventDefault();
+                q.form.requestSubmit();
+              }}
+            }});
+            fit();
+          </script>""", head=head)
 
     @app.post("/query")
     def query_submit(request: Request, query: str = Form(""),

@@ -127,23 +127,6 @@ ok("told not to silently pick a reading",
 ok("no open section when nothing was left",
    "WHAT THEY LEFT OPEN" not in prompt2)
 
-print("=== a reflection reads back in the term ===")
-
-p3 = Proposal(case=3, point="aspirin", question="a pair?",
-              options=[Option("q/a", entity_a=COX, entity_b=PAIN),
-                       Option("other", entity_a=COX, entity_b=INFL)])
-s4 = QuerySession("how does aspirin work",
-                  Scripted([("aspirin", ASPIRIN)], [p3]), user="marek")
-s4.start()
-s4.open(ASPIRIN)
-prop = s4.propose()
-s4.apply(prop, prop.options[0])
-s4.close()
-prompt4 = build_prompt(record_from_session(s4))
-ok("the fan is rendered", "▽" in prompt4)
-ok("both casts named", "COX enzymes" in prompt4 and "pain relief" in prompt4)
-ok("the pair case is explained", "question-and-answer pair" in prompt4)
-
 # term can be left out
 short = build_prompt(rec2, include_term=False)
 ok("term omitted on request", "THE READING, AS A TERM" not in short)

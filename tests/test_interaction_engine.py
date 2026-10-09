@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from optimal_lambda import LamAbs, LamVar
-from interaction_state import LamApp, LamFan, subterm_at, type_in_context, type_of
+from interaction_state import LamApp, subterm_at, type_in_context, type_of
 from interaction_engine import (
     Entity, Interaction, Option, Proposal, QuerySession,
 )
@@ -102,45 +102,20 @@ check("|P| unchanged", len(s.current.pointers), 1)
 ok("calculus line mentions the move", "moved" in line)
 check("step recorded", s.current.steps[0].answer, "to D")
 
-# ── case 2 ────────────────────────────────────────────────────────────────
-print("=== case 2: app(a,tb), user stays at B ===")
+# ── cases 2 and 3 are not in the loop ─────────────────────────────────────
+print("=== only case 1 is offered ===")
 
-p2 = Proposal(case=2, point="the bit", question="reached how?",
-              options=[Option("from A", entity=A), Option("from C", entity=C)])
-s = sess([("the bit", B)], [p2])
-s.open(B)
-prop = s.propose()
-s.apply(prop, prop.options[0])
-
-t = s.current.term
-check("[app(a,tb)] = B", type_of(t), "b")
-check("[a] in this app = A", type_in_context(t, (0,)), "a")
-check("operand is the FUNCTION", type_of(t.func), "a")
-check("stayed-at term is the ARG", type_of(t.arg), "b")
-check("user STAYED at B", s.current.here().iri, "b")
-
-# ── case 3 ────────────────────────────────────────────────────────────────
-print("=== case 3: reflection, app(tc,tc) shared ===")
-
-p3 = Proposal(case=3, point="the bit", question="as a pair?",
-              options=[Option("A/B", entity_a=A, entity_b=B),
-                       Option("A/D", entity_a=A, entity_b=D)])
-s = sess([("the bit", C)], [p3])
-s.open(C)
-prop = s.propose()
-s.apply(prop, prop.options[0])
-
-t = s.current.term
-ok("term is a fan", isinstance(t, LamFan))
-check("|P| grew by one", len(s.current.pointers), 2)
-ok("ONE shared subject", subterm_at(t, (0,)) is subterm_at(t, (1,)))
-check("both occurrences type as C (left)", type_of(subterm_at(t, (0,))), "c")
-check("both occurrences type as C (right)", type_of(subterm_at(t, (1,))), "c")
-check("question cast", t.grey_cast, "a")
-check("answer cast", t.black_cast, "b")
-pids = [p.pid for p in s.current.pointers.pointers]
-check("both stand at C",
-      [s.current.pointer_entities[p].iri for p in pids], ["c", "c"])
+for c in (2, 3):
+    s = sess([("the bit", B)], [Proposal(case=c, point="the bit",
+                                         options=[Option("A", entity=A),
+                                                  Option("D", entity=D)])])
+    s.open(B)
+    check(f"case {c} is nothing unclear", s.propose().case, 0)
+    try:
+        s.apply(Proposal(case=c, options=[]), Option("A", entity=A))
+        ok(f"case {c} cannot be applied", False)
+    except ValueError:
+        ok(f"case {c} cannot be applied", True)
 
 # ── option cap ────────────────────────────────────────────────────────────
 print("=== at most 4 options; fewer than 2 is no choice ===")
@@ -154,19 +129,6 @@ s = sess([("x", A)], [one])
 s.open(A)
 check("a single option is not a choice", s.propose().case, 0)
 
-# REFLECTION IS THE EXCEPTION. Case 3 sees ONE point as a (question, answer)
-# tuple over one shared node, so the choice it puts is whether the point splits
-# that way at all — a real choice with a single pair on the table, declinable
-# with skip. Two pairs would be a rival split the delegate had to invent.
-pair = Proposal(case=3, options=[Option("q against a", entity_a=A, entity_b=B)])
-s = sess([("x", A)], [pair])
-s.open(A)
-check("one pair IS a choice for reflection", s.propose().case, 3)
-
-s = sess([("x", A)], [Proposal(case=3, options=[])])
-s.open(A)
-check("but no pair at all is not", s.propose().case, 0)
-
 # ── case 4: skip ──────────────────────────────────────────────────────────
 print("=== case 4: skip appends the question type ===")
 
@@ -176,11 +138,6 @@ s.skip(Proposal(case=1, retype=C, options=[]))
 check("skipped case 1 binds C", [e.iri for e in s.lambda_list], ["c"])
 check("pointer stays in P", len(s.current.pointers), 1)
 check("but is not offered", s.current.pointers.open_pointers(), [])
-
-s = sess([("x", A)], [])
-s.open(A)
-s.skip(Proposal(case=3, options=[]))
-check("skipped REFLECTION binds nothing", s.lambda_list, [])
 
 # skipping the same entity twice binds once
 s = sess([("x", A)], [])
@@ -201,24 +158,6 @@ ok("never-started subqueries bound too",
    {"b", "d"} <= {e.iri for e in s.lambda_list})
 check("interaction closed by resume", s.current, None)
 ok("session is done", s.done())
-
-# A REFLECTION'S OCCURRENCES BIND NOTHING on resume either — case 3 forks
-# rather than leaving a question, so resuming after one must not report its
-# occurrences as "left open" when the user settled that point.
-s = sess([("x", C)], [p3])
-s.open(C)
-prop = s.propose()
-s.apply(prop, prop.options[0])
-s.resume()
-check("resume after a reflection binds nothing", s.lambda_list, [])
-
-# and skipping a reflected pointer with no proposal binds nothing
-s = sess([("x", C)], [p3])
-s.open(C)
-prop = s.propose()
-s.apply(prop, prop.options[0])
-s.skip()
-check("skipping a reflected pointer binds nothing", s.lambda_list, [])
 
 # ── closing and the next subquery ─────────────────────────────────────────
 print("=== closing: (t,P) -> t, then the next subquery ===")

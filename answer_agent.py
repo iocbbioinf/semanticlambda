@@ -42,8 +42,6 @@ from interaction_store import QueryRecord
 
 CASE_NAMES = {
     1: "clarified by choosing what it refers to",
-    2: "clarified by naming the question it answers",
-    3: "clarified as a question-and-answer pair",
 }
 
 

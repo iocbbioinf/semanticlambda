@@ -94,13 +94,13 @@ q = question_of(rec2)
 check("question reads back as a binder", q.var.iri, "c")
 
 # ── the round trip that matters ───────────────────────────────────────────
-print("=== sharing survives save/load (case 3) ===")
+print("=== sharing survives save/load (a stored fan) ===")
 
-p3 = Proposal(case=3, point="aspirin", question="a pair?",
-              options=[Option("A/B", entity_a=A, entity_b=B),
-                       Option("A/D", entity_a=A, entity_b=D)])
-s3 = build_session([p3])
-s3.apply(s3.propose(), p3.options[0])
+# The loop no longer reflects, but a fan saved before that must still load
+# with its subject shared — so build one directly.
+s3 = build_session([])
+s3.current.term = LamFan(principal=s3.current.term,
+                         grey_cast="a", black_cast="b")
 s3.close()
 
 rec3 = record_from_session(s3)
@@ -121,7 +121,7 @@ raw = back.interactions[0]["term"]
 check("subject stored once", raw["type"], "fan")
 ok("principal is a single node in the document", "principal" in raw)
 
-print("=== the retype survives save/load (cases 1, 2) ===")
+print("=== the retype survives save/load ===")
 
 rec1 = record_from_session(s)
 store1 = InteractionStore()
